@@ -11,18 +11,21 @@
     "apps/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "build": "npm run typecheck && npm run build --workspaces --if-present && npm run package:addons",
+    "typecheck": "tsc -p tsconfig.json --noEmit && npm run typecheck --workspaces --if-present",
+    "test": "npm run test:root && npm run test --workspaces --if-present",
+    "test:root": "tsx --test tests/*.test.ts",
     "status": "tsx apps/cli/src/index.ts status",
     "install:addon": "tsx apps/cli/src/index.ts install",
     "restore:addon": "tsx apps/cli/src/index.ts restore",
-    "mcp": "tsx apps/mcp-server/src/index.ts"
+    "mcp": "tsx apps/mcp-server/src/index.ts",
+    "package:addons": "tsx scripts/package-addons.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "@types/yazl": "^3.3.1",
     "tsx": "^4.20.0",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "yazl": "^3.3.1"
   }
 }
-

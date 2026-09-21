@@ -1,0 +1,8 @@
+## Interface: 16001
+## Title: WoW Forever Bridge
+## Notes: Passive local diagnostics for the WoW Forever development workspace.
+## Author: Harry Woodhouse
+## Version: 0.1.0
+## SavedVariables: ForeverBridgeDB
+Core.lua
+
