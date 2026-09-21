@@ -45,7 +45,12 @@ function errorResult(error: unknown) {
 }
 
 export function createWowMcpServer(options: WowMcpOptions): McpServer {
-  const server = new McpServer({ name: "wow-forever-mcp-server", version: "0.1.0" });
+  const server = new McpServer(
+    { name: "wow-forever-mcp-server", version: "0.1.0" },
+    {
+      instructions: "Use read-only WoW tools first. SavedVariables are only current after reload, logout or exit. Install and restore tools affect project addons only, always preserve a backup, and must never modify Auctionator. This server does not control gameplay, read memory, inspect packets or generate input.",
+    },
+  );
   const backupRoot = path.resolve(options.backupRoot ?? path.join(options.repoRoot, "backups", "addons"));
 
   server.registerResource(
@@ -213,4 +218,3 @@ export function createWowMcpServer(options: WowMcpOptions): McpServer {
 
   return server;
 }
-

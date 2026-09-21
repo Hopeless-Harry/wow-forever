@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "pretest": "npm run build --workspace @wow-forever/core",
     "build": "tsc -p tsconfig.json --outDir dist --declaration",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --test test/*.test.ts"
@@ -12,4 +13,3 @@
     "@wow-forever/core": "0.1.0"
   }
 }
-

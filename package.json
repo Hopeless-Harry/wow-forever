@@ -20,6 +20,7 @@
     "install:addon": "tsx apps/cli/src/index.ts install",
     "restore:addon": "tsx apps/cli/src/index.ts restore",
     "mcp": "tsx apps/mcp-server/src/index.ts",
+    "smoke:mcp": "tsx scripts/smoke-mcp.ts",
     "package:addons": "tsx scripts/package-addons.ts"
   },
   "devDependencies": {

@@ -6,8 +6,9 @@ import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { resolveWowPaths } from "@wow-forever/core";
 
 import { createWowMcpServer } from "./server.js";
+import { findProjectRoot } from "./runtime.js";
 
-const repoRoot = path.resolve(fileURLToPath(new URL("../../../", import.meta.url)));
+const repoRoot = await findProjectRoot(path.dirname(fileURLToPath(import.meta.url)));
 
 serveStdio(
   () => createWowMcpServer({ paths: resolveWowPaths(), repoRoot }),

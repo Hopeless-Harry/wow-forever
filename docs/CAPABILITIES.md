@@ -9,12 +9,15 @@
 - Back up, install and restore project addons.
 - Expose local resources and tools through MCP stdio.
 - Refuse path traversal and changes to Auctionator.
+- Detect the running Forever beta and build `1.60.1.69913` from the real installation.
+- Install ForeverBridge while keeping all 696 Auctionator files byte-identical.
 
 ## AVAILABLE
 
 - Watch whether `WowB.exe` is running.
 - Diagnose new FrameXML errors while WoW is open.
 - Read ForeverBridge saved state after WoW saves it.
+- Connect Codex after the project configuration is merged, built and Codex is restarted.
 
 ## LIMITED
 
@@ -29,4 +32,3 @@
 - Automated character control.
 - Automatic gameplay input.
 - Bypassing protected actions or combat restrictions.
-
