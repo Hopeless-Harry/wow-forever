@@ -12,6 +12,7 @@
   ],
   "scripts": {
     "build": "npm run typecheck && npm run build --workspaces --if-present && npm run package:addons",
+    "setup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Setup.ps1",
     "typecheck": "tsc -p tsconfig.json --noEmit && npm run typecheck --workspaces --if-present",
     "test": "npm run test:root && npm run test --workspaces --if-present",
     "test:root": "tsx --test tests/*.test.ts",
