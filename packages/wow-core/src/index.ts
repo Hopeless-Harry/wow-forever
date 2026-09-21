@@ -1,3 +1,4 @@
+export * from "./addon-operations.js";
 export * from "./addons.js";
 export * from "./client.js";
 export * from "./config.js";
