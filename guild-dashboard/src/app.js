@@ -1,8 +1,14 @@
 import Fastify from "fastify";
+import { readFileSync } from "node:fs";
 
 import { renderDashboard, renderResponses, renderStatistics } from "./views/render.js";
 
 const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+const ASSETS = new Map([
+  ["styles.css", { type: "text/css; charset=utf-8", body: readFileSync(new URL("../public/styles.css", import.meta.url), "utf8") }],
+  ["responses.js", { type: "text/javascript; charset=utf-8", body: readFileSync(new URL("../public/responses.js", import.meta.url), "utf8") }],
+  ["live-refresh.js", { type: "text/javascript; charset=utf-8", body: readFileSync(new URL("../public/live-refresh.js", import.meta.url), "utf8") }]
+]);
 
 function publicPayload(snapshot) {
   return {
@@ -31,6 +37,11 @@ export function buildApp({ dataService, logger = true }) {
   app.get("/", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderDashboard(dataService.snapshot())));
   app.get("/responses", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderResponses(dataService.snapshot())));
   app.get("/statistics", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderStatistics(dataService.snapshot())));
+  app.get("/assets/:name", async (request, reply) => {
+    const asset = ASSETS.get(request.params.name);
+    if (!asset) return reply.code(404).send({ error: "Not found" });
+    return reply.header("cache-control", "public, max-age=3600").type(asset.type).send(asset.body);
+  });
   app.get("/api/public-data", async (_request, reply) => reply.header("cache-control", "no-store").send(publicPayload(dataService.snapshot())));
   app.get("/health/live", async () => ({ ok: true }));
   app.get("/health/ready", async (_request, reply) => {

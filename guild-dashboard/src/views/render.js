@@ -30,7 +30,7 @@ function shell({ title, active, snapshot, content, scripts = [] }) {
   <link rel="stylesheet" href="/assets/styles.css">
   ${scriptTags}
 </head>
-<body data-sync-status="${escapeHtml(snapshot.status)}">
+<body data-sync-status="${escapeHtml(snapshot.status)}" data-fetched-at="${escapeHtml(snapshot.fetchedAt || "")}">
   <a class="skip-link" href="#main-content">Skip to ledger</a>
   <div class="ledger-shell">
     <aside class="guild-rail" aria-label="Guild Ledger navigation">
