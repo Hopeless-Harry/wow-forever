@@ -1,0 +1,31 @@
+[Unit]
+Description=Moms Against Magic Guild Ledger
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=guild-ledger
+Group=guild-ledger
+WorkingDirectory=/opt/guild-ledger/app
+Environment=NODE_ENV=production
+Environment=CACHE_PATH=/var/lib/guild-ledger/cache.json
+EnvironmentFile=/etc/guild-ledger.env
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/guild-ledger
+
+[Install]
+WantedBy=multi-user.target

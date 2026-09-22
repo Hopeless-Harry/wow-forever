@@ -1,0 +1,9 @@
+# Named tunnels require a domain on Cloudflare. For the no-domain Quick Tunnel,
+# use the command shown in README.md instead of this file.
+tunnel: replace-with-tunnel-uuid
+credentials-file: /etc/cloudflared/replace-with-tunnel-uuid.json
+
+ingress:
+  - hostname: guild.example.com
+    service: http://127.0.0.1:3000
+  - service: http_status:404
