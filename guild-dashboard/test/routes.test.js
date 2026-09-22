@@ -52,13 +52,17 @@ test("escapes sheet values before rendering HTML", async (t) => {
 });
 
 test("returns only the public API shape", async (t) => {
-  const app = buildApp({ dataService: service({ privateDebug: "SecretName#1234" }), logger: false });
+  const unsafeRecords = [{ ...record, name: "SecretName#1234", comment: "private comment" }];
+  const app = buildApp({ dataService: service({ records: unsafeRecords, stats: buildStats([record]), privateDebug: "SecretName#1234" }), logger: false });
   t.after(() => app.close());
 
   const response = await app.inject({ url: "/api/public-data" });
   const body = response.json();
   assert.deepEqual(Object.keys(body).sort(), ["fetchedAt", "lastRefreshFailed", "records", "stats", "status"]);
   assert.equal(response.body.includes("privateDebug"), false);
+  assert.deepEqual(Object.keys(body.records[0]), ["anonymousId", "server", "race", "characterClass", "role", "profession1", "profession2"]);
+  assert.equal(response.body.includes("SecretName#1234"), false);
+  assert.equal(response.body.includes("private comment"), false);
 });
 
 test("applies restrictive public security headers", async (t) => {

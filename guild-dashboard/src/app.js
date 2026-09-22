@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import { readFileSync } from "node:fs";
 
+import { PUBLIC_FIELDS } from "./domain/normalize.js";
 import { renderDashboard, renderResponses, renderStatistics } from "./views/render.js";
 
 const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
@@ -12,7 +13,9 @@ const ASSETS = new Map([
 
 function publicPayload(snapshot) {
   return {
-    records: snapshot.records,
+    records: snapshot.records.map((record) => Object.fromEntries(
+      PUBLIC_FIELDS.map((field) => [field, record[field]])
+    )),
     stats: snapshot.stats,
     fetchedAt: snapshot.fetchedAt,
     status: snapshot.status,
