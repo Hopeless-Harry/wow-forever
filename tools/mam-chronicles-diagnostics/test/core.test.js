@@ -35,6 +35,23 @@ test('persistence marker survives initialization and advances explicitly', () =>
   assert.equal(database.persistence.loadedMarker, 'kept-marker');
 });
 
+test('loaded marker is captured when SavedVariables arrive before ADDON_LOADED', () => {
+  const harness = createWowHarness();
+  harness.load(['Core.lua', 'Capabilities.lua', 'Events.lua']);
+  harness.run(`
+    MAMChroniclesDiagnosticsDB = {
+      persistence = { marker = "1790707868-3", markerCount = 3 }
+    }
+  `);
+
+  harness.fireEvent('ADDON_LOADED', 'MAMChroniclesDiagnostics');
+
+  assert.equal(
+    harness.get('MAMChroniclesDiagnosticsDB.persistence.loadedMarker'),
+    '1790707868-3',
+  );
+});
+
 test('runtime build facts are recorded without identity data', () => {
   const harness = createWowHarness();
   harness.load(['Core.lua']);

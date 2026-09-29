@@ -45,16 +45,29 @@ function addon.PrepareEventStorage(database)
     if type(database.eventRegistration) ~= "table" then
         database.eventRegistration = {}
     end
+    if type(addon.pendingEventRegistration) == "table" then
+        for eventName, result in pairs(addon.pendingEventRegistration) do
+            if allowedEvents[eventName] and type(result) == "table" then
+                database.eventRegistration[eventName] = result
+            end
+        end
+        addon.pendingEventRegistration = nil
+    end
 end
 
 function addon.SafeRegisterEvents(frame, names)
-    if type(MAMChroniclesDiagnosticsDB) ~= "table" then
-        addon.Initialize()
+    local results
+    if type(MAMChroniclesDiagnosticsDB) == "table" then
+        if type(MAMChroniclesDiagnosticsDB.eventRegistration) ~= "table" then
+            MAMChroniclesDiagnosticsDB.eventRegistration = {}
+        end
+        results = MAMChroniclesDiagnosticsDB.eventRegistration
+    else
+        if type(addon.pendingEventRegistration) ~= "table" then
+            addon.pendingEventRegistration = {}
+        end
+        results = addon.pendingEventRegistration
     end
-    if type(MAMChroniclesDiagnosticsDB.eventRegistration) ~= "table" then
-        MAMChroniclesDiagnosticsDB.eventRegistration = {}
-    end
-    local results = MAMChroniclesDiagnosticsDB.eventRegistration
     for _, eventName in ipairs(names) do
         local ok = pcall(frame.RegisterEvent, frame, eventName)
         if ok then
