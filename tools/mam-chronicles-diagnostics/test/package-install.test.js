@@ -68,7 +68,36 @@ test('installer rejects missing and incompatible manifests', () => {
   writeFileSync(tocPath, readFileSync(tocPath, 'utf8').replace(/^## Interface:.*$/mu, '## Interface: 99999'));
   const incompatible = invokeInstaller({ clientRoot, backupRoot, sourceRoot: incompatibleSource });
   assert.notEqual(incompatible.status, 0);
-  assert.match(`${incompatible.stdout}${incompatible.stderr}`, /16001/i);
+  assert.match(`${incompatible.stdout}${incompatible.stderr}`, /120100/i);
+});
+
+test('installer rejects a manifest missing any supported interface', () => {
+  const cases = [
+    { clientName: '_retail_', missingInterface: '120100' },
+    { clientName: '_retail_', missingInterface: '120105' },
+    { clientName: '_classic_beta_', missingInterface: '16001' },
+  ];
+
+  for (const testCase of cases) {
+    const root = mkdtempSync(join(tmpdir(), 'mam-install-interface-'));
+    const clientRoot = makeFakeClient(root, testCase.clientName);
+    const sourceRoot = join(root, 'source');
+    cpSync(addonRoot, sourceRoot, { recursive: true });
+    const tocPath = join(sourceRoot, 'MAMChroniclesDiagnostics.toc');
+    const interfaces = ['120100', '120105', '16001'].filter((value) => value !== testCase.missingInterface);
+    writeFileSync(
+      tocPath,
+      readFileSync(tocPath, 'utf8').replace(/^## Interface:.*$/mu, `## Interface: ${interfaces.join(', ')}`),
+    );
+
+    const result = invokeInstaller({
+      clientRoot,
+      backupRoot: join(root, 'backups'),
+      sourceRoot,
+    });
+    assert.notEqual(result.status, 0, `${testCase.clientName} accepted a manifest missing ${testCase.missingInterface}`);
+    assert.match(`${result.stdout}${result.stderr}`, new RegExp(testCase.missingInterface, 'u'));
+  }
 });
 
 test('installer refuses a running client', () => {

@@ -31,9 +31,9 @@ if (-not (Test-Path -LiteralPath $ClientRoot -PathType Container)) {
 }
 $resolvedClient = (Resolve-Path -LiteralPath $ClientRoot).Path
 $clientName = Split-Path -Leaf $resolvedClient
-$requiredInterface = switch ($clientName) {
-    '_retail_' { '120100' }
-    '_classic_beta_' { '16001' }
+switch ($clientName) {
+    '_retail_' { break }
+    '_classic_beta_' { break }
     default { throw "ClientRoot must be a supported _retail_ or _classic_beta_ directory: $resolvedClient" }
 }
 
@@ -50,8 +50,10 @@ if ($manifest -notmatch '(?m)^## Interface:\s*([^\r\n]+)\s*$') {
     throw 'Addon manifest has no interface list.'
 }
 $interfaces = @($Matches[1] -split ',' | ForEach-Object { $_.Trim() })
-if ($requiredInterface -notin $interfaces) {
-    throw "Addon manifest must target $clientName interface $requiredInterface."
+foreach ($requiredInterface in @('120100', '120105', '16001')) {
+    if ($requiredInterface -notin $interfaces) {
+        throw "Addon manifest must target supported interface $requiredInterface."
+    }
 }
 foreach ($name in $allowlist) {
     if (-not (Test-Path -LiteralPath (Join-Path $resolvedSource $name) -PathType Leaf)) {
