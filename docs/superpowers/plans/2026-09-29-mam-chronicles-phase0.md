@@ -234,7 +234,7 @@ git commit -m "feat: add in-game Chronicles diagnostic report"
 
 - [ ] **Step 1: Write failing package/install tests**
 
-Create a temporary fake `_classic_beta_` tree. Assert packaging produces exactly the `.toc`, four Lua modules, and README inside one `MAMChroniclesDiagnostics/` folder. Assert install rejects a missing manifest, rejects an interface other than `16001`, refuses when a supplied running-process probe reports WoW active, backs up an existing addon before replacement, and leaves unrelated addons untouched.
+Create a temporary fake `_classic_beta_` tree. Assert packaging produces exactly the six files—the `.toc`, four Lua modules, and README—inside one `MAMChroniclesDiagnostics/` folder. Assert install rejects a missing manifest, rejects an interface other than `16001`, refuses when a supplied running-process probe reports WoW active, backs up an existing addon before replacement, and leaves unrelated addons untouched.
 
 - [ ] **Step 2: Run package/install tests and verify RED**
 
@@ -244,7 +244,7 @@ Expected: FAIL because the scripts are missing.
 
 - [ ] **Step 3: Implement the packaging script**
 
-Resolve the repository root, validate the source manifest, copy only the seven allowlisted addon files to a temporary staging directory, create the versioned ZIP, print its SHA-256, and remove staging in `finally`.
+Resolve the repository root, validate the source manifest, copy only the six allowlisted addon files to a temporary staging directory, create the versioned ZIP, print its SHA-256, and remove staging in `finally`.
 
 - [ ] **Step 4: Implement the installer**
 
