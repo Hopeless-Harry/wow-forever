@@ -34,6 +34,7 @@ test('capability probes retain only bounded non-identifying facts', () => {
       C_ChatInfo: {
         RegisterAddonMessagePrefix: () => 0,
         AreOutgoingAddonChatMessagesRestricted: () => false,
+        InChatMessagingLockdown: () => false,
       },
       Enum: {
         RegisterAddonMessagePrefixResult: { Success: 0, DuplicatePrefix: 1 },
@@ -59,11 +60,39 @@ test('capability probes retain only bounded non-identifying facts', () => {
   assert.deepEqual(capabilities.guild, { available: true, memberCount: 3, onlineCount: 2 });
   assert.deepEqual(capabilities.messaging, {
     available: true,
+    chatLockdown: false,
+    chatLockdownAvailable: true,
     outgoingRestricted: false,
     prefixRegistered: true,
     registrationResult: 'success',
   });
   assert.doesNotMatch(JSON.stringify(capabilities), /PRIVATE_/u);
+});
+
+test('messaging probe distinguishes outgoing restriction from chat lockdown', () => {
+  const harness = createWowHarness({
+    globals: {
+      C_ChatInfo: {
+        RegisterAddonMessagePrefix: () => 0,
+        AreOutgoingAddonChatMessagesRestricted: () => true,
+        InChatMessagingLockdown: () => false,
+      },
+      Enum: {
+        RegisterAddonMessagePrefixResult: { Success: 0, DuplicatePrefix: 1 },
+      },
+    },
+  });
+
+  harness.load(['Core.lua', 'Capabilities.lua']);
+  harness.call('MAMChroniclesDiagnostics.Initialize()');
+  assert.deepEqual(harness.get('MAMChroniclesDiagnostics.ProbeMessaging()'), {
+    available: true,
+    chatLockdown: false,
+    chatLockdownAvailable: true,
+    outgoingRestricted: true,
+    prefixRegistered: true,
+    registrationResult: 'success',
+  });
 });
 
 test('profession probe checks a populated second slot when the first is vacant', () => {

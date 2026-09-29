@@ -2,7 +2,7 @@
 ## Title: Moms Against Magic Chronicles Diagnostics
 ## Notes: Phase 0 compatibility checks for WoW Retail and WoW Forever.
 ## Author: Harry Woodhouse
-## Version: 0.1.2-phase0
+## Version: 0.1.3-phase0
 ## SavedVariables: MAMChroniclesDiagnosticsDB
 
 Core.lua

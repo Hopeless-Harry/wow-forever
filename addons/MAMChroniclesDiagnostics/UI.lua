@@ -137,6 +137,11 @@ function addon.GetReportLines()
         table.insert(lines, "Prefix registered: " .. yesNo(messaging.prefixRegistered))
         table.insert(lines, "Registration result: " .. tostring(messaging.registrationResult or "unknown"))
         table.insert(lines, "Outgoing restricted: " .. yesNo(messaging.outgoingRestricted))
+        if messaging.chatLockdownAvailable then
+            table.insert(lines, "Chat lockdown: " .. yesNo(messaging.chatLockdown))
+        else
+            table.insert(lines, "Chat lockdown: unavailable")
+        end
     end
     table.insert(lines, "Pings sent: " .. string.format("%d", integer(messages.sent)))
     table.insert(lines, "Pings received: " .. string.format("%d", integer(messages.receivedPing)))

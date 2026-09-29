@@ -9,7 +9,17 @@ function reportHarness() {
       loadCount: 2,
       persistence: { marker: '1790704800-1', privatePath: 'C:\\PRIVATE_ACCOUNT\\SavedVariables' },
       events: { PLAYER_DEAD: { count: 3, lastSeenAt: 1790704800, private: 'PRIVATE_EVENT' } },
-      capabilities: { private: 'PRIVATE_CAPABILITY' },
+      capabilities: {
+        private: 'PRIVATE_CAPABILITY',
+        messaging: {
+          available: true,
+          prefixRegistered: true,
+          registrationResult: 'success',
+          outgoingRestricted: true,
+          chatLockdownAvailable: true,
+          chatLockdown: false,
+        },
+      },
       messages: { sent: 1, privateSender: 'PRIVATE_SENDER' },
     },
   });
@@ -25,10 +35,12 @@ test('report contains deterministic diagnostic sections and no private markers',
     assert.match(report, new RegExp(`(^|\\n)${heading}($|\\n)`, 'u'));
   }
   assert.match(report, /Build: 70009/u);
-  assert.match(report, /Addon version: 0\.1\.2-phase0/u);
+  assert.match(report, /Addon version: 0\.1\.3-phase0/u);
   assert.match(report, /Client version: 1\.60\.1/u);
   assert.match(report, /Current marker: 1790704800-1/u);
   assert.match(report, /Loaded marker: 1790704800-1/u);
+  assert.match(report, /Outgoing restricted: yes/u);
+  assert.match(report, /Chat lockdown: no/u);
   assert.match(report, /PLAYER_DEAD: 3/u);
   assert.doesNotMatch(report, /PRIVATE_|SavedVariables|C:\\/u);
 });

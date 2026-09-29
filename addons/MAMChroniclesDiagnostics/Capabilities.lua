@@ -175,11 +175,23 @@ function addon.ProbeMessaging()
         end
     end
 
+    local chatLockdownAvailable = type(C_ChatInfo.InChatMessagingLockdown) == "function"
+    local chatLockdown = false
+    if chatLockdownAvailable then
+        local lockdownOk, lockdownResult = addon.SafeCall(C_ChatInfo.InChatMessagingLockdown)
+        if not lockdownOk or type(lockdownResult) ~= "boolean" then
+            return unavailable("chat-query-error")
+        end
+        chatLockdown = lockdownResult
+    end
+
     return {
         available = true,
         prefixRegistered = prefixRegistered,
         registrationResult = resultLabel,
         outgoingRestricted = restricted == true,
+        chatLockdownAvailable = chatLockdownAvailable,
+        chatLockdown = chatLockdown,
     }
 end
 
