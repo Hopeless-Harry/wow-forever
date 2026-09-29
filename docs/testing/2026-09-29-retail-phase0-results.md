@@ -5,7 +5,7 @@
 **Interface:** `120100`  
 **Locale:** `enUS`  
 **Diagnostic version exercised:** `0.1.1-phase0`  
-**Fixed version installed for next run:** `0.1.2-phase0`
+**Fixed diagnostic installed for next run:** `0.1.3-phase0`
 
 Retail is a shared-behaviour smoke test. These results do not establish WoW Forever compatibility.
 
@@ -17,7 +17,7 @@ Retail is a shared-behaviour smoke test. These results do not establish WoW Fore
 | Event registration | PASS | Every allowlisted diagnostic event reported `available`. |
 | Event observation | PASS (sampled) | Login, alive, new-area, entering-world, and skill-line events were observed. |
 | SavedVariables persistence | PASS | The exact current marker remained present across `/reload` and a full client restart. |
-| Loaded-marker diagnostic | FIX PENDING RETEST | Version `0.1.1-phase0` displayed `Loaded marker: none` even though the current marker persisted. A load-order regression reproduced the issue; `0.1.2-phase0` defers initialization until `ADDON_LOADED`. |
+| Loaded-marker diagnostic | FIX PENDING RETEST | Version `0.1.1-phase0` displayed `Loaded marker: none` even though the current marker persisted. A load-order regression reproduced the issue; the installed `0.1.3-phase0` build contains the correction. |
 | Map APIs | PARTIAL | Map ID and outdoor world position were available; normalised map position was unavailable in the sampled state. |
 | Guild roster | INCONCLUSIVE | The API was available, but the sampled character exposed zero members and zero online members. |
 | Professions | INCONCLUSIVE | The API was available, but no primary professions or recipes were visible in the sampled state. |
@@ -44,15 +44,16 @@ Code inspection showed that event registration could call database initializatio
 
 ### Automated correction; live retest pending
 
-When the SavedVariables global is not yet available, version `0.1.2-phase0` keeps pre-load event-registration results in temporary memory and merges them during database initialization. Automated coverage requires the loaded marker to match the restored marker after `ADDON_LOADED`. Live Retail confirmation remains pending.
+When the SavedVariables global is not yet available, versions `0.1.2-phase0` and later keep pre-load event-registration results in temporary memory and merge them during database initialization. Automated coverage requires the loaded marker to match the restored marker after `ADDON_LOADED`. Live Retail confirmation remains pending.
 
 ## Build and installation evidence
 
-- Diagnostic tests: 29/29 passed.
+- Diagnostic tests: 30/30 passed.
 - Guild Ledger regression tests: 39/39 passed.
 - Installed Retail addon files matched the tested source: 6/6.
-- Package: `MAMChroniclesDiagnostics-0.1.2-phase0.zip`
-- Package SHA-256: `A3E30960065A9B41A1E1075F3A129EF973C64D9F883068B5EAC14682E6879EE5`
+- Installed diagnostic: `0.1.3-phase0`
+- Package: `MAMChroniclesDiagnostics-0.1.3-phase0.zip`
+- Package SHA-256: `9508680338B2AF4E58D650D7A62D8DD90BE0CE0CAB815BE38DBDFB07A19EC85D`
 
 ## Messaging research note
 
@@ -63,7 +64,8 @@ Blizzard's generated API documentation treats outgoing-addon-message restriction
 
 ## Next live check
 
-1. Launch Retail with `0.1.2-phase0`.
+1. Launch Retail with `0.1.3-phase0`.
 2. Open `/mamdiag` without creating a new marker.
 3. Confirm **Current marker** and **Loaded marker** are identical.
-4. Continue with an outdoor map check, a guilded character if available, and a character with primary professions.
+4. Record both **Outgoing restricted** and **Chat lockdown**.
+5. Continue with an outdoor map check, a guilded character if available, and a character with primary professions.
