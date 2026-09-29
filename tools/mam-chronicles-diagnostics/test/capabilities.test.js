@@ -32,8 +32,11 @@ test('capability probes retain only bounded non-identifying facts', () => {
         index !== 2,
       ),
       C_ChatInfo: {
-        RegisterAddonMessagePrefix: () => true,
+        RegisterAddonMessagePrefix: () => 0,
         AreOutgoingAddonChatMessagesRestricted: () => false,
+      },
+      Enum: {
+        RegisterAddonMessagePrefixResult: { Success: 0, DuplicatePrefix: 1 },
       },
     },
   });
@@ -58,8 +61,32 @@ test('capability probes retain only bounded non-identifying facts', () => {
     available: true,
     outgoingRestricted: false,
     prefixRegistered: true,
+    registrationResult: 'success',
   });
   assert.doesNotMatch(JSON.stringify(capabilities), /PRIVATE_/u);
+});
+
+test('profession probe checks a populated second slot when the first is vacant', () => {
+  const queried = [];
+  const harness = createWowHarness({
+    globals: {
+      GetProfessions: () => multi(null, 2, null, null, null),
+      GetProfessionInfo: (index) => {
+        queried.push(index);
+        return multi('PRIVATE_PROFESSION', null, 75, 150);
+      },
+    },
+  });
+
+  harness.load(['Core.lua', 'Capabilities.lua']);
+  harness.call('MAMChroniclesDiagnostics.Initialize()');
+  assert.deepEqual(harness.get('MAMChroniclesDiagnostics.ProbeProfessions()'), {
+    available: true,
+    primaryCount: 1,
+    recipeCount: 0,
+    skillInfoCount: 1,
+  });
+  assert.deepEqual(queried, [2]);
 });
 
 test('missing capability APIs are reported without throwing', () => {

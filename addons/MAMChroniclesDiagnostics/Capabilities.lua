@@ -78,8 +78,7 @@ function addon.ProbeProfessions()
         recipeCount = 0,
     }
 
-    local professionIndexes = { profession1, profession2 }
-    for _, index in ipairs(professionIndexes) do
+    local function recordProfession(index)
         if type(index) == "number" then
             result.primaryCount = result.primaryCount + 1
             local infoOk, _, _, skillLevel, maxSkillLevel = addon.SafeCall(GetProfessionInfo, index)
@@ -91,6 +90,8 @@ function addon.ProbeProfessions()
             end
         end
     end
+    recordProfession(profession1)
+    recordProfession(profession2)
 
     if type(C_TradeSkillUI) == "table" and type(C_TradeSkillUI.GetAllRecipeIDs) == "function" then
         local recipeOk, recipeIDs = addon.SafeCall(C_TradeSkillUI.GetAllRecipeIDs)
@@ -135,15 +136,49 @@ function addon.ProbeMessaging()
         return unavailable("chat-api-missing")
     end
 
-    local registerOk, registered = addon.SafeCall(C_ChatInfo.RegisterAddonMessagePrefix, addon.MESSAGE_PREFIX)
+    local registerOk, registrationResult = addon.SafeCall(C_ChatInfo.RegisterAddonMessagePrefix, addon.MESSAGE_PREFIX)
     local restrictionOk, restricted = addon.SafeCall(C_ChatInfo.AreOutgoingAddonChatMessagesRestricted)
     if not registerOk or not restrictionOk then
         return unavailable("chat-query-error")
     end
 
+    local prefixRegistered = false
+    local resultLabel = "unexpected-result"
+    if registrationResult == true then
+        prefixRegistered = true
+        resultLabel = "legacy-success"
+    elseif registrationResult == false then
+        resultLabel = "legacy-failure"
+    elseif type(registrationResult) == "number" then
+        local registrationEnum = type(Enum) == "table" and Enum.RegisterAddonMessagePrefixResult or nil
+        local success = type(registrationEnum) == "table" and registrationEnum.Success or 0
+        local duplicate = type(registrationEnum) == "table" and registrationEnum.DuplicatePrefix or 1
+        if registrationResult == success then
+            prefixRegistered = true
+            resultLabel = "success"
+        elseif registrationResult == duplicate then
+            prefixRegistered = true
+            resultLabel = "duplicate-prefix"
+        elseif registrationResult == 2 then
+            resultLabel = "invalid-prefix"
+        elseif registrationResult == 3 then
+            resultLabel = "max-prefixes"
+        else
+            resultLabel = "failure-code-" .. tostring(registrationResult)
+        end
+    end
+
+    if type(C_ChatInfo.IsAddonMessagePrefixRegistered) == "function" then
+        local statusOk, statusRegistered = addon.SafeCall(C_ChatInfo.IsAddonMessagePrefixRegistered, addon.MESSAGE_PREFIX)
+        if statusOk and type(statusRegistered) == "boolean" then
+            prefixRegistered = statusRegistered
+        end
+    end
+
     return {
         available = true,
-        prefixRegistered = registered == true,
+        prefixRegistered = prefixRegistered,
+        registrationResult = resultLabel,
         outgoingRestricted = restricted == true,
     }
 end

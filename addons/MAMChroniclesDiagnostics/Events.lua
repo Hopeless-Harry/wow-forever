@@ -24,6 +24,7 @@ local allowedEvents = {}
 for _, eventName in ipairs(eventNames) do
     allowedEvents[eventName] = true
 end
+addon.EVENT_NAMES = eventNames
 
 function addon.PrepareEventStorage(database)
     local cleanEvents = {}
@@ -129,8 +130,51 @@ local function sendAddonPayload(payload, channel, target)
     if type(C_ChatInfo.SendAddonMessage) ~= "function" then
         return false
     end
-    local ok = addon.SafeCall(C_ChatInfo.SendAddonMessage, addon.MESSAGE_PREFIX, payload, channel, target)
-    return ok == true
+    local ok, sendResult = addon.SafeCall(C_ChatInfo.SendAddonMessage, addon.MESSAGE_PREFIX, payload, channel, target)
+    local messages = messageStore()
+    if not ok then
+        messages.lastSendFailure = "api-error"
+        messages.lastSendFailedAt = addon.Now()
+        return false
+    end
+
+    local success = false
+    local resultLabel = "unexpected-result"
+    if sendResult == true then
+        success = true
+        resultLabel = "legacy-success"
+    elseif sendResult == false then
+        resultLabel = "legacy-failure"
+    elseif type(sendResult) == "number" then
+        local sendEnum = type(Enum) == "table" and Enum.SendAddonMessageResult or nil
+        local successValue = type(sendEnum) == "table" and sendEnum.Success or 0
+        success = sendResult == successValue
+        local knownResults = {
+            [0] = "success",
+            [1] = "invalid-prefix",
+            [2] = "invalid-message",
+            [3] = "addon-message-throttle",
+            [4] = "invalid-chat-type",
+            [5] = "not-in-group",
+            [6] = "target-required",
+            [7] = "invalid-channel",
+            [8] = "channel-throttle",
+            [9] = "general-error",
+            [10] = "not-in-guild",
+            [11] = "addon-message-lockdown",
+            [12] = "target-offline",
+        }
+        resultLabel = knownResults[sendResult] or ("failure-code-" .. tostring(sendResult))
+    end
+
+    if success then
+        messages.lastSendFailure = nil
+        messages.lastSendFailedAt = nil
+        return true
+    end
+    messages.lastSendFailure = resultLabel
+    messages.lastSendFailedAt = addon.Now()
+    return false
 end
 
 local function selfTarget()
@@ -220,14 +264,18 @@ eventFrame:SetScript("OnEvent", function(_, eventName, ...)
         if type(MAMChroniclesDiagnosticsDB) ~= "table" then
             addon.Initialize()
         end
-        addon.RecordEvent(eventName, ...)
+        if eventName == "CHAT_MSG_ADDON" then
+            if type(addon.HandleAddonMessage) == "function" and addon.HandleAddonMessage(...) then
+                addon.RecordEvent(eventName)
+            end
+        else
+            addon.RecordEvent(eventName, ...)
+        end
         if eventName == "PLAYER_LOGIN" then
             addon.RunCapabilities()
         elseif eventName == "PLAYER_LOGOUT" then
             MAMChroniclesDiagnosticsDB.lastSeenAt = addon.Now()
             addon.RecordRuntime()
-        elseif eventName == "CHAT_MSG_ADDON" and type(addon.HandleAddonMessage) == "function" then
-            addon.HandleAddonMessage(...)
         end
     end
 end)

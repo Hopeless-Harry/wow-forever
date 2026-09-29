@@ -25,8 +25,24 @@ test('report contains deterministic diagnostic sections and no private markers',
     assert.match(report, new RegExp(`(^|\\n)${heading}($|\\n)`, 'u'));
   }
   assert.match(report, /Build: 70009/u);
+  assert.match(report, /Addon version: 0\.1\.0-phase0/u);
+  assert.match(report, /Client version: 1\.60\.1/u);
+  assert.match(report, /Current marker: 1790704800-1/u);
+  assert.match(report, /Loaded marker: 1790704800-1/u);
   assert.match(report, /PLAYER_DEAD: 3/u);
   assert.doesNotMatch(report, /PRIVATE_|SavedVariables|C:\\/u);
+});
+
+test('report separates registration status from observed event counts', () => {
+  const harness = createWowHarness();
+  harness.run('__mamFailEvent = "QUEST_ACCEPTED"');
+  harness.load(['Core.lua', 'Capabilities.lua', 'Events.lua', 'UI.lua']);
+  harness.call('MAMChroniclesDiagnostics.Initialize()');
+
+  const report = harness.get('MAMChroniclesDiagnostics.BuildReportText()');
+  assert.match(report, /Event registration/u);
+  assert.match(report, /QUEST_ACCEPTED: unavailable \(registration-error\)/u);
+  assert.match(report, /PLAYER_DEAD: available; observed 0/u);
 });
 
 test('slash commands dispatch only the named diagnostic actions', () => {

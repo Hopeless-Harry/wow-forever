@@ -11,14 +11,17 @@ Record each result as **PASS**, **FAIL**, or **UNAVAILABLE**. Keep the reported 
 
 ## 2. Verify persistence
 
-1. Run `/mamdiag mark` and note that a marker is present.
+1. Run `/mamdiag mark` and copy the exact **Current marker** value.
 2. Run `/reload`.
-3. Reopen `/mamdiag` and confirm **Previous marker loaded: yes**.
-4. Exit WoW completely, restart it, and check again.
+3. Reopen `/mamdiag` and confirm **Loaded marker** exactly matches the value copied in step 1.
+4. Run `/mamdiag mark` again, copy the new **Current marker**, then exit WoW completely.
+5. Restart WoW and confirm **Loaded marker** exactly matches the value copied in step 4.
 
 Passing `/reload` and full restart are separate results. A beta persistence bug may affect one or both.
 
 ## 3. Verify event counters
+
+First, confirm every line under **Event registration** says `available`. Record any unavailable event separately from its observed count.
 
 - Change zone or subzone and confirm a zone counter advances.
 - If practical, complete a quest and confirm `QUEST_TURNED_IN` advances.

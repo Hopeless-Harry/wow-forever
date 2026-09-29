@@ -29,8 +29,10 @@ test('persistence marker survives initialization and advances explicitly', () =>
   const database = harness.get('MAMChroniclesDiagnosticsDB');
   assert.equal(database.loadCount, 5);
   assert.equal(database.persistence.previousMarker, 'kept-marker');
+  assert.equal(database.persistence.loadedMarker, 'kept-marker');
   assert.equal(database.persistence.markerCount, 3);
   assert.match(database.persistence.marker, /^1790704800-3$/u);
+  assert.equal(database.persistence.loadedMarker, 'kept-marker');
 });
 
 test('runtime build facts are recorded without identity data', () => {

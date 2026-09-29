@@ -87,9 +87,12 @@ function addon.Initialize()
     ensureTable(database, "messages")
     local persistence = ensureTable(database, "persistence")
     persistence.markerCount = tonumber(persistence.markerCount) or 0
-    if type(persistence.marker) == "string" then
-        persistence.previousMarker = persistence.marker
+    if addon.persistenceCaptured ~= true then
+        addon.loadedPersistenceMarker = type(persistence.marker) == "string" and persistence.marker or nil
+        addon.persistenceCaptured = true
     end
+    persistence.loadedMarker = addon.loadedPersistenceMarker
+    persistence.previousMarker = addon.loadedPersistenceMarker
 
     addon.RecordRuntime()
     if type(addon.PrepareEventStorage) == "function" then

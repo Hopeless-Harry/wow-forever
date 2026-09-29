@@ -37,6 +37,13 @@ local function capabilityStatus(capability)
     return "unavailable (" .. tostring(capability.reason or "unknown") .. ")"
 end
 
+local function markerValue(value)
+    if type(value) == "string" and string.match(value, "^[0-9]+%-[0-9]+$") then
+        return value
+    end
+    return "none"
+end
+
 function addon.GetReportLines()
     if type(MAMChroniclesDiagnosticsDB) ~= "table" then
         addon.Initialize()
@@ -45,6 +52,7 @@ function addon.GetReportLines()
     local runtime = type(database.runtime) == "table" and database.runtime or {}
     local persistence = type(database.persistence) == "table" and database.persistence or {}
     local events = type(database.events) == "table" and database.events or {}
+    local eventRegistration = type(database.eventRegistration) == "table" and database.eventRegistration or {}
     local capabilities = type(database.capabilities) == "table" and database.capabilities or {}
     local messages = type(database.messages) == "table" and database.messages or {}
     local map = type(capabilities.map) == "table" and capabilities.map or nil
@@ -56,18 +64,34 @@ function addon.GetReportLines()
         "Moms Against Magic Chronicles Diagnostics",
         "",
         "Runtime",
+        "Addon version: " .. tostring(addon.VERSION),
         "Build: " .. tostring(runtime.build or "unknown"),
-        "Version: " .. tostring(runtime.version or "unknown"),
+        "Client version: " .. tostring(runtime.version or "unknown"),
         "Interface: " .. tostring(runtime.interface or "unknown"),
         "Locale: " .. tostring(runtime.locale or "unknown"),
         "",
         "Persistence",
         "Load count: " .. string.format("%d", integer(database.loadCount)),
-        "Marker present: " .. yesNo(type(persistence.marker) == "string"),
-        "Previous marker loaded: " .. yesNo(type(persistence.previousMarker) == "string"),
+        "Current marker: " .. markerValue(persistence.marker),
+        "Loaded marker: " .. markerValue(persistence.loadedMarker),
         "",
-        "Events",
+        "Event registration",
     }
+
+    for _, eventName in ipairs(addon.EVENT_NAMES or reportEventOrder) do
+        local status = eventRegistration[eventName]
+        local observed = type(events[eventName]) == "table" and integer(events[eventName].count) or 0
+        if type(status) == "table" and status.available == true then
+            table.insert(lines, eventName .. ": available; observed " .. tostring(observed))
+        elseif type(status) == "table" then
+            table.insert(lines, eventName .. ": unavailable (" .. tostring(status.reason or "unknown") .. "); observed " .. tostring(observed))
+        else
+            table.insert(lines, eventName .. ": not checked; observed " .. tostring(observed))
+        end
+    end
+
+    table.insert(lines, "")
+    table.insert(lines, "Events")
 
     local anyEvent = false
     for _, eventName in ipairs(reportEventOrder) do
@@ -111,15 +135,19 @@ function addon.GetReportLines()
     table.insert(lines, "Status: " .. capabilityStatus(messaging))
     if messaging and messaging.available then
         table.insert(lines, "Prefix registered: " .. yesNo(messaging.prefixRegistered))
+        table.insert(lines, "Registration result: " .. tostring(messaging.registrationResult or "unknown"))
         table.insert(lines, "Outgoing restricted: " .. yesNo(messaging.outgoingRestricted))
     end
     table.insert(lines, "Pings sent: " .. string.format("%d", integer(messages.sent)))
     table.insert(lines, "Pings received: " .. string.format("%d", integer(messages.receivedPing)))
     table.insert(lines, "Pongs received: " .. string.format("%d", integer(messages.receivedPong)))
+    if type(messages.lastSendFailure) == "string" then
+        table.insert(lines, "Last send failure: " .. messages.lastSendFailure)
+    end
 
     table.insert(lines, "")
     table.insert(lines, "Next Actions")
-    table.insert(lines, "1. Use /mamdiag mark, then /reload and check the previous marker.")
+    table.insert(lines, "1. Use /mamdiag mark, copy Current marker, then /reload and compare Loaded marker.")
     table.insert(lines, "2. Use /mamdiag ping self to verify local addon messages.")
     table.insert(lines, "3. Follow the Phase 0 checklist before building Chronicles.")
     return lines
