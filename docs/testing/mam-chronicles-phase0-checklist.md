@@ -1,10 +1,10 @@
 # Moms Against Magic Chronicles — Phase 0 In-Game Checklist
 
-Record each result as **PASS**, **FAIL**, or **UNAVAILABLE**. Keep the reported build and interface with the results.
+Record each result as **PASS**, **FAIL**, or **UNAVAILABLE**. Keep the reported build and interface with the results. Retail results are shared-behavior smoke tests; Forever results remain required for Forever-specific compatibility.
 
 ## 1. Start and record the build
 
-1. Fully restart WoW Forever after installing the addon.
+1. Fully restart the WoW client being tested after installing the addon.
 2. Log into a guild character.
 3. Run `/mamdiag run`, then `/mamdiag`.
 4. Record the build, interface, and addon version shown.
@@ -55,4 +55,4 @@ Take a screenshot or copy the redacted results manually. Confirm it contains no 
 - PASS/FAIL/UNAVAILABLE for each section;
 - the exact Lua error text for any failure.
 
-Do not approve the full Chronicles build until persistence, event registration, and self-message results are known.
+Do not approve Forever-specific features until the corresponding checks have also run on an authorised Forever client.

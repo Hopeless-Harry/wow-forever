@@ -25,7 +25,7 @@ test('report contains deterministic diagnostic sections and no private markers',
     assert.match(report, new RegExp(`(^|\\n)${heading}($|\\n)`, 'u'));
   }
   assert.match(report, /Build: 70009/u);
-  assert.match(report, /Addon version: 0\.1\.0-phase0/u);
+  assert.match(report, /Addon version: 0\.1\.1-phase0/u);
   assert.match(report, /Client version: 1\.60\.1/u);
   assert.match(report, /Current marker: 1790704800-1/u);
   assert.match(report, /Loaded marker: 1790704800-1/u);

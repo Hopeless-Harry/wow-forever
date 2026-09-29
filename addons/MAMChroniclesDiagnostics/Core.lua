@@ -2,7 +2,7 @@ local addon = MAMChroniclesDiagnostics or {}
 MAMChroniclesDiagnostics = addon
 local unpackValues = unpack or table.unpack
 
-addon.VERSION = "0.1.0-phase0"
+addon.VERSION = "0.1.1-phase0"
 addon.MESSAGE_PREFIX = "MAMChronDiag"
 addon.ADDON_NAME = "MAMChroniclesDiagnostics"
 

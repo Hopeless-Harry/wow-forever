@@ -22,8 +22,8 @@ function invokeInstaller({ clientRoot, backupRoot, sourceRoot = addonRoot, runni
   return runPowerShell(['-Command', command]);
 }
 
-function makeFakeClient(root) {
-  const clientRoot = join(root, '_classic_beta_');
+function makeFakeClient(root, clientName = '_classic_beta_') {
+  const clientRoot = join(root, clientName);
   mkdirSync(join(clientRoot, 'Interface', 'AddOns'), { recursive: true });
   return clientRoot;
 }
@@ -35,7 +35,7 @@ test('package archive contains only the six allowlisted addon files', () => {
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
 
   const archives = readdirSync(outputRoot).filter((name) => name.endsWith('.zip'));
-  assert.deepEqual(archives, ['MAMChroniclesDiagnostics-0.1.0-phase0.zip']);
+  assert.deepEqual(archives, ['MAMChroniclesDiagnostics-0.1.1-phase0.zip']);
   const extractRoot = join(root, 'extract');
   const expand = runPowerShell(['-Command', `Expand-Archive -LiteralPath '${join(outputRoot, archives[0]).replaceAll("'", "''")}' -DestinationPath '${extractRoot.replaceAll("'", "''")}'`]);
   assert.equal(expand.status, 0, expand.stderr);
@@ -65,7 +65,7 @@ test('installer rejects missing and incompatible manifests', () => {
   const incompatibleSource = join(root, 'incompatible-source');
   cpSync(addonRoot, incompatibleSource, { recursive: true });
   const tocPath = join(incompatibleSource, 'MAMChroniclesDiagnostics.toc');
-  writeFileSync(tocPath, readFileSync(tocPath, 'utf8').replace('## Interface: 16001', '## Interface: 99999'));
+  writeFileSync(tocPath, readFileSync(tocPath, 'utf8').replace(/^## Interface:.*$/mu, '## Interface: 99999'));
   const incompatible = invokeInstaller({ clientRoot, backupRoot, sourceRoot: incompatibleSource });
   assert.notEqual(incompatible.status, 0);
   assert.match(`${incompatible.stdout}${incompatible.stderr}`, /16001/i);
@@ -80,8 +80,28 @@ test('installer refuses a running client', () => {
     running: true,
   });
   assert.notEqual(result.status, 0);
-  assert.match(`${result.stdout}${result.stderr}`, /WowB\.exe.*running/i);
+  assert.match(`${result.stdout}${result.stderr}`, /WoW client.*running/i);
   assert.equal(existsSync(join(clientRoot, 'Interface', 'AddOns', 'MAMChroniclesDiagnostics')), false);
+});
+
+test('installer supports the Retail client and rejects unrelated client roots', () => {
+  const retailRoot = mkdtempSync(join(tmpdir(), 'mam-install-retail-'));
+  const retailClient = makeFakeClient(retailRoot, '_retail_');
+  const retailResult = invokeInstaller({ clientRoot: retailClient, backupRoot: join(retailRoot, 'backups') });
+  assert.equal(retailResult.status, 0, `${retailResult.stdout}\n${retailResult.stderr}`);
+  assert.equal(
+    existsSync(join(retailClient, 'Interface', 'AddOns', 'MAMChroniclesDiagnostics', 'MAMChroniclesDiagnostics.toc')),
+    true,
+  );
+
+  const unsupportedRoot = mkdtempSync(join(tmpdir(), 'mam-install-unsupported-'));
+  const unsupportedClient = makeFakeClient(unsupportedRoot, '_ptr_');
+  const unsupportedResult = invokeInstaller({
+    clientRoot: unsupportedClient,
+    backupRoot: join(unsupportedRoot, 'backups'),
+  });
+  assert.notEqual(unsupportedResult.status, 0);
+  assert.match(`${unsupportedResult.stdout}${unsupportedResult.stderr}`, /_retail_.*_classic_beta_/i);
 });
 
 test('installer backs up and replaces only the diagnostic addon', () => {

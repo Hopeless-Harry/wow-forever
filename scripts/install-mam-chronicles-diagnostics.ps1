@@ -8,7 +8,7 @@ param(
 
     [string]$SourceRoot,
 
-    [scriptblock]$ProcessProbe = { @(Get-Process -Name 'WowB' -ErrorAction SilentlyContinue).Count -gt 0 }
+    [scriptblock]$ProcessProbe = { @(Get-Process -Name 'Wow', 'WowB' -ErrorAction SilentlyContinue).Count -gt 0 }
 )
 
 $ErrorActionPreference = 'Stop'
@@ -30,8 +30,11 @@ if (-not (Test-Path -LiteralPath $ClientRoot -PathType Container)) {
     throw "WoW client root does not exist: $ClientRoot"
 }
 $resolvedClient = (Resolve-Path -LiteralPath $ClientRoot).Path
-if ((Split-Path -Leaf $resolvedClient) -ne '_classic_beta_') {
-    throw "ClientRoot must be the WoW Forever _classic_beta_ directory: $resolvedClient"
+$clientName = Split-Path -Leaf $resolvedClient
+$requiredInterface = switch ($clientName) {
+    '_retail_' { '120100' }
+    '_classic_beta_' { '16001' }
+    default { throw "ClientRoot must be a supported _retail_ or _classic_beta_ directory: $resolvedClient" }
 }
 
 if (-not (Test-Path -LiteralPath $SourceRoot -PathType Container)) {
@@ -43,8 +46,12 @@ if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
     throw "Addon manifest is missing: $manifestPath"
 }
 $manifest = Get-Content -Raw -LiteralPath $manifestPath
-if ($manifest -notmatch '(?m)^## Interface: 16001\s*$') {
-    throw 'Addon manifest must target WoW Forever interface 16001.'
+if ($manifest -notmatch '(?m)^## Interface:\s*([^\r\n]+)\s*$') {
+    throw 'Addon manifest has no interface list.'
+}
+$interfaces = @($Matches[1] -split ',' | ForEach-Object { $_.Trim() })
+if ($requiredInterface -notin $interfaces) {
+    throw "Addon manifest must target $clientName interface $requiredInterface."
 }
 foreach ($name in $allowlist) {
     if (-not (Test-Path -LiteralPath (Join-Path $resolvedSource $name) -PathType Leaf)) {
@@ -53,7 +60,7 @@ foreach ($name in $allowlist) {
 }
 
 if (& $ProcessProbe) {
-    throw 'WowB.exe is running. Fully exit WoW before installing this addon.'
+    throw 'A WoW client is running. Fully exit WoW before installing this addon.'
 }
 
 $addOnsRoot = Join-Path $resolvedClient 'Interface\AddOns'

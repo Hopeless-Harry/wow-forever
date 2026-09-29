@@ -24,8 +24,14 @@ if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
     throw "Addon manifest is missing: $manifestPath"
 }
 $manifest = Get-Content -Raw -LiteralPath $manifestPath
-if ($manifest -notmatch '(?m)^## Interface: 16001\s*$') {
-    throw 'Addon manifest must target interface 16001.'
+if ($manifest -notmatch '(?m)^## Interface:\s*([^\r\n]+)\s*$') {
+    throw 'Addon manifest has no interface list.'
+}
+$interfaces = @($Matches[1] -split ',' | ForEach-Object { $_.Trim() })
+foreach ($requiredInterface in @('120100', '120105', '16001')) {
+    if ($requiredInterface -notin $interfaces) {
+        throw "Addon manifest must target interface $requiredInterface."
+    }
 }
 if ($manifest -notmatch '(?m)^## Version: ([A-Za-z0-9._-]+)\s*$') {
     throw 'Addon manifest has no package-safe version.'

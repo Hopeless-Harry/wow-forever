@@ -1,8 +1,8 @@
-## Interface: 16001
+## Interface: 120100, 120105, 16001
 ## Title: Moms Against Magic Chronicles Diagnostics
-## Notes: Phase 0 compatibility checks for WoW Forever.
+## Notes: Phase 0 compatibility checks for WoW Retail and WoW Forever.
 ## Author: Harry Woodhouse
-## Version: 0.1.0-phase0
+## Version: 0.1.1-phase0
 ## SavedVariables: MAMChroniclesDiagnosticsDB
 
 Core.lua
