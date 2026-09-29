@@ -1,0 +1,12 @@
+{
+  "name": "mam-chronicles-diagnostics-tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test --test-concurrency=1"
+  },
+  "dependencies": {
+    "fengari": "0.1.5"
+  }
+}
