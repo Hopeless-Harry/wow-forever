@@ -110,6 +110,100 @@ function addon.RecordEvent(eventName, ...)
     return true
 end
 
+local function messageStore()
+    if type(MAMChroniclesDiagnosticsDB) ~= "table" then
+        addon.Initialize()
+    end
+    if type(MAMChroniclesDiagnosticsDB.messages) ~= "table" then
+        MAMChroniclesDiagnosticsDB.messages = {}
+    end
+    return MAMChroniclesDiagnosticsDB.messages
+end
+
+local function sendAddonPayload(payload, channel, target)
+    local capability = addon.ProbeMessaging()
+    MAMChroniclesDiagnosticsDB.capabilities.messaging = capability
+    if not capability.available or not capability.prefixRegistered or capability.outgoingRestricted then
+        return false
+    end
+    if type(C_ChatInfo.SendAddonMessage) ~= "function" then
+        return false
+    end
+    local ok = addon.SafeCall(C_ChatInfo.SendAddonMessage, addon.MESSAGE_PREFIX, payload, channel, target)
+    return ok == true
+end
+
+local function selfTarget()
+    local ok, name, realm
+    if type(UnitFullName) == "function" then
+        ok, name, realm = addon.SafeCall(UnitFullName, "player")
+    else
+        ok, name, realm = addon.SafeCall(UnitName, "player")
+    end
+    if not ok or type(name) ~= "string" or name == "" then
+        return nil
+    end
+    if type(realm) == "string" and realm ~= "" then
+        return name .. "-" .. realm
+    end
+    return name
+end
+
+function addon.SendPing(scope)
+    if scope ~= "self" and scope ~= "guild" then
+        return false
+    end
+    if scope == "guild" then
+        local guildOk, inGuild = addon.SafeCall(IsInGuild)
+        if not guildOk or inGuild ~= true then
+            return false
+        end
+    end
+
+    local messages = messageStore()
+    local sequence = (tonumber(messages.sent) or 0) + 1
+    local nonce = string.format("%d_%d", addon.Now(), sequence)
+    local channel = scope == "self" and "WHISPER" or "GUILD"
+    local target = scope == "self" and selfTarget() or nil
+    if scope == "self" and not target then
+        return false
+    end
+    if not sendAddonPayload("PING|1|" .. nonce, channel, target) then
+        return false
+    end
+
+    messages.sent = sequence
+    messages.lastSentAt = addon.Now()
+    messages.lastNonce = nonce
+    messages.lastScope = scope
+    return true
+end
+
+function addon.HandleAddonMessage(prefix, payload, channel, sender)
+    if prefix ~= addon.MESSAGE_PREFIX or type(payload) ~= "string" then
+        return false
+    end
+    local kind, version, nonce = string.match(payload, "^([A-Z]+)|([0-9]+)|([A-Za-z0-9_-]+)$")
+    if (kind ~= "PING" and kind ~= "PONG") or version ~= "1" then
+        return false
+    end
+    if type(nonce) ~= "string" or #nonce < 1 or #nonce > 32 then
+        return false
+    end
+
+    local messages = messageStore()
+    if kind == "PING" then
+        messages.receivedPing = (tonumber(messages.receivedPing) or 0) + 1
+        messages.lastReceivedAt = addon.Now()
+        local target = channel == "WHISPER" and sender or nil
+        sendAddonPayload("PONG|1|" .. nonce, channel, target)
+    else
+        messages.receivedPong = (tonumber(messages.receivedPong) or 0) + 1
+        messages.lastReceivedAt = addon.Now()
+    end
+    return true
+end
+
 local eventFrame = CreateFrame("Frame")
 addon.eventFrame = eventFrame
 addon.SafeRegisterEvents(eventFrame, eventNames)

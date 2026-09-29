@@ -101,7 +101,7 @@ export function createWowHarness({ globals = {}, savedVariables = null } = {}) {
     UnitName: () => multi('PRIVATE_CHARACTER', 'PRIVATE_REALM'),
     IsInGuild: () => true,
     CreateFrame: () => null,
-    DEFAULT_CHAT_FRAME: { AddMessage: (message) => calls.printed.push(message) },
+    DEFAULT_CHAT_FRAME: { AddMessage: (_self, message) => calls.printed.push(message) },
     SlashCmdList: {},
   };
 
@@ -170,6 +170,10 @@ export function createWowHarness({ globals = {}, savedVariables = null } = {}) {
       setGlobal(L, '__mamEventArgs', args);
       setGlobal(L, '__mamEventName', eventName);
       runChunk(L, 'local frame = MAMChroniclesDiagnostics and MAMChroniclesDiagnostics.eventFrame or __mamLastFrame; if frame and frame.scripts.OnEvent then frame.scripts.OnEvent(frame, __mamEventName, table.unpack(__mamEventArgs)) end', 'fire-event');
+    },
+    runSlash(command = '') {
+      setGlobal(L, '__mamSlashCommand', command);
+      runChunk(L, 'SlashCmdList.MAMCHRONICLESDIAGNOSTICS(__mamSlashCommand)', 'slash-command');
     },
   };
 }
