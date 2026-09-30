@@ -39,6 +39,33 @@ local keywordSets = {
 local function safe(fn, ...) return Addon:SafeCall(fn, ...) end
 local function clock() return GetTime and GetTime() or Addon:Now() end
 
+-- The jump key is handled by the game's own binding code, so hooking the Lua function JumpOrAscendStart never fires on
+-- Retail (live result: hook installed, jumps stayed at 0). Jumps are therefore also detected by the character leaving the
+-- ground. Walking off a ledge counts too; flying, swimming and taxi rides do not. A jump seen by both is counted once.
+Counters.jumpSources = { hook = 0, ticker = 0 }
+local JUMP_DEDUPE = 1.5
+
+function Counters:CountJump(source)
+  self.jumpSources[source] = self.jumpSources[source] + 1
+  self:Add("jumps", 1)
+end
+
+function Counters:OnJumpHook()
+  self.lastHookJump = clock()
+  self:CountJump("hook")
+end
+
+function Counters:CheckGround()
+  local falling = safe(IsFalling) and true or false
+  if falling then self.lastFalling = clock() end
+  if falling and not self.wasFalling then
+    local airborne = (IsFlying and safe(IsFlying)) or (IsSwimming and safe(IsSwimming)) or (UnitOnTaxi and safe(UnitOnTaxi, "player"))
+    local recentHook = self.lastHookJump and clock() - self.lastHookJump < JUMP_DEDUPE
+    if not airborne and not recentHook then self:CountJump("ticker") end
+  end
+  self.wasFalling = falling
+end
+
 -- Whole-word matching so "Whale" is not ale and "Steakhouse" is not steak.
 function Counters:ClassifyItem(name)
   local lowered = string.lower(tostring(name or ""))
@@ -268,7 +295,7 @@ function Counters:Initialise()
     elseif UseContainerItem then
       if pcall(hooksecurefunc, "UseContainerItem", function(bag, slot) Counters:OnBagUsed(bag, slot) end) then self.hooked[#self.hooked + 1] = "UseContainerItem" end
     end
-    if JumpOrAscendStart and pcall(hooksecurefunc, "JumpOrAscendStart", function() Counters:Add("jumps", 1) end) then self.hooked[#self.hooked + 1] = "JumpOrAscendStart" end
+    if JumpOrAscendStart and pcall(hooksecurefunc, "JumpOrAscendStart", function() Counters:OnJumpHook() end) then self.hooked[#self.hooked + 1] = "JumpOrAscendStart" end
     -- DoEmote is deprecated in 12.0 in favour of C_ChatInfo.PerformEmote: hook whichever exist.
     if C_ChatInfo and C_ChatInfo.PerformEmote and pcall(hooksecurefunc, C_ChatInfo, "PerformEmote", function(token, target) Counters:OnEmote(token, target) end) then self.hooked[#self.hooked + 1] = "PerformEmote" end
     if DoEmote and pcall(hooksecurefunc, "DoEmote", function(token, target) Counters:OnEmote(token, target) end) then self.hooked[#self.hooked + 1] = "DoEmote" end
@@ -291,9 +318,9 @@ function Counters:Initialise()
     local ticker, elapsed = CreateFrame("Frame"), 0
     ticker:SetScript("OnUpdate", function(_, step)
       elapsed = elapsed + step
-      if elapsed >= 0.2 then
+      if elapsed >= 0.1 then
         elapsed = 0
-        if IsFalling() then Counters.lastFalling = clock() end
+        Counters:CheckGround()
       end
     end)
     self.ticker = ticker

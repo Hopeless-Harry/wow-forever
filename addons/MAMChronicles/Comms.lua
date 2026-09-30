@@ -16,7 +16,7 @@ local FEED_MAX = 50
 Comms.prefix = PREFIX
 Comms.queue = {}
 Comms.floods = {}
-Comms.status = { state = "starting", sent = 0, received = 0, dropped = 0, unknown = 0, otherVersion = 0 }
+Comms.status = { state = "starting", sent = 0, received = 0, dropped = 0, unknown = 0, otherVersion = 0, awards = 0, unverified = 0 }
 
 local function now() return Addon:Now() end
 local function settings() return Addon.db and Addon.db.settings or {} end
@@ -135,18 +135,44 @@ function Comms:Record(sender, def)
   return true
 end
 
+-- Award (A1) and revoke (R1) messages: `<type>|<recipient>|<medalId>|<version>`.
+-- Real ones need the sender to be rank 0 or 1 on the guild channel. Test mode also accepts whispers.
+function Comms:HandleAward(kind, channel, sender, parts)
+  local test = false
+  if channel == "GUILD" then
+    if not self:IsAwarder(sender) then self.status.unverified = self.status.unverified + 1; self:RequestRoster(); return end
+  elseif channel == "WHISPER" and self.testMode == true then
+    test = true
+  else
+    drop(self); return
+  end
+  local player = Addon:SafeCall(UnitName, "player")
+  if not player or string.lower(parts[2]) ~= string.lower(player) then return end
+  local def = Addon.Medals and Addon.Medals:GetDefinition(parts[3])
+  if not (def and def.verified) or tonumber(parts[4]) ~= Addon.Medals.version then drop(self); return end
+  local ok
+  if kind == "A1" then ok = Addon.Medals:GrantVerified(def.id, { test = test }) else ok = Addon.Medals:RevokeVerified(def.id) end
+  if ok then self.status.awards = self.status.awards + 1 end
+end
+
 function Comms:OnAddonMessage(prefix, text, channel, sender)
   if prefix ~= PREFIX then return end
-  if channel ~= "GUILD" then drop(self); return end
+  if channel ~= "GUILD" and channel ~= "WHISPER" then drop(self); return end
   sender = tostring(sender or "")
   if #sender == 0 or #sender > 60 or sender:find("[%c|]") then drop(self); return end
   local player = Addon:SafeCall(UnitName, "player")
   if player and shortName(sender) == player then return end
-  if settings().receiveGuildAlerts == false then return end
   if type(text) ~= "string" or #text > MAX_LENGTH then drop(self); return end
   local parts = {}
   for piece in (text .. "|"):gmatch("([^|]*)|") do table.insert(parts, piece) end
-  if #parts ~= 4 or parts[1] ~= "M1" then drop(self); return end
+  if #parts ~= 4 then drop(self); return end
+  if parts[1] == "A1" or parts[1] == "R1" then
+    if not (parts[2]:match("^[^%s%c|]+$") and #parts[2] <= 24 and parts[3]:match("^[%w_]+$") and #parts[3] <= 40) then drop(self); return end
+    self:HandleAward(parts[1], channel, sender, parts)
+    return
+  end
+  if parts[1] ~= "M1" or channel ~= "GUILD" then drop(self); return end
+  if settings().receiveGuildAlerts == false then return end
   if not parts[2]:match("^[%w_]+$") or #parts[2] > 40 then drop(self); return end
   local def = Addon.Medals and Addon.Medals:GetDefinition(parts[2])
   -- A newer or older build may know medals this one does not: count them quietly instead of treating them as attacks.
@@ -162,4 +188,39 @@ function Comms:OnAddonMessage(prefix, text, channel, sender)
   if kind then self.status[kind] = self.status[kind] + 1; return end
   self.status.received = self.status.received + 1
   self:Record(sender, def)
+end
+
+-- The UI shows award actions to ranks 0 and 1 (or in test mode). The real check is on every receiver.
+function Comms:CanAward()
+  local player = Addon:SafeCall(UnitName, "player")
+  return self.testMode == true or (player ~= nil and self:IsAwarder(player))
+end
+
+function Comms:ApplyLocal(kind, medalId)
+  if kind == "A1" then return Addon.Medals:GrantVerified(medalId, { test = true }) end
+  return Addon.Medals:RevokeVerified(medalId)
+end
+
+-- kind is "A1" (award) or "R1" (revoke). Returns ok, reason.
+function Comms:SendAward(kind, recipient, medalId)
+  local def = Addon.Medals and Addon.Medals:GetDefinition(medalId)
+  if not (def and def.verified) then return false, "not a verified medal" end
+  recipient = tostring(recipient or "")
+  if not (recipient:match("^[^%s%c|]+$") and #recipient <= 24) then return false, "bad character name" end
+  local text = string.format("%s|%s|%s|%d", kind, recipient, medalId, Addon.Medals.version)
+  if #text > MAX_LENGTH then return false, "message too long" end
+  local player = Addon:SafeCall(UnitName, "player")
+  if self.testMode == true then
+    if player and string.lower(shortName(recipient)) == string.lower(player) then return self:ApplyLocal(kind, medalId) end
+    local send = sendFunction()
+    if not send then return false, "unavailable" end
+    local outcome = classify(pcall(send, PREFIX, text, "WHISPER", recipient))
+    return outcome == "sent", outcome
+  end
+  self:RequestRoster()
+  if not (player and self:IsAwarder(player)) then return false, "only the Guild Master or rank 1 can award medals (guild roster may still be loading)" end
+  local reason = self:Availability()
+  if reason then return false, reason end
+  local outcome = classify(pcall(sendFunction(), PREFIX, text, "GUILD"))
+  return outcome == "sent", outcome
 end

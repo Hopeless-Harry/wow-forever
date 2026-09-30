@@ -107,6 +107,8 @@ function Export:BuildDiagnosticReport()
     local hooks = Addon.Counters and Addon.Counters.hooked and table.concat(Addon.Counters.hooked, ", ") or "none"
     table.insert(lines,"Level cap: "..tostring(Addon.Medals:LevelCap()))
     table.insert(lines,"Medals: client "..tostring(Addon.Medals:Client())..", level cap "..tostring(Addon.Medals:LevelCap())..", race "..tostring(raceToken or "unknown")..", hooks "..hooks)
+    local js=Addon.Counters and Addon.Counters.jumpSources
+    if js then table.insert(lines,"Jumps counted: "..tostring(js.hook).." by the hook, "..tostring(js.ticker).." by the ground check") end
     local camp=Addon.Counters and Addon.Counters.campSpellNames or {}
     if #camp>0 then table.insert(lines,"Camp spells seen: "..table.concat(camp,", ")) end
   end
