@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles — User Manual
 
-- **Version:** `0.2.0-alpha18`
+- **Version:** `0.2.0-alpha19`
 - **Primary test target:** WoW Forever (interface 16001, level cap 60)
 - **Secondary test target:** World of Warcraft Retail 12.1
 - **Live evidence:** Retail has been observed live for the window and statistics. Forever, guild sharing between two real players, and most detection (campfires, emotes, consumables, vendor, group, ready checks, fall deaths) are not yet proven live.
@@ -109,6 +109,10 @@ Toasts slide in near the top of the screen for new medals, guildmates' medals, a
 When you earn a new medal, the addon sends one tiny hidden message to your guild containing only the **medal id, its points and the definition version**. Guildmates running the addon see a toast and a line in their Guildmates list. Nothing else is sent: no chat, location, gold, history or statistics.
 
 Safeguards: it is on by default but has a one-click opt-out (Settings > Alerts), a first-run notice explains it, messages are rate limited, senders are capped at five a minute, incoming messages are validated (unknown medals or wrong points are ignored), and it stops quietly if the realm restricts addon messages. Optionally you can also post a line in guild chat, which everyone can read, off by default. `/mam diag` shows the state, for example `Guild sharing: ready, sent 1, received 3, dropped 0`.
+
+### Animations
+
+The window and each page fade in softly, medal progress bars grow out from the left when you open the Medals tab or change a filter, medal and guildmate toasts shimmer and their icon pops, and the minimap button glows gently while something new is waiting (a toast appeared while the window was closed) until you open the window. Medal rows also light up under the mouse. The animations use the game's own animation system, so they add no per-frame work. Turn them all off with **Settings > Appearance > Animations**; on a client without animation support they simply do not run.
 
 ### Themes and transparency
 

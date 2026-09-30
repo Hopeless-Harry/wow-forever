@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0-alpha19
+
+- **Animations:** the window and each page fade in softly, medal progress bars grow out from the left when you open the Medals tab or change a filter, medal and guildmate toasts shimmer and pop their icon, toasts ease in and drift out, and the minimap button glows gently while something new is waiting (a toast appeared while the window was closed) until you open the window. They use the game's own animation system, so they cost nothing per frame, and **Settings > Appearance > Animations** turns them all off.
+- Medal rows light up when you hover them, and the window has a slim accent line along the top.
+
 ## 0.2.0-alpha18
 
 - **Weekly Mom Quests:** three small tasks a week (adventure, Mom life and a stretch goal) that pay extra Mom Money, plus a bonus for finishing all three. Week one counts from the WoW Forever launch (4 November 2026) and is gentle: a few quests, a few meals, a level 10 goal. Difficulty ramps up every two weeks to about week twelve (level goals follow the usual Forever pace and never pass 60). Every guildmate on the same version gets the same quests without any messages. They show on Home and with `/mam quests`.

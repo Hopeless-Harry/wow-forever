@@ -2,7 +2,7 @@ MAMChronicles = MAMChronicles or {}
 local Addon = MAMChronicles
 
 Addon.name = "MAMChronicles"
-Addon.version = "0.2.0-alpha18"
+Addon.version = "0.2.0-alpha19"
 Addon.schemaVersion = 1
 
 function Addon:Now()
@@ -100,7 +100,7 @@ end
 local WELCOME_VERSION = "personal-chronicle-v3"
 
 -- One line shown on Home after an update; keep it in step with CHANGELOG.md.
-Addon.whatsNewText = "weekly Mom Quests (/mam quests), holiday medals, a Characters tab, a Memory Book (/mam book) and quiet mode in dungeons."
+Addon.whatsNewText = "smooth fades, shimmering medal toasts, growing progress bars and a glowing minimap button (Settings > Appearance turns them off)."
 
 function Addon:GetWhatsNew()
   local settings = self.db and self.db.settings

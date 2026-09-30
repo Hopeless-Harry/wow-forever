@@ -97,6 +97,7 @@ function Toast:CreateFrame()
   safeMethod(self.stripe, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 0, 0); safeMethod(self.stripe, "SetPoint", "BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0); safeMethod(self.stripe, "SetWidth", 5)
   local icon = frame:CreateTexture(nil, "ARTWORK")
   safeMethod(icon, "SetTexture", ICON); safeMethod(icon, "SetSize", 34, 34); safeMethod(icon, "SetPoint", "LEFT", frame, "LEFT", 14, 0)
+  self.icon = icon
   self.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   safeMethod(self.title, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 56, -10); safeMethod(self.title, "SetPoint", "RIGHT", frame, "RIGHT", -12, 0); safeMethod(self.title, "SetJustifyH", "LEFT"); safeMethod(self.title, "SetWordWrap", false)
   safeMethod(self.title, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1)
@@ -146,6 +147,10 @@ function Toast:Start(spec)
   safeMethod(self.points, "SetText", spec.points and ("+" .. tostring(spec.points) .. " Mom Money") or "")
   self:Render()
   safeMethod(frame, "Show")
+  local lively = spec.kind == "medal" or spec.kind == "guild"
+  if lively then T:Pulse(self.stripe, 0.55, 1, 0.9); T:Pop(self.icon) else T:StopPulse(self.stripe) end
+  local window = Addon.UI and Addon.UI.frame
+  if (lively or spec.action == "Medals") and Addon.Launcher and not (window and window.IsShown and window:IsShown()) then Addon.Launcher:SetAttention(true) end
   local settings = Addon.db and Addon.db.settings
   if settings and settings.toastSound and PlaySound then
     self:PreviewSound(settings.toastSoundChoice)
@@ -156,14 +161,19 @@ function Toast:Render()
   if not (self.frame and self.current) then return end
   local phase, progress = self.phase, self.timer / DURATIONS[self.phase]
   local alpha, offset = 1, -110
-  if phase == "in" then alpha = progress; offset = -110 + (1 - progress) * 50
-  elseif phase == "out" then alpha = 1 - progress end
+  if phase == "in" then
+    local eased = 1 - (1 - progress) ^ 3 -- fast start, soft landing
+    alpha = eased; offset = -110 + (1 - eased) * 50
+  elseif phase == "out" then
+    alpha = 1 - progress; offset = -110 + 14 * progress * progress -- drifts up as it fades
+  end
   safeMethod(self.frame, "SetAlpha", math.max(0, math.min(1, alpha)))
   safeMethod(self.frame, "ClearAllPoints"); safeMethod(self.frame, "SetPoint", "TOP", UIParent, "TOP", 0, offset)
 end
 
 function Toast:Finish()
   self.current, self.phase, self.timer = nil, nil, 0
+  if Addon.Theme then Addon.Theme:StopPulse(self.stripe) end
   safeMethod(self.frame, "Hide")
   if #self.queue > 0 and not held() then self:Start(table.remove(self.queue, 1)) end
 end

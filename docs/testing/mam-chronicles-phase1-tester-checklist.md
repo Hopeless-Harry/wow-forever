@@ -181,6 +181,15 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] Zone into a dungeon and earn something (or use `/mam toast`): no toast shows until you leave; with the setting off it shows at once.
 - [ ] All seven tabs fit in the window at its smallest size.
 
+## Animations and polish (alpha19)
+
+- [ ] The window fades in when opened and each tab fades in when you switch to it. It does not flicker on paging or searching.
+- [ ] Open the Medals tab: the progress bars grow from the left. Change a filter: they grow again.
+- [ ] Earn or test a medal toast (`/mam toast` twice): the stripe shimmers and the icon pops; the plain test toast stays still.
+- [ ] Close the window, trigger a toast: the minimap button glows until you open the window.
+- [ ] Hover a medal row: it lights up.
+- [ ] Settings > Appearance > Animations off: everything above stops and nothing breaks. Note any stutter with animations on: __________
+
 ## Stability
 
 - [ ] No Lua errors during the test.

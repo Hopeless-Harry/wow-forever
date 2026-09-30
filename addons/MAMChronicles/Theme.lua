@@ -277,6 +277,90 @@ function Theme:ApplyPreset(name)
   return name
 end
 
+-- ---------------------------------------------------------------- animations
+-- Engine-driven animation groups: nothing here runs Lua per frame. Every helper returns false (and does nothing) when
+-- animations are switched off in Settings or the client has no animation API.
+function Theme:CanAnimate()
+  local settings = Addon.db and Addon.db.settings
+  return not (settings and settings.animations == false)
+end
+
+local function newGroup(region)
+  if type(region) ~= "table" or type(region.CreateAnimationGroup) ~= "function" then return nil end
+  local ok, group = pcall(region.CreateAnimationGroup, region)
+  if ok and type(group) == "table" then return group end
+  return nil
+end
+
+local function groupFor(region, field, build)
+  local group = region[field]
+  if group then return group end
+  group = newGroup(region)
+  if not group then return nil end
+  if build(group) == false then return nil end
+  region[field] = group
+  return group
+end
+
+-- Fades a frame from invisible to fully visible.
+function Theme:FadeIn(region, duration)
+  if not self:CanAnimate() then return false end
+  local group = groupFor(region, "__fadeGroup", function(g)
+    local alpha = g:CreateAnimation("Alpha")
+    safeMethod(alpha, "SetFromAlpha", 0); safeMethod(alpha, "SetToAlpha", 1); safeMethod(alpha, "SetDuration", duration or 0.15); safeMethod(alpha, "SetSmoothing", "OUT")
+    safeMethod(g, "SetToFinalAlpha", true)
+  end)
+  if not group then return false end
+  safeMethod(group, "Stop"); safeMethod(group, "Play")
+  return true
+end
+
+-- Breathes a region between two alphas until StopPulse.
+function Theme:Pulse(region, low, high, period)
+  if not self:CanAnimate() then return false end
+  local group = groupFor(region, "__pulseGroup", function(g)
+    local alpha = g:CreateAnimation("Alpha")
+    safeMethod(alpha, "SetFromAlpha", high or 1); safeMethod(alpha, "SetToAlpha", low or 0.5); safeMethod(alpha, "SetDuration", (period or 0.9) / 2); safeMethod(alpha, "SetSmoothing", "IN_OUT")
+    safeMethod(g, "SetLooping", "BOUNCE")
+  end)
+  if not group then return false end
+  safeMethod(group, "Play")
+  return true
+end
+
+function Theme:StopPulse(region)
+  local group = type(region) == "table" and region.__pulseGroup
+  if group then safeMethod(group, "Stop") end
+end
+
+-- Grows a bar out from its left edge.
+function Theme:GrowBar(region, duration)
+  if not self:CanAnimate() then return false end
+  local group = groupFor(region, "__growGroup", function(g)
+    local scale = g:CreateAnimation("Scale")
+    if type(scale.SetScaleFrom) ~= "function" then return false end
+    scale:SetScaleFrom(0.001, 1); scale:SetScaleTo(1, 1)
+    safeMethod(scale, "SetOrigin", "LEFT", 0, 0); safeMethod(scale, "SetDuration", duration or 0.35); safeMethod(scale, "SetSmoothing", "OUT")
+  end)
+  if not group then return false end
+  safeMethod(group, "Stop"); safeMethod(group, "Play")
+  return true
+end
+
+-- A quick "pop": starts small and settles at full size.
+function Theme:Pop(region)
+  if not self:CanAnimate() then return false end
+  local group = groupFor(region, "__popGroup", function(g)
+    local scale = g:CreateAnimation("Scale")
+    if type(scale.SetScaleFrom) ~= "function" then return false end
+    scale:SetScaleFrom(0.6, 0.6); scale:SetScaleTo(1, 1)
+    safeMethod(scale, "SetOrigin", "CENTER", 0, 0); safeMethod(scale, "SetDuration", 0.3); safeMethod(scale, "SetSmoothing", "OUT")
+  end)
+  if not group then return false end
+  safeMethod(group, "Stop"); safeMethod(group, "Play")
+  return true
+end
+
 -- ---------------------------------------------------------------- horizontal slider
 function Theme:Slider(parent, width, minimum, maximum, step)
   local slider = CreateFrame("Slider", nil, parent, "BackdropTemplate")

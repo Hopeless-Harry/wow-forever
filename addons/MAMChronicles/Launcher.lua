@@ -120,6 +120,24 @@ function Launcher:Create()
   return button
 end
 
+-- A soft glow on the minimap button while something new is waiting (a toast appeared while the window was closed).
+function Launcher:SetAttention(on)
+  local T = Addon.Theme
+  if not (self.button and T) then return false end
+  if on and T:CanAnimate() then
+    if not self.glow and self.button.CreateTexture then
+      local glow = self.button:CreateTexture(nil, "OVERLAY")
+      safeMethod(glow, "SetTexture", "Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight"); safeMethod(glow, "SetAllPoints", self.button); safeMethod(glow, "SetBlendMode", "ADD")
+      self.glow = glow
+    end
+    if not self.glow then return false end
+    safeMethod(self.glow, "Show")
+    return T:Pulse(self.glow, 0.25, 1, 1.2)
+  end
+  if self.glow then T:StopPulse(self.glow); safeMethod(self.glow, "Hide") end
+  return false
+end
+
 function Launcher:Initialise()
   if not self.button and Addon:InCombat() then Addon:AfterCombat(function() Launcher:Initialise() end); return end
   if not self:Create() then return end

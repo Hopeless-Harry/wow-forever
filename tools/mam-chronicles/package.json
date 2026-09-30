@@ -1,6 +1,6 @@
 {
   "name": "mam-chronicles-tests",
-  "version": "0.2.0-alpha18",
+  "version": "0.2.0-alpha19",
   "private": true,
   "type": "module",
   "scripts": { "test": "node --test --test-concurrency=1" },

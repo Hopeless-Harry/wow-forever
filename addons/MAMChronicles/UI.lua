@@ -40,6 +40,7 @@ function UI:SetActiveTab(name)
   self.activeTab=name; self.textOffset=0
   if Addon.db and Addon.db.settings and Addon.db.settings.ui then Addon.db.settings.ui.activeTab=name end
   self:Refresh()
+  self:FadeActivePage()
   return true
 end
 
@@ -214,7 +215,7 @@ function UI:GetVisibleTimeline()
   local result={}; for index=offset+1,math.min(offset+30,#events) do table.insert(result,events[index]) end return result,#events
 end
 
-local booleanSettings={enabled=true,recordCoordinates=true,recordQuestAccepts=true,recordStatistics=true,recordGoldStatistics=true,toastsEnabled=true,toastSound=true,quietInstances=true,announceMedals=true,announceGuildChat=true,receiveGuildAlerts=true}
+local booleanSettings={enabled=true,recordCoordinates=true,recordQuestAccepts=true,recordStatistics=true,recordGoldStatistics=true,toastsEnabled=true,toastSound=true,quietInstances=true,animations=true,announceMedals=true,announceGuildChat=true,receiveGuildAlerts=true}
 function UI:SetSetting(key,value)
   if key=="showMinimapButton" and Addon.SettingsPanel then return Addon.SettingsPanel:ApplySetting(key,value==true) end
   local settings=Addon.db.settings
@@ -547,6 +548,7 @@ function UI:BuildSettingsPage(frame)
   safeMethod(self.alphaValue, "SetPoint", "LEFT", self.alphaSlider, "RIGHT", 14, 0); add(self.alphaValue)
   y = y - 34
   check("showMinimapButton", "Show minimap button")
+  check("animations", "Animations (fades, pulses and bounces)", "Turn this off for a perfectly still interface.")
 
   heading("Alerts")
   check("toastsEnabled", "Show toast alerts", "Toasts are held while you are in combat and appear once combat ends.")
@@ -648,7 +650,7 @@ UI.medalCategory = "all"
 function UI:SetMedalCategory(key)
   if key ~= "all" and not (Addon.Medals and Addon.Medals.categoriesByKey[key]) then return false end
   self.medalCategory = key
-  if self.medalsArea then self.medalsArea:SetOffset(0); self:RefreshMedals() end
+  if self.medalsArea then self.medalsArea:SetOffset(0); self:RefreshMedals(); self:AnimateMedalBars() end
   return true
 end
 
@@ -677,7 +679,7 @@ function UI:SetMedalFilter(value)
   for _, name in ipairs(self.medalFilters) do if name == value then valid = true end end
   if not valid then return false end
   self.medalFilter = value
-  if self.medalsArea then self.medalsArea:SetOffset(0); self:RefreshMedals() end
+  if self.medalsArea then self.medalsArea:SetOffset(0); self:RefreshMedals(); self:AnimateMedalBars() end
   return true
 end
 
@@ -714,8 +716,14 @@ local function createMedalRow(ui, index)
   safeMethod(row.progress, "SetPoint", "BOTTOMRIGHT", row, "BOTTOMRIGHT", -12, 9)
   row.bar = row:CreateTexture(nil, "ARTWORK")
   safeMethod(row.bar, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 4, 0); safeMethod(row.bar, "SetHeight", 3)
-  safeMethod(row, "SetScript", "OnEnter", function(r) UI:ShowMedalTooltip(r) end)
-  safeMethod(row, "SetScript", "OnLeave", function() if GameTooltip then safeMethod(GameTooltip, "Hide") end end)
+  safeMethod(row, "SetScript", "OnEnter", function(r)
+    safeMethod(r, "SetBackdropColor", C.hover[1], C.hover[2], C.hover[3], C.hover[4] or 1)
+    UI:ShowMedalTooltip(r)
+  end)
+  safeMethod(row, "SetScript", "OnLeave", function(r)
+    safeMethod(r, "SetBackdropColor", C.panel[1], C.panel[2], C.panel[3], C.panel[4] or 1)
+    if GameTooltip then safeMethod(GameTooltip, "Hide") end
+  end)
   safeMethod(row, "SetScript", "OnMouseUp", function(r, button) UI:ToggleGoal(r, button) end)
   ui.medalRows[index] = row
   return row
@@ -915,7 +923,7 @@ end
 function UI:ShowMedalsPage()
   local area = self.medalsArea
   area:Place(self.frame, 84, FOOTER + 4, SIDE, TEXT_SCROLLBAR); area:Show()
-  self:RefreshMedals(); self:UpdateMedalsScroll()
+  self:RefreshMedals(); self:UpdateMedalsScroll(); self:AnimateMedalBars()
 end
 
 function UI:Create()
@@ -927,6 +935,9 @@ function UI:Create()
   if frame.SetResizeBounds then safeMethod(frame, "SetResizeBounds", 620, 440) else safeMethod(frame, "SetMinResize", 620, 440) end
   safeMethod(frame, "SetFrameStrata", "HIGH")
   T:Panel(frame, C.bg, C.border)
+  self.topAccent = frame:CreateTexture(nil, "OVERLAY")
+  safeMethod(self.topAccent, "SetColorTexture", C.accent[1], C.accent[2], C.accent[3], 1)
+  safeMethod(self.topAccent, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 1, -1); safeMethod(self.topAccent, "SetPoint", "TOPRIGHT", frame, "TOPRIGHT", -1, -1); safeMethod(self.topAccent, "SetHeight", 2)
   self.bgFill = frame:CreateTexture(nil, "BACKGROUND", nil, -8)
   safeMethod(self.bgFill, "SetAllPoints", frame); safeMethod(self.bgFill, "SetColorTexture", C.bg[1], C.bg[2], C.bg[3], 1)
   self:ApplyAppearance()
@@ -1148,7 +1159,25 @@ end
 
 function UI:Show()
   if self:DeferForCombat() then return end
-  self:Create(); self:Refresh(); safeMethod(self.frame,"Show")
+  self:Create()
+  local wasShown = self.frame.IsShown and self.frame:IsShown()
+  self:Refresh(); safeMethod(self.frame,"Show")
+  if not wasShown then Addon.Theme:FadeIn(self.frame, 0.15) end
+  if Addon.Launcher then Addon.Launcher:SetAttention(false) end
+end
+
+-- Fades the page that is now showing (Chronicle rows are left alone: they are many small frames).
+function UI:FadeActivePage()
+  local T = Addon.Theme; local tab = self.activeTab
+  local page = (tab == "Home" and self.dashboard and self.dashboard.frame) or (tab == "Medals" and self.medalsArea and self.medalsArea.scroll)
+    or (tab == "Settings" and self.settingsArea and self.settingsArea.scroll) or ((tab == "Statistics" or tab == "Characters" or tab == "Diagnostics") and self.textScroll) or nil
+  if T and page then T:FadeIn(page, 0.12) end
+end
+
+function UI:AnimateMedalBars()
+  local T = Addon.Theme
+  if not (T and self.medalRows) then return end
+  for _, row in ipairs(self.medalRows) do if row.entry and row.bar then T:GrowBar(row.bar, 0.35) end end
 end
 function UI:Hide() if self.frame then safeMethod(self.frame,"Hide") end end
 function UI:ShowCopy(text, diagnostics)

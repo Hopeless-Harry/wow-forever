@@ -70,6 +70,20 @@ export function createHarness({ globals = {}, savedVariables } = {}) {
     function GameTooltip:AddLine(value) table.insert(self.lines,value) end
     function GameTooltip:Show() self.shown=true end function GameTooltip:Hide() self.shown=false end
     function GetCursorPosition() return 200,100 end
+    function __mamNewGroup()
+      local g={anims={},playing=false,plays=0,scripts={}}
+      function g:CreateAnimation(kind)
+        local a={kind=kind}
+        function a:SetDuration(v) self.duration=v end function a:SetFromAlpha(v) self.fromAlpha=v end function a:SetToAlpha(v) self.toAlpha=v end
+        function a:SetSmoothing(v) self.smoothing=v end function a:SetOrder(v) self.order=v end function a:SetStartDelay(v) self.delay=v end
+        function a:SetScaleFrom(x,y) self.scaleFromX,self.scaleFromY=x,y end function a:SetScaleTo(x,y) self.scaleToX,self.scaleToY=x,y end
+        function a:SetOrigin(point) self.origin=point end
+        table.insert(self.anims,a) return a
+      end
+      function g:Play() self.playing=true self.plays=self.plays+1 end function g:Stop() self.playing=false end function g:IsPlaying() return self.playing end
+      function g:SetLooping(v) self.looping=v end function g:SetToFinalAlpha(v) self.toFinal=v end function g:SetScript(k,v) self.scripts[k]=v end
+      return g
+    end
     function CreateFrame(_,name)
       local f={scripts={},shown=false,name=name,width=0,height=0,enabled=true,highlighted=false}
       function f:RegisterEvent(e) if __mamFailEvent==e then error("unsupported event: "..e) end table.insert(__mamCalls.registered,e) end
@@ -80,12 +94,13 @@ export function createHarness({ globals = {}, savedVariables } = {}) {
       function f:SetMovable() end function f:EnableMouse() end function f:SetUserPlaced(value) self.userPlaced=value end
       function f:RegisterForDrag() end function f:RegisterForClicks() end function f:SetClampedToScreen() end function f:SetResizable() end function f:SetMinResize(w,h) self.minResize={w,h} end
       function f:SetBackdrop(t) self.backdrop=t end function f:SetBackdropColor(r,g,b,a) self.backdropColor={r,g,b,a} end function f:SetBackdropBorderColor(r,g,b,a) self.borderColor={r,g,b,a} end function f:SetFontString(fs) self.fontString=fs end function f:SetThumbTexture(t) self.thumb=self.thumb or {} self.thumb.texture=t end function f:GetThumbTexture() self.thumb=self.thumb or {SetSize=function()end,SetVertexColor=function(t,r,g,b,a) t.color={r,g,b,a} end} return self.thumb end function f:SetFrameStrata() end
+      function f:CreateAnimationGroup() return __mamNewGroup() end function f:SetAlpha(v) self.alpha=v end function f:GetAlpha() return self.alpha or 1 end
       function f:SetText(value) self.text=value end function f:SetNormalFontObject() end function f:SetWidth(value) self.width=value end function f:SetHeight(value) self.height=value end
       function f:SetMinMaxValues(lo,hi) self.minValue=lo self.maxValue=hi end function f:GetValue() return self.value end function f:SetValue(v) self.value=v if self.scripts.OnValueChanged then self.scripts.OnValueChanged(self,v) end end
       function f:GetText() return self.text or "" end function f:SetChecked(v) self.checked=v end function f:GetChecked() return self.checked end function f:SetScrollChild(c) self.scrollChild=c end function f:SetVerticalScroll(v) self.verticalScroll=v end function f:GetVerticalScroll() return self.verticalScroll or 0 end
       function f:SetEnabled(value) self.enabled=value end function f:LockHighlight() self.highlighted=true end function f:UnlockHighlight() self.highlighted=false end
       function f:CreateFontString() return {SetWidth=function(t,v)t.width=v end,GetStringHeight=function(t) local n=1 for _ in tostring(t.text or ""):gmatch("\\n") do n=n+1 end return n*14 end,SetTextColor=function(t,r,g,b,a)t.textColor={r,g,b,a}end,SetFontObject=function()end,SetPoint=function()end,SetText=function(self,v)self.text=v end,SetJustifyH=function()end,Show=function(t)t.shown=true end,Hide=function(t)t.shown=false end} end
-      function f:CreateTexture() return {SetAllPoints=function()end,SetColorTexture=function(t,r,g,b,a)t.color={r,g,b,a}end,SetVertexColor=function(t,r,g,b,a)t.color={r,g,b,a}end,Show=function(t)t.shown=true end,Hide=function(t)t.shown=false end,SetPoint=function()end,SetSize=function()end,SetTexture=function(self,value)self.texture=value end,SetTexCoord=function()end} end
+      function f:CreateTexture() return {CreateAnimationGroup=function() return __mamNewGroup() end,SetAllPoints=function()end,SetColorTexture=function(t,r,g,b,a)t.color={r,g,b,a}end,SetVertexColor=function(t,r,g,b,a)t.color={r,g,b,a}end,Show=function(t)t.shown=true end,Hide=function(t)t.shown=false end,SetPoint=function()end,SetSize=function()end,SetTexture=function(self,value)self.texture=value end,SetTexCoord=function()end} end
       __mamLastFrame=f return f
     end`, 'frame-stub');
   return {
