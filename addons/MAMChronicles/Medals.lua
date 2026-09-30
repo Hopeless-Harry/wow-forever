@@ -19,8 +19,28 @@ local timeFn = time or (os and os.time)
 local function tableOr(value) return type(value) == "table" and value or {} end
 local function safe(fn, ...) return Addon:SafeCall(fn, ...) end
 
+Medals.newIds = {}
+
+-- How each value function is tracked, for the medal tooltip. Factories below tag the functions they return.
+local sources = setmetatable({}, { __mode = "k" })
+local trackingText = {
+  counter = "Counted by the addon as you play. Only a number is kept, never item names.",
+  statistic = "Read from the game's own Statistics.",
+  tally = "Tracked from your Chronicle and kept even after old entries are compacted.",
+  default = "Worked out from your Chronicle entries and your character.",
+}
+local function tagged(kind, fn) sources[fn] = kind; return fn end
+
+local function describeTracking(def)
+  local text = trackingText[sources[def.value] or "default"]
+  if def.needsStat then text = text .. " Only offered when this client reports that statistic." end
+  if def.client == "forever" then text = text .. " WoW Forever only." elseif def.client == "retail" then text = text .. " Retail only." end
+  return text
+end
+
 local function register(def)
   def.points = Medals.tierPoints[def.tier]
+  def.tracking = describeTracking(def)
   table.insert(definitions, def)
   definitionsById[def.id] = def
 end
@@ -45,9 +65,9 @@ local function single(id, name, tier, target, description, value, options)
 end
 
 local function stat(ctx, patterns) return ctx.stat(patterns) end
-local function counter(name) return function(ctx) return ctx.counter(name) end end
-local function tally(name) return function(ctx) return ctx.tally(name) end end
-local function statistic(...) local patterns = { ... }; return function(ctx) return stat(ctx, patterns) end end
+local function counter(name) return tagged("counter", function(ctx) return ctx.counter(name) end) end
+local function tally(name) return tagged("tally", function(ctx) return ctx.tally(name) end) end
+local function statistic(...) local patterns = { ... }; return tagged("statistic", function(ctx) return stat(ctx, patterns) end) end
 local function hours(seconds) return math.floor(seconds / 3600) end
 local bts = { "bronze", "silver", "gold" }
 local btsp = { "bronze", "silver", "gold", "platinum" }
@@ -223,7 +243,7 @@ local function localDay(timestamp)
   return math.floor(noon / 86400), parts
 end
 
-function Medals:Reset() self.counts = nil end
+function Medals:Reset() self.counts = nil; self.newIds = {} end
 
 function Medals:EnsureCounts()
   local database = Addon.db
@@ -428,6 +448,7 @@ function Medals:Evaluate(reason)
     if #awarded > 0 then notify(nil, { summary = true, retro = true, count = #awarded, points = points, reason = reason }) end
   else
     for _, def in ipairs(awarded) do
+      self.newIds[def.id] = true
       Addon.EventStore:Append("medal.earned", { medalId = def.id, medalName = def.name, points = def.points })
       notify(def, { retro = false, reason = reason })
     end
@@ -444,12 +465,13 @@ end
 
 function Medals:GetSummary(key)
   local row = Addon.db and Addon.db.medals and Addon.db.medals[key or Addon.characterKey]
-  local count, possible = 0, 0
-  if row then for _ in pairs(row.earned) do count = count + 1 end end
+  local count, possible, total = 0, 0, 0
   for _, def in ipairs(definitions) do
-    if self:IsAvailable(def) or (row and row.earned[def.id]) then possible = possible + 1 end
+    local earned = row and row.earned[def.id]
+    if earned then count = count + 1; total = total + (tonumber(earned.points) or def.points) end
+    if earned or self:IsAvailable(def) then possible = possible + 1 end
   end
-  return { total = row and row.total or 0, count = count, possible = possible }
+  return { total = total, count = count, possible = possible }
 end
 
 -- Medals that cannot be earned on this client (wrong client or level cap) are left out unless already earned.

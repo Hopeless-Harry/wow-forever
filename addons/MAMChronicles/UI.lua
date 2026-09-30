@@ -525,32 +525,160 @@ function UI:UpdateMedalsScroll()
   self.medalsArea:Update(self.medalsHeight or 200, self:TextViewHeight(), self.textWidth or 700)
 end
 
+local MEDAL_PITCH = MEDAL_ROW_HEIGHT + 4
+local MEDAL_LIST_TOP = 92
+UI.medalFilters = { "All", "Earned", "In progress", "Locked" }
+UI.medalFilter = "All"
+UI.medalSearch = ""
+
+function UI:SetMedalFilter(value)
+  local valid = false
+  for _, name in ipairs(self.medalFilters) do if name == value then valid = true end end
+  if not valid then return false end
+  self.medalFilter = value
+  if self.medalsArea then self.medalsArea:SetOffset(0); self:RefreshMedals() end
+  return true
+end
+
+function UI:SetMedalSearch(text)
+  self.medalSearch = type(text) == "string" and text or ""
+  if self.medalsArea then self.medalsArea:SetOffset(0); self:RefreshMedals() end
+end
+
+local function medalState(entry)
+  if entry.earned then return "Earned" end
+  if entry.current > 0 then return "In progress" end
+  return "Locked"
+end
+
+-- Rows are created only for the slots the window can show and rebound as the list scrolls.
+local function createMedalRow(ui, index)
+  local T = Addon.Theme; local C = T.colors
+  local child = ui.medalsArea.child
+  local row = CreateFrame("Frame", nil, child, "BackdropTemplate")
+  T:Panel(row, C.panel, C.border); safeMethod(row, "SetHeight", MEDAL_ROW_HEIGHT); safeMethod(row, "EnableMouse", true)
+  row.stripe = row:CreateTexture(nil, "ARTWORK")
+  safeMethod(row.stripe, "SetPoint", "TOPLEFT", row, "TOPLEFT", 0, 0); safeMethod(row.stripe, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 0, 0); safeMethod(row.stripe, "SetWidth", 4)
+  row.name = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  safeMethod(row.name, "SetPoint", "TOPLEFT", row, "TOPLEFT", 14, -7); safeMethod(row.name, "SetJustifyH", "LEFT")
+  row.newTag = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  safeMethod(row.newTag, "SetPoint", "LEFT", row.name, "RIGHT", 8, 0); safeMethod(row.newTag, "SetText", "NEW"); safeMethod(row.newTag, "SetTextColor", T.kindColors.world[1], T.kindColors.world[2], T.kindColors.world[3], 1); safeMethod(row.newTag, "Hide")
+  row.desc = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  safeMethod(row.desc, "SetPoint", "TOPLEFT", row.name, "BOTTOMLEFT", 0, -3); safeMethod(row.desc, "SetPoint", "RIGHT", row, "RIGHT", -130, 0); safeMethod(row.desc, "SetJustifyH", "LEFT"); safeMethod(row.desc, "SetWordWrap", false)
+  row.points = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  safeMethod(row.points, "SetPoint", "TOPRIGHT", row, "TOPRIGHT", -12, -7)
+  row.progress = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  safeMethod(row.progress, "SetPoint", "BOTTOMRIGHT", row, "BOTTOMRIGHT", -12, 9)
+  row.bar = row:CreateTexture(nil, "ARTWORK")
+  safeMethod(row.bar, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 4, 0); safeMethod(row.bar, "SetHeight", 3)
+  safeMethod(row, "SetScript", "OnEnter", function(r) UI:ShowMedalTooltip(r) end)
+  safeMethod(row, "SetScript", "OnLeave", function() if GameTooltip then safeMethod(GameTooltip, "Hide") end end)
+  ui.medalRows[index] = row
+  return row
+end
+
+function UI:ShowMedalTooltip(row)
+  local entry = row and row.entry
+  if not entry or not GameTooltip then return end
+  local def = entry.def
+  safeMethod(GameTooltip, "SetOwner", row, "ANCHOR_RIGHT"); safeMethod(GameTooltip, "SetText", def.name)
+  safeMethod(GameTooltip, "AddLine", def.description, 1, 1, 1, true)
+  safeMethod(GameTooltip, "AddLine", "Tracked: " .. tostring(def.tracking), 0.7, 0.7, 0.7, true)
+  if entry.earned then
+    local when = entry.earned.retro and "before tracking began" or (date and date("%d %b %Y", entry.earned.at) or tostring(entry.earned.at))
+    safeMethod(GameTooltip, "AddLine", "Earned " .. when .. " (+" .. tostring(def.points) .. " Mom Money)", 0.9, 0.8, 0.3, true)
+  else
+    safeMethod(GameTooltip, "AddLine", "Progress: " .. tostring(math.floor(math.min(entry.current, entry.target))) .. " / " .. tostring(entry.target), 0.9, 0.8, 0.3, true)
+  end
+  safeMethod(GameTooltip, "Show")
+end
+
+function UI:BindMedalRow(row, entry, position)
+  local T = Addon.Theme; local C = T.colors
+  local def = entry.def
+  row.entry = entry
+  local tierColour = Addon.Medals.tierColours[def.tier]
+  local offset = -(MEDAL_LIST_TOP + (position - 1) * MEDAL_PITCH)
+  safeMethod(row, "ClearAllPoints"); safeMethod(row, "SetPoint", "TOPLEFT", self.medalsArea.child, "TOPLEFT", 0, offset); safeMethod(row, "SetPoint", "TOPRIGHT", self.medalsArea.child, "TOPRIGHT", 0, offset)
+  safeMethod(row.name, "SetText", def.name); safeMethod(row.desc, "SetText", def.description)
+  safeMethod(row.points, "SetText", "+" .. tostring(def.points))
+  safeMethod(row.newTag, entry.isNew and "Show" or "Hide")
+  local earned = entry.earned ~= nil
+  local nameColour = earned and C.gold or C.muted
+  safeMethod(row.name, "SetTextColor", nameColour[1], nameColour[2], nameColour[3], 1)
+  safeMethod(row.points, "SetTextColor", tierColour[1], tierColour[2], tierColour[3], earned and 1 or 0.55)
+  safeMethod(row.stripe, "SetColorTexture", tierColour[1], tierColour[2], tierColour[3], earned and 1 or 0.35)
+  local rowWidth = (self.textWidth or 700) - 4
+  if earned then
+    local stamp = entry.earned.retro and "Earned before tracking began" or ("Earned " .. (date and date("%d %b %Y", entry.earned.at) or tostring(entry.earned.at)))
+    safeMethod(row.progress, "SetText", stamp)
+    safeMethod(row.bar, "SetColorTexture", tierColour[1], tierColour[2], tierColour[3], 1); safeMethod(row.bar, "SetWidth", math.max(1, rowWidth))
+  else
+    local current = math.floor(math.min(entry.current, entry.target))
+    safeMethod(row.progress, "SetText", tostring(current) .. " / " .. tostring(entry.target))
+    safeMethod(row.bar, "SetColorTexture", C.accent[1], C.accent[2], C.accent[3], 1); safeMethod(row.bar, "SetWidth", math.max(1, rowWidth * entry.fraction))
+  end
+  safeMethod(row, "Show")
+end
+
+function UI:LayoutMedalRows(force)
+  if not self.medalsArea then return end
+  local list = self.medalList or {}
+  local offset = self.medalsArea.offset or 0
+  local first = math.max(1, math.floor((offset - MEDAL_LIST_TOP) / MEDAL_PITCH) + 1)
+  local slots = math.ceil(self:TextViewHeight() / MEDAL_PITCH) + 2
+  if not force and first == self.medalFirst and slots == self.medalSlots then return end
+  self.medalFirst, self.medalSlots = first, slots
+  for slot = 1, slots do
+    local entry = list[first + slot - 1]
+    if entry then
+      self:BindMedalRow(self.medalRows[slot] or createMedalRow(self, slot), entry, first + slot - 1)
+    elseif self.medalRows[slot] then
+      self.medalRows[slot].entry = nil; safeMethod(self.medalRows[slot], "Hide")
+    end
+  end
+  for slot = slots + 1, #self.medalRows do self.medalRows[slot].entry = nil; safeMethod(self.medalRows[slot], "Hide") end
+end
+
+local filterTips = {
+  All = "Show every medal.", Earned = "Medals you have earned.",
+  ["In progress"] = "Medals you have started but not earned.", Locked = "Medals you have not started yet.",
+}
+
 function UI:BuildMedalsPage(frame)
   local T = Addon.Theme; local C = T.colors
   local area = T:ScrollArea(frame); self.medalsArea = area
   local child = area.child
+  area.onScroll = function() UI:LayoutMedalRows() end
   self.medalHeader = child:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
   safeMethod(self.medalHeader, "SetPoint", "TOPLEFT", child, "TOPLEFT", 4, -4); safeMethod(self.medalHeader, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1)
   self.medalSub = child:CreateFontString(nil, "OVERLAY", "GameFontDisable")
   safeMethod(self.medalSub, "SetPoint", "TOPLEFT", self.medalHeader, "BOTTOMLEFT", 0, -4)
-  self.medalRows = {}
-  for index in ipairs(Addon.Medals and Addon.Medals:GetDefinitions() or {}) do
-    local row = CreateFrame("Frame", nil, child, "BackdropTemplate")
-    T:Panel(row, C.panel, C.border); safeMethod(row, "SetHeight", MEDAL_ROW_HEIGHT)
-    row.stripe = row:CreateTexture(nil, "ARTWORK")
-    safeMethod(row.stripe, "SetPoint", "TOPLEFT", row, "TOPLEFT", 0, 0); safeMethod(row.stripe, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 0, 0); safeMethod(row.stripe, "SetWidth", 4)
-    row.name = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    safeMethod(row.name, "SetPoint", "TOPLEFT", row, "TOPLEFT", 14, -7); safeMethod(row.name, "SetJustifyH", "LEFT")
-    row.desc = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    safeMethod(row.desc, "SetPoint", "TOPLEFT", row.name, "BOTTOMLEFT", 0, -3); safeMethod(row.desc, "SetPoint", "RIGHT", row, "RIGHT", -130, 0); safeMethod(row.desc, "SetJustifyH", "LEFT"); safeMethod(row.desc, "SetWordWrap", false)
-    row.points = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    safeMethod(row.points, "SetPoint", "TOPRIGHT", row, "TOPRIGHT", -12, -7)
-    row.progress = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    safeMethod(row.progress, "SetPoint", "BOTTOMRIGHT", row, "BOTTOMRIGHT", -12, 9)
-    row.bar = row:CreateTexture(nil, "ARTWORK")
-    safeMethod(row.bar, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 4, 0); safeMethod(row.bar, "SetHeight", 3)
-    self.medalRows[index] = row
+  -- search and filters
+  local search = CreateFrame("EditBox", nil, child, "BackdropTemplate")
+  safeMethod(search, "SetSize", 190, 26); safeMethod(search, "SetPoint", "TOPLEFT", child, "TOPLEFT", 4, -54); safeMethod(search, "SetAutoFocus", false)
+  T:Input(search)
+  local hint = search:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+  safeMethod(hint, "SetPoint", "LEFT", search, "LEFT", 9, 0); safeMethod(hint, "SetText", "Search medals...")
+  safeMethod(search, "SetScript", "OnTextChanged", function(box)
+    local text = box.GetText and box:GetText() or ""
+    safeMethod(hint, text == "" and "Show" or "Hide")
+    if text ~= UI.medalSearch then UI:SetMedalSearch(text) end
+  end)
+  safeMethod(search, "SetScript", "OnEscapePressed", function(box) safeMethod(box, "ClearFocus") end)
+  self.medalSearchBox = search; attachTooltip(search, "Search medals", "Type part of a medal's name or description.")
+  self.medalFilterButtons = {}
+  local previous = search
+  for index, name in ipairs(self.medalFilters) do
+    local b = T:Button(child, name, index == 3 and 110 or 92, 26)
+    safeMethod(b, "SetPoint", "LEFT", previous, "RIGHT", 6, 0)
+    safeMethod(b, "SetScript", "OnClick", function() UI:SetMedalFilter(name) end)
+    attachTooltip(b, name, filterTips[name])
+    self.medalFilterButtons[index] = b; previous = b
   end
+  self.medalEmpty = child:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+  safeMethod(self.medalEmpty, "SetPoint", "TOPLEFT", child, "TOPLEFT", 8, -(MEDAL_LIST_TOP + 6)); safeMethod(self.medalEmpty, "SetText", "No medals match this filter or search. Try another filter or clear the search."); safeMethod(self.medalEmpty, "Hide")
+  self.medalRows, self.medalList = {}, {}
   self.guildHeading = child:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
   safeMethod(self.guildHeading, "SetText", "Guildmates"); safeMethod(self.guildHeading, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1)
   self.guildLines = {}
@@ -566,8 +694,20 @@ end
 function UI:RefreshMedals()
   local T = Addon.Theme; local C = T.colors
   local progress = Addon.Medals:GetProgress(Addon.characterKey)
+  local needle = string.lower(self.medalSearch or "")
+  local searched, counts = {}, { All = 0, Earned = 0, ["In progress"] = 0, Locked = 0 }
+  for index, entry in ipairs(progress) do
+    entry.index = index; entry.isNew = entry.earned ~= nil and Addon.Medals.newIds[entry.def.id] == true
+    local text = string.lower(entry.def.name .. " " .. entry.def.description)
+    if needle == "" or string.find(text, needle, 1, true) then
+      searched[#searched + 1] = entry
+      counts.All = counts.All + 1; local state = medalState(entry); counts[state] = counts[state] + 1
+    end
+  end
   local order = {}
-  for index, entry in ipairs(progress) do entry.index = index; order[index] = entry end
+  for _, entry in ipairs(searched) do
+    if self.medalFilter == "All" or medalState(entry) == self.medalFilter then order[#order + 1] = entry end
+  end
   table.sort(order, function(a, b)
     local ea, eb = a.earned ~= nil, b.earned ~= nil
     if ea ~= eb then return ea end
@@ -575,35 +715,18 @@ function UI:RefreshMedals()
     if a.fraction ~= b.fraction then return a.fraction > b.fraction end
     return a.index < b.index
   end)
+  self.medalList = order
   local summary = Addon.Medals:GetSummary(Addon.characterKey)
   safeMethod(self.medalHeader, "SetText", "Mom Money " .. tostring(summary.total))
-  safeMethod(self.medalSub, "SetText", tostring(summary.count) .. " of " .. tostring(summary.possible) .. " Mom Medals earned")
-  local rowWidth = (self.textWidth or 700) - 4
-  for position = #order + 1, #self.medalRows do safeMethod(self.medalRows[position], "Hide") end
-  for position, entry in ipairs(order) do
-    local row, def = self.medalRows[position], entry.def
-    safeMethod(row, "Show")
-    local tierColour = Addon.Medals.tierColours[def.tier]
-    local offset = -(48 + (position - 1) * (MEDAL_ROW_HEIGHT + 4))
-    safeMethod(row, "ClearAllPoints"); safeMethod(row, "SetPoint", "TOPLEFT", self.medalsArea.child, "TOPLEFT", 0, offset); safeMethod(row, "SetPoint", "TOPRIGHT", self.medalsArea.child, "TOPRIGHT", 0, offset)
-    safeMethod(row.name, "SetText", def.name); safeMethod(row.desc, "SetText", def.description)
-    safeMethod(row.points, "SetText", "+" .. tostring(def.points))
-    local earned = entry.earned ~= nil
-    local nameColour = earned and C.gold or C.muted
-    safeMethod(row.name, "SetTextColor", nameColour[1], nameColour[2], nameColour[3], 1)
-    safeMethod(row.points, "SetTextColor", tierColour[1], tierColour[2], tierColour[3], earned and 1 or 0.55)
-    safeMethod(row.stripe, "SetColorTexture", tierColour[1], tierColour[2], tierColour[3], earned and 1 or 0.35)
-    if earned then
-      local stamp = entry.earned.retro and "Earned before tracking began" or ("Earned " .. (date and date("%d %b %Y", entry.earned.at) or tostring(entry.earned.at)))
-      safeMethod(row.progress, "SetText", stamp)
-      safeMethod(row.bar, "SetColorTexture", tierColour[1], tierColour[2], tierColour[3], 1); safeMethod(row.bar, "SetWidth", math.max(1, rowWidth))
-    else
-      local current = math.floor(math.min(entry.current, entry.target))
-      safeMethod(row.progress, "SetText", tostring(current) .. " / " .. tostring(entry.target))
-      safeMethod(row.bar, "SetColorTexture", C.accent[1], C.accent[2], C.accent[3], 1); safeMethod(row.bar, "SetWidth", math.max(1, rowWidth * entry.fraction))
-    end
+  safeMethod(self.medalSub, "SetText", tostring(summary.count) .. " of " .. tostring(summary.possible) .. " Mom Medals earned" .. ((self.medalFilter ~= "All" or needle ~= "") and ("  \194\183  showing " .. tostring(#order)) or ""))
+  for index, name in ipairs(self.medalFilters) do
+    local b = self.medalFilterButtons[index]
+    safeMethod(b, "SetText", name .. " (" .. tostring(counts[name]) .. ")")
+    safeMethod(b, name == self.medalFilter and "LockHighlight" or "UnlockHighlight"); T:SetSelected(b, name == self.medalFilter)
   end
-  local base = 48 + #order * (MEDAL_ROW_HEIGHT + 4) + 16
+  safeMethod(self.medalEmpty, #order == 0 and "Show" or "Hide")
+  local base = MEDAL_LIST_TOP + math.max(#order, 1) * MEDAL_PITCH + 16
+  self:LayoutMedalRows(true)
   safeMethod(self.guildHeading, "ClearAllPoints"); safeMethod(self.guildHeading, "SetPoint", "TOPLEFT", self.medalsArea.child, "TOPLEFT", 4, -base)
   local feed = (Addon.db and Addon.db.guildFeed) or {}
   for index, line in ipairs(self.guildLines) do
@@ -617,6 +740,7 @@ function UI:RefreshMedals()
   safeMethod(self.guildEmpty, "ClearAllPoints"); safeMethod(self.guildEmpty, "SetPoint", "TOPLEFT", self.medalsArea.child, "TOPLEFT", 8, -(base + 26))
   safeMethod(self.guildEmpty, #feed == 0 and "Show" or "Hide")
   self.medalsHeight = base + 26 + math.max(1, math.min(#feed, 10)) * 18 + 16
+  self:UpdateMedalsScroll()
 end
 
 function UI:ShowMedalsPage()

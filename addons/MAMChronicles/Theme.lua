@@ -265,6 +265,7 @@ function Theme:ScrollArea(parent)
     self.offset = target
     safeMethod(self.scroll, "SetVerticalScroll", target)
     self.updating = true; safeMethod(self.slider, "SetValue", target); self.updating = false
+    if self.onScroll then self.onScroll(target) end
   end
   function area:Place(parentFrame, top, bottom, side, barWidth)
     safeMethod(self.scroll, "ClearAllPoints")
