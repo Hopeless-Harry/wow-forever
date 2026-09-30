@@ -61,6 +61,15 @@ function Comms:SchedulePump()
   C_Timer.After(SEND_INTERVAL, function() Comms.pumpScheduled = false; Comms:Pump() end)
 end
 
+-- Sends one prebuilt message to the guild channel (used by Map.lua). Returns "sent", "throttled", "restricted" or a reason.
+function Comms:SendRaw(text)
+  local reason = self:Availability()
+  if reason then return reason end
+  local outcome = classify(pcall(sendFunction(), PREFIX, text, "GUILD"))
+  if outcome == "restricted" then self.status.state = "restricted"; self.restrictedUntil = now() + RESTRICT_BACKOFF end
+  return outcome
+end
+
 function Comms:Pump()
   if #self.queue == 0 then return end
   local reason = self:Availability()
@@ -147,11 +156,11 @@ function Comms:HandleAward(kind, channel, sender, parts)
     drop(self); return
   end
   local player = Addon:SafeCall(UnitName, "player")
-  if not player or string.lower(parts[2]) ~= string.lower(player) then return end
+  if not player or string.lower(shortName(parts[2])) ~= string.lower(player) then return end
   local def = Addon.Medals and Addon.Medals:GetDefinition(parts[3])
   if not (def and def.verified) or tonumber(parts[4]) ~= Addon.Medals.version then drop(self); return end
   local ok
-  if kind == "A1" then ok = Addon.Medals:GrantVerified(def.id, { test = test }) else ok = Addon.Medals:RevokeVerified(def.id) end
+  if kind == "A1" then ok = Addon.Medals:GrantVerified(def.id, { test = test }) else ok = Addon.Medals:RevokeVerified(def.id, test and { testOnly = true } or nil) end
   if ok then self.status.awards = self.status.awards + 1 end
 end
 
@@ -163,6 +172,11 @@ function Comms:OnAddonMessage(prefix, text, channel, sender)
   local player = Addon:SafeCall(UnitName, "player")
   if player and shortName(sender) == player then return end
   if type(text) ~= "string" or #text > MAX_LENGTH then drop(self); return end
+  -- Live location updates (L1) are handled by Map.lua, guild channel only.
+  if text:sub(1, 3) == "L1|" then
+    if channel == "GUILD" and Addon.Map then Addon:Guard("Map", Addon.Map.OnMessage, Addon.Map, sender, text) else drop(self) end
+    return
+  end
   local parts = {}
   for piece in (text .. "|"):gmatch("([^|]*)|") do table.insert(parts, piece) end
   if #parts ~= 4 then drop(self); return end
@@ -198,7 +212,7 @@ end
 
 function Comms:ApplyLocal(kind, medalId)
   if kind == "A1" then return Addon.Medals:GrantVerified(medalId, { test = true }) end
-  return Addon.Medals:RevokeVerified(medalId)
+  return Addon.Medals:RevokeVerified(medalId, { testOnly = true })
 end
 
 -- kind is "A1" (award) or "R1" (revoke). Returns ok, reason.

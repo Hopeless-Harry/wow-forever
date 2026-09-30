@@ -23,6 +23,8 @@ Export.lua
 Theme.lua
 Toast.lua
 Comms.lua
+Map.lua
+Tracker.lua
 Dashboard.lua
 UI.lua
 Launcher.lua

@@ -136,6 +136,7 @@ function Addon:Boot()
   if self.Toast then self:Guard("Toast", self.Toast.Initialise, self.Toast) end
   if self.Counters then self:Guard("Counters", self.Counters.Initialise, self.Counters) end
   if self.Comms then self:Guard("Comms", self.Comms.Initialise, self.Comms) end
+  if self.Map then self:Guard("Map", self.Map.Start, self.Map) end
   if self.Medals then self:Guard("Medals", self.Medals.Evaluate, self.Medals, "boot") end
   return self.db
 end

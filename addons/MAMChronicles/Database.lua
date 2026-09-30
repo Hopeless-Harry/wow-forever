@@ -15,7 +15,7 @@ local function clamp(value, minimum, maximum) return math.max(minimum, math.min(
 local uiDefaults = { point="CENTER", x=0, y=0, width=780, height=560, activeTab="Home", minimapAngle=225 }
 local validPoints = { CENTER=true, TOP=true, BOTTOM=true, LEFT=true, RIGHT=true, TOPLEFT=true, TOPRIGHT=true, BOTTOMLEFT=true, BOTTOMRIGHT=true }
 local validThemes = { modern=true, midnight=true, parchment=true, crimson=true, slate=true }
-local booleanDefaults = { toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, gettingStartedDismissed=false, quietInstances=true, animations=true }
+local booleanDefaults = { toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, gettingStartedDismissed=false, quietInstances=true, animations=true, shareLocation=false, showGuildMap=true }
 local validTabs = { Home=true, Chronicle=true, Medals=true, Statistics=true, Characters=true, Settings=true, Diagnostics=true }
 local function freshSettings()
   return { enabled=true, recordCoordinates=true, recordQuestAccepts=true, notableQuality=4, maxEvents=10000, showMinimapButton=true, recordStatistics=true, recordGoldStatistics=false,
@@ -103,6 +103,14 @@ function Database:NormaliseSettings()
   }
   local titles = Addon.Medals and Addon.Medals.titles
   if type(settings.titleChoice) ~= "string" or (settings.titleChoice ~= "auto" and titles and not titles[settings.titleChoice]) then settings.titleChoice = "auto" end
+  local players = {}
+  if type(settings.pinnedPlayers) == "table" then
+    local seenNames = {}
+    for _, name in ipairs(settings.pinnedPlayers) do
+      if type(name) == "string" and #name <= 24 and name:match("^[^%s%c|]+$") and not seenNames[name] and #players < 5 then seenNames[name] = true; table.insert(players, name) end
+    end
+  end
+  settings.pinnedPlayers = players
   local seen, seenCount = {}, 0
   if type(settings.seasonsSeen) == "table" then
     for key, value in pairs(settings.seasonsSeen) do
