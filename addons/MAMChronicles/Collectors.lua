@@ -111,7 +111,7 @@ function Collectors:HandleEvent(eventName,...)
       if UnitCanAttack and safe(UnitCanAttack,"player","target") then payload.lastHostileTarget=safe(UnitName,"target") end
       Addon.EventStore:Append("character.death",payload); self.isDeadObserved=true
     elseif (eventName=="PLAYER_ALIVE" or eventName=="PLAYER_UNGHOST") and self.isDeadObserved then Addon.EventStore:Append("character.resurrected",self:CaptureLocation()); self.isDeadObserved=false
-    elseif eventName=="QUEST_ACCEPTED" and Addon.db.settings.recordQuestAccepts then local questID=args[2]; Addon.EventStore:Append("quest.accepted",{questID=questID,questName=self:QuestName(questID)})
+    elseif eventName=="QUEST_ACCEPTED" and Addon.db.settings.recordQuestAccepts then local questID=type(args[2])=="number" and args[2] or args[1]; Addon.EventStore:Append("quest.accepted",{questID=questID,questName=self:QuestName(questID)})
     elseif eventName=="QUEST_TURNED_IN" then local questID=args[1]; Addon.EventStore:Append("quest.completed",{questID=questID,questName=self:QuestName(questID)}); Addon.db.questCompletion[questID]=Addon:Now()
     elseif eventName=="ZONE_CHANGED" or eventName=="ZONE_CHANGED_INDOORS" or eventName=="ZONE_CHANGED_NEW_AREA" then Addon.EventStore:Append("world.zone_discovered",self:CaptureLocation())
     elseif eventName=="PLAYER_ENTERING_WORLD" then self:CaptureInstance()
