@@ -1,7 +1,7 @@
 # Moms Against Magic Chronicles — Proper Addon Polish Design
 
 **Date:** 30 September 2026  
-**Status:** Proposed for user approval  
+**Status:** Approved by the user on 30 September 2026
 **Target version:** `0.2.0-alpha2`  
 **Scope:** Full tester-quality shell and usability pass. No guild sync, Pi upload, live map, shared crafting, or readiness scoring.
 
@@ -274,7 +274,7 @@ Live acceptance must additionally verify:
 
 ## Delivery checkpoints
 
-1. Approve this design.
+1. ~~Approve this design.~~ Approved on 30 September 2026.
 2. Write a test-driven implementation plan and update `PROJECT-HANDOFF.md`.
 3. Implement settings migration and reusable state actions.
 4. Implement window persistence and interaction polish.
@@ -294,4 +294,3 @@ Live acceptance must additionally verify:
 - raid/dungeon readiness scoring;
 - localisation beyond keeping user-facing strings easy to extract later;
 - profile systems, themes, or a general-purpose framework rewrite.
-

@@ -2,7 +2,7 @@
 
 **Last updated:** 30 September 2026  
 **Current addon version:** `0.2.0-alpha1`  
-**Current status:** Full proper-addon polish design has been written and is awaiting user approval; the personal-Chronicle tester build remains functional and its prior automated verification passed, but live acceptance of the production addon is still required.
+**Current status:** Full proper-addon polish design is approved. Its test-driven implementation plan is written; implementation has not yet changed production code. The personal-Chronicle tester build remains functional and its prior automated verification passed, but live acceptance of the production addon is still required.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
 This is the first file a new agent should read. Keep it current whenever the version, design, verification status, release location, major decision, or next action changes.
@@ -221,7 +221,9 @@ The core works, but the outer shell still feels like an alpha. The next design/i
 
 The user said to proceed on 30 September 2026. Unless corrected, this is being treated as approval to design the recommended **full tester-quality polish pass**, not a minimap-only patch. Production code must still follow the recorded design and verification checkpoints.
 
-The proposed design is recorded in `docs/superpowers/specs/2026-09-30-mam-chronicles-proper-addon-polish-design.md`. It recommends a native, dependency-free implementation with two focused new modules (`Launcher.lua` and `SettingsPanel.lua`) plus an original icon. Status: **awaiting explicit design approval before production-code changes**.
+The approved design is recorded in `docs/superpowers/specs/2026-09-30-mam-chronicles-proper-addon-polish-design.md`. It uses a native, dependency-free implementation with two focused new modules (`Launcher.lua` and `SettingsPanel.lua`) plus an original icon.
+
+The executable plan is `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`. It has seven test-driven tasks. **Progress: 0/7 tasks complete.**
 
 ## 10. Later roadmap
 
@@ -282,7 +284,7 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-Obtain approval for `docs/superpowers/specs/2026-09-30-mam-chronicles-proper-addon-polish-design.md`. Then write the test-driven implementation plan, update this handoff, and begin with settings/UI-state migration tests before changing production behaviour.
+Execute Task 1 of `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`: write and run the failing nested UI-preference and history-reset tests, then implement the minimal database behaviour.
 
 ## 15. Recent history
 
