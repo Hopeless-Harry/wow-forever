@@ -4,8 +4,8 @@
 **Client:** WoW Retail `12.1.0.69933`  
 **Interface:** `120100`  
 **Locale:** `enUS`  
-**Diagnostic versions exercised:** `0.1.1-phase0`, `0.1.4-phase0`  
-**Latest diagnostic installed:** `0.1.4-phase0`
+**Diagnostic versions exercised:** `0.1.1-phase0`, `0.1.4-phase0`, `0.1.5-phase0`  
+**Latest diagnostic installed:** `0.1.5-phase0`
 
 Retail is a shared-behaviour smoke test. These results do not establish WoW Forever compatibility.
 
@@ -21,18 +21,18 @@ Retail is a shared-behaviour smoke test. These results do not establish WoW Fore
 | Map APIs | PASS (outdoors) | Map ID, normalised map position, and outdoor world position were all available in the sampled outdoor state. Restricted-instance behaviour remains untested. |
 | Guild roster | INCONCLUSIVE | The API was available, but the sampled character exposed zero members and zero online members. |
 | Professions | INCONCLUSIVE | The API was available, but no primary professions or recipes were visible in the sampled state. |
-| Addon messaging | RESTRICTED IN SAMPLE | Prefix registration succeeded with `duplicate-prefix`; outgoing addon messages were restricted while chat lockdown was not active. No ping was sent. |
+| Addon messaging | RESTRICTED (confirmed) | Prefix registration succeeded with `duplicate-prefix`; outgoing addon messages were restricted while chat lockdown was not active. Version `0.1.5-phase0` visibly reported that the self ping was not sent, and all ping counters correctly remained zero. |
 | Privacy | PASS | The copied report contained no character name, sender name, BattleTag, account path, or chat content. |
 
 ## Observed counters
 
-- `PLAYER_LOGIN`: 6
-- `PLAYER_LOGOUT`: 5
-- `PLAYER_ALIVE`: 5
-- `ZONE_CHANGED`: 1
-- `ZONE_CHANGED_NEW_AREA`: 5
-- `PLAYER_ENTERING_WORLD`: 6
-- `SKILL_LINES_CHANGED`: 295
+- `PLAYER_LOGIN`: 8
+- `PLAYER_LOGOUT`: 7
+- `PLAYER_ALIVE`: 7
+- `ZONE_CHANGED`: 3
+- `ZONE_CHANGED_NEW_AREA`: 7
+- `PLAYER_ENTERING_WORLD`: 8
+- `SKILL_LINES_CHANGED`: 583
 
 ## Persistence defect and correction
 
@@ -61,6 +61,8 @@ When the SavedVariables global is not yet available, versions `0.1.2-phase0` and
 
 On `0.1.4-phase0`, `/mamdiag ping self` produced no visible response when the realm restriction prevented sending. The command did run, but the slash handler discarded the failed result. Version `0.1.5-phase0` now prints whether a self or guild ping was sent and refreshes an open report after the attempt.
 
+The live `0.1.5-phase0` retest displayed the refusal and directed the member to the Messaging section. That section confirmed the restriction, with sent, received-ping, and received-pong counters all remaining zero. The restricted path is therefore complete on this Retail realm and does not need repeated testing.
+
 - Diagnostic tests: 33/33 passed.
 - Package: `MAMChroniclesDiagnostics-0.1.5-phase0.zip`
 - Package SHA-256: `C4A51EDD0BE30907D919612F412AD4B3E6828433680A0B8A7A688A7547DC9635`
@@ -78,6 +80,5 @@ Blizzard's generated API documentation treats outgoing-addon-message restriction
 
 1. Use a guilded Retail character, if available, and refresh the guild roster.
 2. Use a character with primary professions and open a profession window.
-3. Run `/mamdiag ping self` once and record the exact printed refusal or counter change.
-4. Check map capability inside an instance or another naturally restricted area.
-5. Leave quest, level, death, resurrection, and trade-skill event checks until they occur naturally.
+3. Check map capability inside an instance or another naturally restricted area.
+4. Leave quest, level, death, resurrection, and trade-skill event checks until they occur naturally.
