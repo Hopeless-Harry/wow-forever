@@ -1,7 +1,7 @@
 # Moms Against Magic Chronicles — Project Handoff
 
 **Last updated:** 30 September 2026  
-**Current addon version:** `0.2.0-alpha19`  
+**Current addon version:** `0.2.0-alpha20`  
 **Current status:** alpha11 (recap, goals, safer data) complete in AUTOMATED testing (Chronicles 322/322; alpha10 polish before it) and published to both clients and the CurseForge package. Nothing new has been observed live; Forever and two-player guild sharing are still unproven.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
@@ -460,6 +460,18 @@ Animations and polish (alpha19, 30 Sep 2026) - AUTOMATED EVIDENCE ONLY; appearan
 - Unverified live: whether Alpha/Scale animation groups behave on Forever, whether fading the window frame interferes with the window transparency setting (transparency is backdrop alpha, frame alpha is animated only during the fade), the look of the glow texture, and any stutter. If something looks wrong, Settings > Appearance > Animations switches all of it off.
 - Commit `0677ce8`. Suites: Chronicles **459/459**, Diagnostics **35/35**, Dashboard **39/39** (total **533**). Published on BOTH clients (21 files, 0 differences). Release `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha19/`, ZIP SHA-256 `DA770E4C06548680C36E8986FE0D82FD4DDFB1F0A57F10091612AE8B3AC44FDB`. Not uploaded to CurseForge.
 
+Modern theme with original texture art (alpha20, 30 Sep 2026) - AUTOMATED EVIDENCE ONLY; the in-game look is NOT seen live:
+
+- **Why**: the user asked for "proper assets" like DialogueUI and Plumber. Their technique (inspected on disk, nothing copied): shipped texture sheets in `Art/`, nine-slice frames, state sprites, bars, badges. Our own art is generated from maths, no third-party art.
+- **Art pipeline**: `tools/mam-chronicles/art/make-art.py` (numpy only; signed-distance shapes, gradients, bevels) writes 13 uncompressed 32-bit power-of-two TGAs into `addons/MAMChronicles/Art/` (Frame, Inset, ButtonRed, ButtonBrown, Tab, Bar, Badge, Glow, Shadow, Divider, Checkbox, Scroll, Toast) and PNG previews into `tools/mam-chronicles/art/preview/`. `compose-preview.py` assembles a mock window from the real art with the same slice rules (`preview/window.png`). Re-run both after changing art; the test `art.test.js` checks sizes and headers.
+- **Theme code** (`Theme.lua`): `Theme.ART`, `Theme.sheets`, `Theme:NineSlice(frame, sheet, rect, slice, layer, corner, outset)` (9 textures, `SetRect` swaps states), `Theme:Window/Panel/PanelHover/ArtButton/ArtButtonFrame/ArtTab/ArtCheck/ArtScrollbar`, `FlatPanel` keeps the old look. New preset `modern` (first in the list, default; `Theme.artTheme` true only for it). Old themes stay flat. DB migration: a saved `midnight` moves to `modern` once (`settings.themeMigrated`); choosing Midnight later sticks.
+- **Art used in**: window (shadow + frame, no flat fill or top accent; transparency slider fades the slices), panels/tiles/cards (Inset), buttons (brown, red option for Remember and close), tabs (normal/selected), checkboxes, scrollbar thumb, edit boxes (gold tint on focus), Settings heading dividers, medal rows (tier badge, art track and fill bar, hover wash), toasts (frame + shadow, glow behind icon replaces the stripe and is still the pulsed `Toast.stripe`), minimap attention glow.
+- **Packaging**: package/install scripts and `publish-build.ps1` now handle the `Art` folder (34 files per install: 21 + 13); package-install tests updated.
+- **Tests**: default theme is now modern, so flat-style tests apply `ApplyPreset("midnight")` or boot with `theme:'midnight', themeMigrated:true`; harness textures record `coord`, `points`, size and alpha. New `art.test.js` (16) and `art-widgets.test.js` (6).
+- Commit `6454d83`. Suites: Chronicles **482/482**, Diagnostics **35/35**, Dashboard **39/39** (total **556**). Published on BOTH clients (34 files, 0 differences). Release `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha20/`, ZIP SHA-256 `51767C39A2B12D929C4D78DD4EED7595ACE62AB5703A6618A89FEA4C8849FEEC`. Not uploaded to CurseForge.
+- **Unverified live (first thing to check)**: that TGA sheets load and tile correctly on Retail and Forever, texture coordinates (Y axis orientation: sheets are written top-left origin like the proven icon), corner/edge stretch at real sizes (window minimum 620x440, tabs 84x28, buttons 100x24), hover wash colour, badge size, bar alignment inside medal rows (track starts 54 px in, ends 132 px before the right edge), toast glow size, sliders using a 32 px thumb squeezed to 10x42. If something is wrong, Settings > Appearance > Theme > Midnight (then Apply) restores the flat look.
+- Not done: statistics page redesign (Concept A/B mockups were shown in chat, not built), tab icons, art for the Home tiles' icon frames, custom sounds (ElevenLabs idea), image-generated painterly art.
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -519,7 +531,7 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-0. alpha19 is installed on BOTH clients and packaged (SHA-256 in the alpha19 block of section 9). The alpha10 instructions below still apply. If any later change is made, run `scripts/publish-build.ps1` again from the PowerShell tool.
+0. alpha20 is installed on BOTH clients and packaged (SHA-256 in the alpha20 block of section 9). The alpha10 instructions below still apply. If any later change is made, run `scripts/publish-build.ps1` again from the PowerShell tool.
 1. **Next action (user):** log in on the WoW Forever client with alpha10 and (a) type `/mam diag`, click Copy diagnostics and send the pasted report (look at `Handler errors:`, `Medals:`, `Camp spells seen:`, `Statistics:` and `scan N ms`); (b) open the Medals tab, try the filters and search, hover a few medals and send a screenshot; (c) do the campfire test: complete The Great Outdoors, craft and light a campfire, place a camp object, then send `/mam diag` again. Continue with the alpha9 confirmations below. Confirm live: The Great Outdoors gives Happy Camper; lighting a campfire and placing an object moves Firestarter / Camp Decorator; entering the new dungeons, raids, Darkspear Islands and new zones moves their medals; Plot Twist for a new race-class combo; which statistic-based medals appear.
 2. Fix whatever the live check disproves (exact spell names, instance names, quest name, Statistics availability on Forever).
 3. User decides: the licence text, CurseForge project name/category, and then uploads `docs/release/curseforge` material with the ZIP following `UPLOAD-CHECKLIST.md`.
