@@ -38,6 +38,7 @@ function Collectors:CaptureInstance()
   local name,_,difficultyID,_,_,_,_,mapID=safe(GetInstanceInfo)
   if inInstance then
     Addon.EventStore:Append("instance.entered",{instanceName=name,instanceType=instanceType,difficultyID=difficultyID,mapID=mapID})
+    if Addon.Counters and Addon.Counters.OnInstanceEntered then Addon:Guard("Counters",Addon.Counters.OnInstanceEntered,Addon.Counters,instanceType) end
   elseif self.inInstance then
     local previous=self.lastInstance or {}
     Addon.EventStore:Append("instance.exited",previous)

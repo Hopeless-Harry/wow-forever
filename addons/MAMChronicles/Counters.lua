@@ -50,6 +50,39 @@ function Counters:CountJump(source)
   self:Add("jumps", 1)
 end
 
+-- Dungeons and raids run together with guildmates. Only whole numbers are kept, never names.
+local GUILD_GROUP_DELAY = 6 -- seconds, so the group has time to fill before it is counted
+
+function Counters:CountGuildGroup(kind)
+  if type(UnitIsInMyGuild) ~= "function" then return end
+  local raid = IsInRaid and safe(IsInRaid)
+  local members = tonumber(safe(GetNumGroupMembers)) or 0
+  local guildmates = 0
+  if raid then
+    for index = 1, members do
+      local unit = "raid" .. index
+      if not safe(UnitIsUnit, unit, "player") and safe(UnitIsInMyGuild, unit) then guildmates = guildmates + 1 end
+    end
+  else
+    for index = 1, 4 do if safe(UnitIsInMyGuild, "party" .. index) then guildmates = guildmates + 1 end end
+  end
+  if kind == "party" and guildmates >= 1 then
+    self:Add("dungeon_guild", 1)
+    if guildmates >= 4 then self:Add("dungeon_guild_full", 1) end
+  elseif kind == "raid" and guildmates >= 5 then
+    self:Add("raid_guild", 1)
+  end
+end
+
+function Counters:OnInstanceEntered(kind)
+  if kind ~= "party" and kind ~= "raid" then return end
+  if C_Timer and C_Timer.After then
+    C_Timer.After(GUILD_GROUP_DELAY, function() Counters:CountGuildGroup(kind) end)
+  else
+    self:CountGuildGroup(kind)
+  end
+end
+
 function Counters:OnJumpHook()
   self.lastHookJump = clock()
   self:CountJump("hook")
