@@ -62,6 +62,7 @@ function Addon:Boot()
   if self.Launcher and self.Launcher.Initialise then self:SafeCall(self.Launcher.Initialise, self.Launcher) end
   if self.SettingsPanel and self.SettingsPanel.Register then self:SafeCall(self.SettingsPanel.Register, self.SettingsPanel) end
   self:ShowWelcome()
+  if self.Toast then self:SafeCall(self.Toast.Initialise, self.Toast) end
   if self.Medals then self:SafeCall(self.Medals.Evaluate, self.Medals, "boot") end
   return self.db
 end
@@ -73,6 +74,7 @@ function Addon:HandleEvent(eventName, ...)
     return
   end
   if not self.booted then self:Boot() end
+  if eventName == "PLAYER_REGEN_ENABLED" and self.Toast then self:SafeCall(self.Toast.Flush, self.Toast) end
   if eventName == "PLAYER_ENTERING_WORLD" and self.AchievementStats then self:SafeCall(self.AchievementStats.Schedule, self.AchievementStats) end
   if self.Collectors then self.Collectors:HandleEvent(eventName, ...) end
 end

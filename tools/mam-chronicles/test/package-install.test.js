@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'; import { join, resolve } from 'node:path'; imp
 import { addonRoot, repositoryRoot } from './harness.js';
 const packageScript=resolve(repositoryRoot,'scripts','package-mam-chronicles.ps1'); const installScript=resolve(repositoryRoot,'scripts','install-mam-chronicles.ps1');
 const run=args=>spawnSync('pwsh',['-NoProfile',...args],{cwd:repositoryRoot,encoding:'utf8'});
-const expectedFiles=['AchievementStats.lua','Medals.lua','Collectors.lua','Core.lua','Dashboard.lua','Database.lua','EventStore.lua','Export.lua','LICENSE.txt','Launcher.lua','MAMChronicles.toc','MAMChroniclesIcon.tga','README.md','SettingsPanel.lua','Statistics.lua','Theme.lua','UI.lua'].sort();
+const expectedFiles=['AchievementStats.lua','Medals.lua','Toast.lua','Collectors.lua','Core.lua','Dashboard.lua','Database.lua','EventStore.lua','Export.lua','LICENSE.txt','Launcher.lua','MAMChronicles.toc','MAMChroniclesIcon.tga','README.md','SettingsPanel.lua','Statistics.lua','Theme.lua','UI.lua'].sort();
 const esc=v=>v.replaceAll("'","''");
 function client(root,name='_retail_'){const value=join(root,name);mkdirSync(join(value,'Interface','AddOns'),{recursive:true});return value;}
 function install({clientRoot,backupRoot,sourceRoot=addonRoot,running=false,fail=false}){const command=`& '${esc(installScript)}' -ClientRoot '${esc(clientRoot)}' -BackupRoot '${esc(backupRoot)}' -SourceRoot '${esc(sourceRoot)}' -ProcessProbe { $${running?'true':'false'} } -BeforeActivate { ${fail?'throw \'simulated activation failure\'':''} }`;return run(['-Command',command]);}

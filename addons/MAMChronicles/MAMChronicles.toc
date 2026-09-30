@@ -19,6 +19,7 @@ AchievementStats.lua
 Medals.lua
 Export.lua
 Theme.lua
+Toast.lua
 Dashboard.lua
 UI.lua
 Launcher.lua

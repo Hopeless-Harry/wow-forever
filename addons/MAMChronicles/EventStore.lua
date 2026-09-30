@@ -78,6 +78,7 @@ function Store:Append(eventType,payload,options)
   self.db.meta.updatedAt=observedAt
   if #self.db.events>(tonumber(self.db.settings.maxEvents) or 10000) then Addon.Database:Compact() end
   if eventType~="medal.earned" and Addon.Medals then Addon:SafeCall(Addon.Medals.OnEvent,Addon.Medals,event) end
+  if eventType~="medal.earned" and Addon.Toast then Addon:SafeCall(Addon.Toast.OnEvent,Addon.Toast,event) end
   return event
 end
 

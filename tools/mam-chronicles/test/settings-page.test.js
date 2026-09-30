@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHarness } from './harness.js';
 
-const files=['Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Export.lua','Theme.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua'];
+const files=['Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Export.lua','Theme.lua','Toast.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua'];
 function saved(settings){return {schemaVersion:1,meta:{},settings,characters:{},sessions:{},events:{},eventIds:{},questCompletion:{},professionSnapshots:{},aggregates:{},diagnostics:{}};}
 function setup(options={},prelude=''){const h=createHarness(options);h.load(files.slice(0,1));if(prelude)h.run(prelude);h.load(files.slice(1));h.run('MAMChronicles:Boot()');return h;}
 

@@ -1,7 +1,7 @@
 import test from 'node:test'; import assert from 'node:assert/strict';
 import { createHarness, multi } from './harness.js';
 
-const files=['Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','Export.lua','Theme.lua','Dashboard.lua','UI.lua'];
+const files=['Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','Export.lua','Theme.lua','Toast.lua','Dashboard.lua','UI.lua'];
 
 for (const client of [
   {name:'Retail', build:()=>multi('12.1.0','69933','Sep 2026',120100)},
