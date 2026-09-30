@@ -432,7 +432,7 @@ Next up, titles, shop, halls, last session, weekly recap (alpha15, 30 Sep 2026) 
 - Commits: `1e6a54d`..`079f9ea` group (weekly recap + last session, Hall of Fame, Next up, titles/shop/release). Suites: Chronicles **378/378**, Diagnostics **35/35**, Dashboard **39/39** (total **452**). Published on BOTH clients (21 files, 0 differences). Release `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha15/`, ZIP SHA-256 `0BBD65072808686539DBBA2D9F563BE84225E679E8DCD7D800BBE01EE71399E0`. Not uploaded to CurseForge.
 - Unverified live: the new Settings section layout (length grew by about 11 buttons), Next up filter row layout, title and flourish wording, Hall of Shame/Fame against real history, toast colours.
 
-alpha16 (30 Sep 2026): the Medals tab now opens on the Next up filter (`UI.medalFilter` default), All is one click away; two older tests now select All first and one new test covers the default. Suites Chronicles 379/379, Diagnostics 35/35, Dashboard 39/39. Published on both clients; ZIP SHA-256 in the release folder `MAMChronicles-0.2.0-alpha16` (recorded below after publishing).
+alpha16 (30 Sep 2026): the Medals tab now opens on the Next up filter (`UI.medalFilter` default), All is one click away; two older tests now select All first and one new test covers the default. Suites Chronicles 379/379, Diagnostics 35/35, Dashboard 39/39. Published on both clients; ZIP SHA-256 `46C59D229A95621CEE7BD7F77441A08E6371F0A979FD16F913E5B9A0EB65BD99` (release folder `MAMChronicles-0.2.0-alpha16`; commit `10b0788`).
 
 ## 10. Later roadmap
 
