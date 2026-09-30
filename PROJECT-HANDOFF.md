@@ -1,7 +1,7 @@
 # Moms Against Magic Chronicles — Project Handoff
 
 **Last updated:** 30 September 2026  
-**Current addon version:** `0.2.0-alpha20`  
+**Current addon version:** `0.2.0-alpha21`  
 **Current status:** alpha11 (recap, goals, safer data) complete in AUTOMATED testing (Chronicles 322/322; alpha10 polish before it) and published to both clients and the CurseForge package. Nothing new has been observed live; Forever and two-player guild sharing are still unproven.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
@@ -472,6 +472,12 @@ Modern theme with original texture art (alpha20, 30 Sep 2026) - AUTOMATED EVIDEN
 - **Unverified live (first thing to check)**: that TGA sheets load and tile correctly on Retail and Forever, texture coordinates (Y axis orientation: sheets are written top-left origin like the proven icon), corner/edge stretch at real sizes (window minimum 620x440, tabs 84x28, buttons 100x24), hover wash colour, badge size, bar alignment inside medal rows (track starts 54 px in, ends 132 px before the right edge), toast glow size, sliders using a 32 px thumb squeezed to 10x42. If something is wrong, Settings > Appearance > Theme > Midnight (then Apply) restores the flat look.
 - Not done: statistics page redesign (Concept A/B mockups were shown in chat, not built), tab icons, art for the Home tiles' icon frames, custom sounds (ElevenLabs idea), image-generated painterly art.
 
+First live look at the Modern theme and alpha21 fixes (30 Sep 2026):
+
+- **LIVE RETAIL EVIDENCE (user screenshots, alpha20):** the texture sheets LOAD on Retail 12.1 (interface 120100): ornate gold frame, hanging tabs with the crimson selected underline, inset cards, brown and red buttons, tier badges (bronze, silver, gold, platinum), art bars and the gold scrollbar thumb all render correctly and look like modern WoW windows. Forever not yet checked. Diagnostics (alpha20): `Handler errors: 0`, `Collector errors: 0`, `Statistics: ok, 441 read, 0 unreadable, scan 3049 ms`, `Guild sharing: not in guild` (that character is not in a guild, so sharing cannot run there).
+- **Fixed in alpha21 (automated tests only):** medal art progress bar overlapped the description (rows now 54 px, bar 8 px); Home tile numbers looked pixelated (now `GameFontNormalHuge` with a `pcall` fallback in `Theme:Text`); the "Log in on 2 different days" weekly quest showed 0/2 because the preview week started in the future (`Medals:GetWeek` now returns week, start and raw index; quest state is keyed by index so the preview week rolls every real week).
+- Suites: Chronicles **487/487**, Diagnostics **35/35**, Dashboard **39/39** (total **561**). Published on BOTH clients (34 files). ZIP SHA-256 recorded in the release folder `MAMChronicles-0.2.0-alpha21` and in the chat.
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -531,7 +537,7 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-0. alpha20 is installed on BOTH clients and packaged (SHA-256 in the alpha20 block of section 9). The alpha10 instructions below still apply. If any later change is made, run `scripts/publish-build.ps1` again from the PowerShell tool.
+0. alpha21 is installed on BOTH clients and packaged (see the alpha21 note in section 9). The alpha10 instructions below still apply. If any later change is made, run `scripts/publish-build.ps1` again from the PowerShell tool.
 1. **Next action (user):** log in on the WoW Forever client with alpha10 and (a) type `/mam diag`, click Copy diagnostics and send the pasted report (look at `Handler errors:`, `Medals:`, `Camp spells seen:`, `Statistics:` and `scan N ms`); (b) open the Medals tab, try the filters and search, hover a few medals and send a screenshot; (c) do the campfire test: complete The Great Outdoors, craft and light a campfire, place a camp object, then send `/mam diag` again. Continue with the alpha9 confirmations below. Confirm live: The Great Outdoors gives Happy Camper; lighting a campfire and placing an object moves Firestarter / Camp Decorator; entering the new dungeons, raids, Darkspear Islands and new zones moves their medals; Plot Twist for a new race-class combo; which statistic-based medals appear.
 2. Fix whatever the live check disproves (exact spell names, instance names, quest name, Statistics availability on Forever).
 3. User decides: the licence text, CurseForge project name/category, and then uploads `docs/release/curseforge` material with the ZIP following `UPLOAD-CHECKLIST.md`.

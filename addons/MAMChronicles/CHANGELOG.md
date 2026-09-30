@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0-alpha21
+
+Fixes from the first live Retail screenshots of the Modern theme.
+
+- Medal rows are taller and the art progress bar is slimmer, so the bar no longer sits on top of the description text.
+- Home tile numbers use a larger game font instead of a stretched one, so they are sharper. If a client lacks that font the addon falls back to the previous one.
+- Weekly Mom Quests: before the Forever launch the preview week now rolls over every real week, and "Log in on N different days" counts this week's logins (it showed 0 right after you logged in).
+
 ## 0.2.0-alpha20
 
 - **Modern theme with real texture art**, now the default: an ornate gold-trimmed window frame with a soft shadow, hanging tabs, inset panels, brown and red buttons with hover, pressed and disabled states, art checkboxes, a gold scrollbar thumb, ornate section dividers, art progress bars, and tier medal badges (bronze, silver, gold, platinum) on every medal row. Toasts get an ornate frame with a coloured glow behind the icon, and the minimap glow uses soft glow art.

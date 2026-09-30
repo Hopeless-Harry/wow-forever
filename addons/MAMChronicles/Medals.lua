@@ -771,10 +771,12 @@ Medals.launchEpoch = 1793750400
 local WEEK_SECONDS = 604800
 local levelTargets = { 10, 15, 20, 25, 30, 36, 42, 48, 54, 60 }
 
+-- Returns the week number (never below one), when that calendar week started, and the raw week index. Before launch the
+-- week number stays at one (the preview week), but the start and index keep moving so progress still resets every week.
 function Medals:GetWeek(now)
   now = tonumber(now) or Addon:Now()
-  local week = math.max(1, math.floor((now - self.launchEpoch) / WEEK_SECONDS) + 1)
-  return week, self.launchEpoch + (week - 1) * WEEK_SECONDS
+  local index = math.floor((now - self.launchEpoch) / WEEK_SECONDS)
+  return math.max(1, index + 1), self.launchEpoch + index * WEEK_SECONDS, index
 end
 
 function Medals:GetBand(week) return math.max(1, math.min(6, math.floor(((tonumber(week) or 1) - 1) / 2) + 1)) end
@@ -834,13 +836,13 @@ function Medals:SelectQuests(week, levelNow)
   return picks, band
 end
 
-local function questState(week)
+local function questState(week, index)
   local database = Addon.db
   if not (database and Addon.characterKey) then return nil end
   database.challenges = tableOr(database.challenges)
   local state = database.challenges[Addon.characterKey]
-  if type(state) ~= "table" or state.week ~= week then
-    state = { week = week, baselines = {}, done = {} }
+  if type(state) ~= "table" or state.index ~= index then
+    state = { week = week, index = index, baselines = {}, done = {} }
     database.challenges[Addon.characterKey] = state
   end
   state.baselines, state.done = tableOr(state.baselines), tableOr(state.done)
@@ -859,12 +861,12 @@ end
 
 -- The quests for a week with progress. Progress and baselines exist only for the current week.
 function Medals:GetWeeklyQuests(week)
-  local current, weekStart = self:GetWeek()
+  local current, weekStart, index = self:GetWeek()
   week = tonumber(week) or current
   local isCurrent = week == current
   local levelNow = tonumber(safe(UnitLevel, "player"))
   local picks, band = self:SelectQuests(week, levelNow)
-  local state = isCurrent and questState(week) or nil
+  local state = isCurrent and questState(week, index) or nil
   local ctx = isCurrent and self:BuildContext() or nil
   local list = {}
   for slot = 1, 3 do
@@ -894,8 +896,8 @@ function Medals:GetWeeklyQuests(week)
 end
 
 function Medals:CheckQuests(row)
-  local week = self:GetWeek()
-  local state = questState(week)
+  local week, _, index = self:GetWeek()
+  local state = questState(week, index)
   if not state then return end
   local quests = self:GetWeeklyQuests()
   local finished = 0

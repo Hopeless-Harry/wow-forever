@@ -81,11 +81,13 @@ end
 -- so every label is created through here and takes its colour from the current palette.
 local textRoles = {
   GameFontHighlight = "text", GameFontHighlightSmall = "text", GameFontNormal = "gold", GameFontNormalSmall = "gold",
-  GameFontNormalLarge = "gold", GameFontDisable = "muted", GameFontDisableSmall = "muted",
+  GameFontNormalLarge = "gold", GameFontNormalHuge = "gold", GameFontDisable = "muted", GameFontDisableSmall = "muted",
 }
 
 function Theme:Text(parent, template)
-  local fontString = parent:CreateFontString(nil, "OVERLAY", template)
+  -- A font template that a client lacks (for example a newer Huge font) falls back to the Large one instead of failing.
+  local ok, fontString = pcall(parent.CreateFontString, parent, nil, "OVERLAY", template)
+  if not ok or not fontString then fontString = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge") end
   local role = textRoles[template]
   if role then safeMethod(fontString, "SetTextColor", unpackColor(self.colors[role])) end
   return fontString

@@ -644,7 +644,7 @@ function UI:BuildSettingsPage(frame)
   area:Hide()
 end
 
-local MEDAL_ROW_HEIGHT = 46
+local MEDAL_ROW_HEIGHT = 54
 
 function UI:UpdateMedalsScroll()
   if not self.medalsArea then return end
@@ -734,10 +734,10 @@ local function createMedalRow(ui, index)
   if art then
     row.barTrack = row:CreateTexture(nil, "ARTWORK")
     safeMethod(row.barTrack, "SetTexture", T.ART .. "Bar"); safeMethod(row.barTrack, "SetTexCoord", 0, 1, 0, 0.25)
-    safeMethod(row.barTrack, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 54, 8); safeMethod(row.barTrack, "SetPoint", "BOTTOMRIGHT", row, "BOTTOMRIGHT", -132, 8); safeMethod(row.barTrack, "SetHeight", 10)
+    safeMethod(row.barTrack, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 54, 8); safeMethod(row.barTrack, "SetPoint", "BOTTOMRIGHT", row, "BOTTOMRIGHT", -132, 8); safeMethod(row.barTrack, "SetHeight", 8)
     row.bar = row:CreateTexture(nil, "ARTWORK", nil, 1)
     safeMethod(row.bar, "SetTexture", T.ART .. "Bar"); safeMethod(row.bar, "SetTexCoord", 0, 1, 0.25, 0.5)
-    safeMethod(row.bar, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 54, 8); safeMethod(row.bar, "SetHeight", 10)
+    safeMethod(row.bar, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 54, 8); safeMethod(row.bar, "SetHeight", 8)
   else
     row.bar = row:CreateTexture(nil, "ARTWORK")
     safeMethod(row.bar, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 4, 0); safeMethod(row.bar, "SetHeight", 3)
