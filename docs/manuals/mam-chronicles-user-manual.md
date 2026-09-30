@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles — User Manual
 
-- **Version:** `0.2.0-alpha6`
+- **Version:** `0.2.0-alpha7`
 - **Current test target:** World of Warcraft Retail 12.1
 - **WoW Forever:** Built with compatibility checks, but live beta testing is still pending.
 
@@ -61,9 +61,15 @@ The window has six tabs: **Home** (opens by default), **Chronicle**, **Medals**,
 - After that, each new medal appears as a **toast**, is added to your Chronicle as a Medal entry, and is announced to your guild (see below).
 - Clicking a toast opens the Medals tab. Below the medal list, **Guildmates** shows medals other players have earned recently.
 
+There are 131 medals in 46 families worth 3,850 Mom Money in total; the full list is in `mom-medals-catalogue.md`. Besides the serious ones (quests, delves, dungeons, levels) there is a Mom-themed set: **Wine O'Clock** (drink wine), **Pint of Courage**, **Second Coffee**, **Clean Plate Club**, **Boo-Boo Fixer** (bandages), **Trampoline Mom** (jumps), **School Run** (mounting up), **Mom Needs Five Minutes** (going AFK), **Weekend Getaway** (resting in inns and cities), **Say Cheese** (screenshots), **Up Past Bedtime** and **Early Bird Special** (login times), **Hugs and Kisses**, **Kitchen Dance Party**, **Commitment Issues** (abandoned quests), **Crazy Cat Mom** (vanity pets) and more.
+
+#### How the silly ones are tracked
+
+A small counter module watches what you do and stores **only whole numbers per category on this computer**: never item names, chat, or locations. Consumables (wine, ale, coffee and tea, food, bandages, potions) are counted when you press an item **and** the game confirms a successful cast within two seconds, so mashing a key while an item is on cooldown does not count. Item names are matched against keywords as whole words, so a "Whale" item is not an ale. One known limit: using the very last item of a stack from your bags may not be counted. Counters are cleared by Erase Chronicle Data.
+
 ### Alerts (toasts)
 
-Toasts slide in near the top of the screen for new medals, guildmates' medals, and level-ups. They are **on by default** and **never appear during combat**: they wait and appear when combat ends. If several medals arrive together they merge into one summary. A sound is optional and off by default. Everything is under Settings > Alerts.
+Toasts slide in near the top of the screen for new medals, guildmates' medals, and level-ups. They are **on by default** and **never appear during combat**: they wait and appear when combat ends. If several medals arrive together they merge into one summary. A sound is optional and off by default. Everything is under Settings > Alerts, including **Send a test toast** (also `/mam toast`), which cycles through the three looks so you can check they show.
 
 ### Guild sharing
 

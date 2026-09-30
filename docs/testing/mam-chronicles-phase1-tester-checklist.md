@@ -99,6 +99,15 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] If the realm restricts addon messages the diag line says `restricted` and nothing errors.
 - [ ] Turning off "Announce my Mom Medals" stops sending; turning off "Show toasts when guildmates earn medals" stops receiving.
 
+## Silly medals and test toast (alpha7)
+
+- [ ] Settings > Alerts > **Send a test toast** (and `/mam toast`) shows an info toast, then a medal toast, then a guildmate toast on repeated clicks.
+- [ ] Drink a wine (or any item with "wine" in its name), then check the Medals tab for **Wine O'Clock I**. Repeat with an ale, a coffee or tea, some food, and a bandage. Note any that did not count: __________
+- [ ] Mashing a consumable's key while it is on cooldown does not add counts.
+- [ ] Jumping, mounting up, going AFK, entering an inn or city, and taking a screenshot each move their medal progress.
+- [ ] Social medals (Hugs and Kisses, Friendly Neighbourhood Mom, Kitchen Dance Party) show progress that matches your Statistics tab; note any that never appear: __________
+- [ ] `/mam` now reopens on the tab you used last (Home by default), not always Chronicle.
+
 ## Stability
 
 - [ ] No Lua errors during the test.

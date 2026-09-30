@@ -144,6 +144,20 @@ function Toast:Advance(elapsed)
   self:Render()
 end
 
+-- Debug helper behind Settings > Alerts > Send a test toast and /mam toast. Cycles through the three toast looks.
+function Toast:SendTest()
+  self.testIndex = ((self.testIndex or 0) % 3) + 1
+  local specs = {
+    { title = "Test toast", text = "If you can see this, toasts are working.", kind = "info" },
+    { title = "Medal earned: Test Medal", text = "A pretend medal, worth pretend Mom Money.", kind = "medal", points = 25 },
+    { title = "Alice earned the Test Medal", text = "A pretend guildmate medal.", kind = "guild", points = 25 },
+  }
+  local result = self:Show(specs[self.testIndex])
+  if result == "dropped" then Addon:Print("Toasts are switched off in Settings > Alerts (or guild alerts are off), so nothing was shown.")
+  elseif result == "queued" then Addon:Print("Test toast queued: you are in combat or another toast is showing.") end
+  return result
+end
+
 function Toast:Flush()
   if not self.current and #self.queue > 0 and not inCombat() then self:Start(table.remove(self.queue, 1)) end
 end

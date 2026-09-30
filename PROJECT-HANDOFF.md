@@ -1,7 +1,7 @@
 # Moms Against Magic Chronicles — Project Handoff
 
 **Last updated:** 30 September 2026  
-**Current addon version:** `0.2.0-alpha6`  
+**Current addon version:** `0.2.0-alpha7`  
 **Current status:** In progress. Proper-addon polish All 7 tasks are complete in automated testing (Chronicles 98/98); live acceptance pending. Live acceptance of the production addon is still required.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
@@ -332,6 +332,15 @@ Settings, Mom Medals, toasts, guild sharing (alpha6, 30 Sep 2026) - AUTOMATED EV
 - **Unproven in the real client:** appearance of the new pages and toasts; theme contrast (Parchment especially); whether `C_ChatInfo.SendAddonMessage` to GUILD works on these realms (earlier Retail probing found the sampled realm restricts outgoing addon messages even with chat lockdown off - the code degrades to `restricted` and does nothing); Enum.SendAddonMessageResult values beyond Success/throttle are assumed; CHAT_MSG_ADDON sender format; PlaySound kit availability on Forever; ScrollFrame text height measurement timing.
 - Version `0.2.0-alpha6`. Chronicles **192/192**, Diagnostics **35/35**, Dashboard **39/39** (total 266). Installed and hash-verified (19 files, 0 diffs) on BOTH `_retail_` and `_classic_beta_`. Release: `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha6/` ZIP SHA-256 `A57045173A2220A68893DBE6D1071A919071462BB2102BF5B61C461451E0DD65`.
 
+Silly Mom medals, counters and test toast (alpha7, 30 Sep 2026) - AUTOMATED EVIDENCE ONLY:
+
+- User feedback on alpha6 (Retail screenshot of the Medals tab): looks good, baseline granted many medals from history. Requests: a test-toast debug button, and a large set of Mom-themed / silly guild achievements ("x wine drunk").
+- Added `Counters.lua`: privacy-safe integer counters in `db.counters[charKey]` (never item names): consumables classified by whole-word keywords (`wine`, `ale`, `coffee`, `food`, `bandage`, `potion`) from `UseAction` / `C_Container.UseContainerItem` post-hooks, **armed then confirmed by the player's next successful cast within 2s** (so cooldown key-mashing does not count; same item within 1.5s counts once); jumps (`JumpOrAscendStart` hook), mounts, AFK, resting, screenshots via events. Medal checks batched 5s after counting.
+- `Medals.lua` now has **131 medals in 46 families, 3,850 Mom Money total** (catalogue generated into `docs/manuals/mom-medals-catalogue.md`): wine, ale, coffee, food, bandages, potions, jumps, mounts, AFK, resting, screenshots, late-night/early-morning logins (local time from `session.login` events), and statistics-driven ones (hugs, waves, cheers, dances, kisses, hearthstones, summons, abandoned quests, dailies, auction purchases, healthstones, vanity pets, pet battles, mislaid curiosities), plus deaths and Cooking/Fishing skill. Statistic-name medals silently stay locked if the client does not report that statistic.
+- `Toast:SendTest()` behind Settings > Alerts > "Send a test toast" and `/mam toast` (cycles info, medal, guildmate; prints why when dropped or queued). `/mam` with no argument now keeps the last tab instead of forcing Chronicle.
+- Known limits / unproven live: consumable detection relies on cast events after `UseAction`/bag-use hooks (last item of a bag stack may be missed; if the cast event does not fire for some food/drink kinds they will undercount); keyword lists are English-only; `Medals.version` remains 1 so guildmates on older builds drop announcements for medal ids they do not know (counted as `dropped`).
+- Version `0.2.0-alpha7`. Chronicles **207/207**, Diagnostics **35/35**, Dashboard **39/39** (total 281). Installed and hash-verified (20 files, 0 diffs) on BOTH `_retail_` and `_classic_beta_`. Release: `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha7/` ZIP SHA-256 `DE5B03CE10938A67DB198E2EED499410D17DA646251120694B0DB4960F7FD2E1`.
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -391,9 +400,9 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-1. User tests alpha6 on Retail and Forever: screenshots of Home, Medals, Settings (scrolled), a toast, and each theme; `/mam diag` output including the `Guild sharing:` line on each client.
-2. Two-player guild test is REQUIRED before trusting sharing: two characters in the same guild, both on alpha6, one earns a medal, confirm the other gets the toast and Guildmates line; record both `/mam diag` lines. If the realm restricts addon messages, consider the optional guild chat line as the fallback and record that decision.
-3. Then, per the user's order: Courier export of medals and non-sensitive statistics for the Raspberry Pi and the first monthly letter (after cross-user sharing is proven), the Characters roster tab, optional pinned-stat tiles (low priority), and later phases.
+1. User tests alpha7: press Settings > Alerts > Send a test toast; drink a wine/ale/coffee, eat food, use a bandage, jump, mount, go AFK and check the Medals tab moves; send screenshots and `/mam diag` from Retail and Forever.
+2. Two-player guild test still REQUIRED before trusting guild sharing (see previous checkpoint). Record both `/mam diag` lines.
+3. Then, per the user's order: Courier export of medals and non-sensitive statistics for the Raspberry Pi and first monthly letter (after cross-user sharing is proven), Characters roster tab, optional pinned-stat tiles, later phases. Possible next content: guild-wide medals (for example "Moms Unite" when several guildmates are online together) once sharing is proven.
 
 ## 15. Recent history
 

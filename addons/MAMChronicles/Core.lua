@@ -2,7 +2,7 @@ MAMChronicles = MAMChronicles or {}
 local Addon = MAMChronicles
 
 Addon.name = "MAMChronicles"
-Addon.version = "0.2.0-alpha6"
+Addon.version = "0.2.0-alpha7"
 Addon.schemaVersion = 1
 
 function Addon:Now()
@@ -63,6 +63,7 @@ function Addon:Boot()
   if self.SettingsPanel and self.SettingsPanel.Register then self:SafeCall(self.SettingsPanel.Register, self.SettingsPanel) end
   self:ShowWelcome()
   if self.Toast then self:SafeCall(self.Toast.Initialise, self.Toast) end
+  if self.Counters then self:SafeCall(self.Counters.Initialise, self.Counters) end
   if self.Comms then self:SafeCall(self.Comms.Initialise, self.Comms) end
   if self.Medals then self:SafeCall(self.Medals.Evaluate, self.Medals, "boot") end
   return self.db
@@ -75,6 +76,7 @@ function Addon:HandleEvent(eventName, ...)
     return
   end
   if not self.booted then self:Boot() end
+  if self.Counters and self.Counters.handles[eventName] then self:SafeCall(self.Counters.OnEvent, self.Counters, eventName, ...) end
   if eventName == "CHAT_MSG_ADDON" then
     if self.Comms then self:SafeCall(self.Comms.OnAddonMessage, self.Comms, ...) end
     return

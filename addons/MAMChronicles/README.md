@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles
 
-Version `0.2.0-alpha6` is the polished personal-Chronicle tester build for Retail and WoW Forever.
+Version `0.2.0-alpha7` is the polished personal-Chronicle tester build for Retail and WoW Forever.
 
 ## Install
 

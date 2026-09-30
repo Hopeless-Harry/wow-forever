@@ -461,6 +461,10 @@ function UI:BuildSettingsPage(frame)
   check("announceMedals", "Announce my Mom Medals to the guild", "Guildmates running the addon see a toast when you earn a medal. Nothing is sent when messaging is restricted.")
   check("announceGuildChat", "Also post my medals in guild chat", "Posts one line to guild chat that everyone can read, even without the addon. Off by default.")
   check("receiveGuildAlerts", "Show toasts when guildmates earn medals")
+  y = y - 4
+  self.testToastButton = button("Send a test toast", 220, 8, function() if Addon.Toast then Addon.Toast:SendTest() end end)
+  attachTooltip(self.testToastButton, "Send a test toast", "Shows a sample toast so you can check they appear. Click again for the medal and guildmate looks.")
+  y = y - 34
 
   heading("Recording")
   check("enabled", "Record Chronicle")
@@ -827,12 +831,13 @@ end
 
 function UI:HandleSlash(command)
   command=(command or ""):match("^%s*(.-)%s*$"); local verb,rest=command:match("^(%S+)%s*(.-)$"); verb=string.lower(verb or "")
-  if verb=="" then self.activeTab="Chronicle"; Addon.db.settings.ui.activeTab="Chronicle"; self:Toggle()
+  if verb=="" then self:Toggle()
   elseif verb=="remember" then local event,err=Addon.Collectors:RecordManualMemory(rest); self.lastMessage=event and "Memory saved." or err; Addon:Print(self.lastMessage)
   elseif verb=="stats" then self.activeTab="Statistics"; Addon.db.settings.ui.activeTab="Statistics"; self:Show()
   elseif verb=="export" then local value,err=Addon.Export:BuildCourierPayload(0,Addon:Now()); self:ShowCopy(value or err)
+  elseif verb=="toast" then if Addon.Toast then Addon.Toast:SendTest() end
   elseif verb=="diag" then self.activeTab="Diagnostics"; Addon.db.settings.ui.activeTab="Diagnostics"; self:ShowCopy(Addon.Export:BuildDiagnosticReport())
-  else self.lastMessage="Commands: /mam, remember, stats, export, diag, help"; Addon:Print(self.lastMessage) end
+  else self.lastMessage="Commands: /mam, remember, stats, export, diag, toast, help"; Addon:Print(self.lastMessage) end
 end
 
 function UI:InitialiseSlashCommands()
