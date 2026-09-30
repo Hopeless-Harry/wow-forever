@@ -598,7 +598,7 @@ git commit -m "docs: prepare Chronicles alpha2 polish release"
 - Consumes: completed alpha2 addon, exact package allowlist, three automated suites.
 - Produces: inspected alpha2 ZIP, SHA-256, updated tester instructions/checklist/manual, and an exact live-test next action.
 
-- [ ] **Step 1: Write failing package allowlist test**
+- [x] **Step 1: Write failing package allowlist test**
 
 Change expected archive to `MAMChronicles-0.2.0-alpha2.zip` and exact contents to:
 
@@ -610,7 +610,7 @@ Change expected archive to `MAMChronicles-0.2.0-alpha2.zip` and exact contents t
 ]
 ```
 
-- [ ] **Step 2: Run package test and verify RED**
+- [x] **Step 2: Run package test and verify RED**
 
 Run:
 
@@ -620,11 +620,11 @@ npm test --prefix tools/mam-chronicles -- --test-name-pattern="package archive"
 
 Expected: FAIL because the PowerShell allowlist still omits alpha2 files.
 
-- [ ] **Step 3: Update package allowlist and generate the release**
+- [x] **Step 3: Update package allowlist and generate the release**
 
 Add only `Launcher.lua`, `SettingsPanel.lua`, `MAMChroniclesIcon.tga`, and `LICENSE.txt` to the existing allowlist. Generate the ZIP in a temporary output directory first; expand it and compare every packaged file hash with source.
 
-- [ ] **Step 4: Run all automated verification**
+- [x] **Step 4: Run all automated verification**
 
 Run:
 
@@ -638,11 +638,11 @@ git diff --check
 
 Expected: all suites PASS, packaging prints a SHA-256, and diff check is silent.
 
-- [ ] **Step 5: Inspect fake-client installs**
+- [x] **Step 5: Inspect fake-client installs**
 
 Install into temporary `_retail_` and `_classic_beta_` trees, verify the exact file allowlist and source-identical hashes, simulate activation failure to verify rollback, and confirm unrelated addons remain unchanged.
 
-- [ ] **Step 6: Build the tester-release directory**
+- [x] **Step 6: Build the tester-release directory**
 
 Create/update:
 
@@ -656,11 +656,11 @@ C:\Users\44750\Documents\ChatGPT\WoW\tester-releases\MAMChronicles-0.2.0-alpha2\
 
 Record the exact new SHA-256 in `PROJECT-HANDOFF.md`. Mark automated/package evidence separately from live acceptance.
 
-- [ ] **Step 7: Install to a real client only when WoW is closed**
+- [x] **Step 7: Install to a real client only when WoW is closed**
 
 Check the process state first. If WoW is running or the user is unavailable for live testing, do not install; record the exact safe command and leave live acceptance as the next action. If closed, use the safe installer, retain its backup, and compare all installed hashes with source.
 
-- [ ] **Step 8: Commit the verified release changes**
+- [x] **Step 8: Commit the verified release changes**
 
 ```powershell
 git add scripts/package-mam-chronicles.ps1 tools/mam-chronicles/test/package-install.test.js PROJECT-HANDOFF.md

@@ -2,7 +2,7 @@
 
 **Last updated:** 30 September 2026  
 **Current addon version:** `0.2.0-alpha2`  
-**Current status:** In progress. Proper-addon polish Tasks 1–6 of 7 are complete (Chronicles 98/98). Live acceptance of the production addon is still required.
+**Current status:** In progress. Proper-addon polish All 7 tasks are complete in automated testing (Chronicles 98/98); live acceptance pending. Live acceptance of the production addon is still required.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
 This is the first file a new agent should read. Keep it current whenever the version, design, verification status, release location, major decision, or next action changes.
@@ -152,7 +152,7 @@ Before a real installation:
 
 ## 7. Current release
 
-Tester release directory:
+Previous (alpha1) tester release directory, superseded by the alpha2 directory recorded in section 9:
 
 ```text
 C:\Users\44750\Documents\ChatGPT\WoW\tester-releases\MAMChronicles-0.2.0-alpha1\
@@ -223,7 +223,7 @@ The user said to proceed on 30 September 2026. Unless corrected, this is being t
 
 The approved design is recorded in `docs/superpowers/specs/2026-09-30-mam-chronicles-proper-addon-polish-design.md`. It uses a native, dependency-free implementation with two focused new modules (`Launcher.lua` and `SettingsPanel.lua`) plus an original icon.
 
-The executable plan is `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`. It has seven test-driven tasks. **Progress: 6/7 tasks complete.**
+The executable plan is `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`. It has seven test-driven tasks. **Progress: 7/7 tasks complete (automated).**
 
 Completed polish checkpoint:
 
@@ -272,7 +272,15 @@ Completed Task 6 checkpoint (icon, metadata, licence, docs) - also absorbed the 
 - Suites: Chronicles **98/98**, Diagnostics **35/35**, Guild dashboard **39/39**; `git diff --check` silent.
 - Test-package SHA-256 (temp build, not yet a release): `929D6FB02B9A8A0E3ADAD8911C615379412B824D613BF851C9A00B2E9105C7E7`.
 - Task 6 implementation commit: `4267990`.
-- Progress: **6/7 tasks complete**.
+- Progress after Task 6: 6/7.
+
+Completed Task 7 checkpoint (package and release) - AUTOMATED/PACKAGE EVIDENCE ONLY, NOT LIVE ACCEPTANCE:
+
+- Final verification on the Task 6 tree: Chronicles **98/98**, Diagnostics **35/35**, Guild dashboard **39/39** (total **172/172**); `git diff --check` silent.
+- Fake-client install tests cover `_retail_` and `_classic_beta_` (exact 13-file list + source-identical hashes), manifest validation, unrelated-addon preservation, backup/rollback on failed activation, and refusal while WoW is running.
+- Release directory: `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha2/` containing `MAMChronicles-0.2.0-alpha2.zip`, `SEND-TO-TESTERS.txt`, `TESTER-CHECKLIST.md`, `USER-MANUAL.md`. The alpha1 release directory was left untouched.
+- Release ZIP SHA-256 (alpha2): `929D6FB02B9A8A0E3ADAD8911C615379412B824D613BF851C9A00B2E9105C7E7`. The expanded ZIP was compared with `addons/MAMChronicles`: 13 files, 0 differences.
+- Progress: **7/7 tasks complete** (automated). The old alpha1 hash in section 7 is historical.
 
 ## 10. Later roadmap
 
@@ -333,7 +341,7 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-Finish Task 7 Steps 4-6: run all verification, confirm fake-client install/rollback (package-install tests), build the tester-release directory `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha2/` (ZIP, SEND-TO-TESTERS.txt, TESTER-CHECKLIST.md, USER-MANUAL.md), record the final SHA-256, and keep automated evidence separate from live acceptance.
+Live acceptance of alpha2 on Retail (needs the user): fully exit WoW, run `scripts/install-mam-chronicles.ps1` against the `_retail_` client, read back the installed manifest and file hashes, then work through the "Launcher, window, and settings (alpha2)" section and the rest of `docs/testing/mam-chronicles-phase1-tester-checklist.md`, recording PASS/FAIL/NOT TESTED honestly. Do not start Phase 2 (guild sync) until live Phase 1 acceptance is recorded or the user decides otherwise. Remaining decision for the user: whether to swap the private-testing `LICENSE.txt` for an open-source licence.
 
 ## 15. Recent history
 
