@@ -1,8 +1,8 @@
 # Moms Against Magic Chronicles — Project Handoff
 
 **Last updated:** 30 September 2026  
-**Current addon version:** `0.2.0-alpha9`  
-**Current status:** In progress. Proper-addon polish All 7 tasks are complete in automated testing (Chronicles 98/98); live acceptance pending. Live acceptance of the production addon is still required.
+**Current addon version:** `0.2.0-alpha10`  
+**Current status:** alpha10 tester-polish pass complete in AUTOMATED testing (Chronicles 300/300) and published to both clients and the CurseForge package. Nothing new has been observed live; Forever and two-player guild sharing are still unproven.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
 This is the first file a new agent should read. Keep it current whenever the version, design, verification status, release location, major decision, or next action changes.
@@ -362,6 +362,31 @@ WoW Forever review and CurseForge package (alpha9, 30 Sep 2026) - AUTOMATED EVID
 - CurseForge package prepared, NOT uploaded: `LICENSE.txt` changed to All Rights Reserved with personal non-commercial use permitted (**decision for the user to confirm** - the old text forbade public distribution), `CHANGELOG.md` shipped in the addon, `## X-License` added to the TOC, and `docs/release/curseforge/` holds `PROJECT-DESCRIPTION.md`, `SUMMARY.txt`, `CHANGELOG.md` and `UPLOAD-CHECKLIST.md` (also copied to the release folder). Screenshots must be retaken from this build. CurseForge upload, category and game-version choices, and the project ID are the owner's.
 - Version `0.2.0-alpha9`. Chronicles **240/240**, Diagnostics **35/35**, Dashboard **39/39** (total 314). Installed and hash-verified (21 files, 0 diffs) on BOTH `_retail_` and `_classic_beta_`. Release: `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha9/` (ZIP 64 KB, one `MAMChronicles` folder, 21 files, verified against source) ZIP SHA-256 `0A85F3F93B26F6A8453F26FD56FDDF67D80F032A90D261D18D271BA5915707A9`.
 
+Tester polish pass (alpha10, 30 Sep 2026) - AUTOMATED EVIDENCE ONLY; nothing here has been observed live:
+
+Commits (oldest first): `c601585` handler error count + Copy diagnostics; `aed9f8f` Getting started card, What's new, short welcome; `123b652` Medals filters/search/tooltips/NEW/lazy rows; `c6e9b0f` Forever-first Home and empty states; `e767911` bounded tables + chunked statistics scan; `cc5ada2` combat deferral; `d422682` `C_Item`/`C_ChatInfo` with fallbacks; `a34cc00` Parchment/palette text; `86eeb3d` `/mam help`, `medals`, `settings`, window on screen; `3b2dd80` version, changelog and docs.
+
+- **First run**: `settings.gettingStartedDismissed` (Home card, "Got it"), `settings.whatsNewVersion/whatsNewSeen` with `Addon:GetWhatsNew()/DismissWhatsNew()` (shows after a version change; text lives in `Addon.whatsNewText` in `Core.lua` and must be updated each release). Chat welcome is one line (`WELCOME_VERSION` is now `personal-chronicle-v3`, so everyone sees it once more).
+- **Report a problem**: `Addon:Guard(label, fn, ...)` wraps handlers and records `Addon.errorStats` (count, last message <= 80 chars with paths/`#tags` stripped). `Collectors` failures also count. `/mam diag` now has `Handler errors:`, `SavedVariables: events/medals/feed`, `Level cap:`, statistics `scan N ms`. Diagnostics tab has a Copy diagnostics button (selects the text; Ctrl+C is the player's) and a note.
+- **Medals tab**: filters All/Earned/In progress/Locked with counts, search, per-medal tooltip (`def.tracking` text derived from counter/statistic/tally tagging), NEW marker (`Medals.newIds`, live awards only, cleared on erase/reload), pooled rows bound while scrolling (about 11 frames instead of 264). `GetSummary` now counts only known definitions, so header counts and Mom Money equal the listed medals even with stale saved entries.
+- **Forever-first**: Home tile Campfires lit replaces Delves on Forever; Home shows the real guild sharing state (the old "not available yet" text was stale); statistics empty state says which medals still work. Level 60 cap and Retail-only hiding already existed and are now covered by tests.
+- **Robustness**: sessions capped at 500, duplicate-signal table restarted above 300 entries, counters ignore junk and stop at 1e9, statistics scan split into 6 ms slices across frames only when both `debugprofilestop` and `C_Timer.After` exist (otherwise unchanged synchronous path). Tests cover all optional APIs missing, a minimal old SavedVariables file, and a 25,000-event saved history.
+- **Combat**: `Addon:AfterCombat` queue run on `PLAYER_REGEN_ENABLED`; window creation/show, `/mam diag`/`export`, the minimap button and resize layout are deferred in combat; closing still works. Counters stop while Record Chronicle is off. Nothing runs per frame except the fall ticker and toast animation; the launcher drag OnUpdate only exists while dragging.
+- **APIs**: item lookups go through `Addon:GetItemInfo/GetItemInfoInstant` preferring `C_Item`; guild chat line prefers `C_ChatInfo.SendChatMessage`. Addon messages already used `C_ChatInfo`.
+- **Polish**: `Theme:Text` colours every label from the palette (stock fonts were white/grey on the light Parchment panel, a real defect); Parchment gets dark event/tier colours; Midnight accent and Parchment muted adjusted; WCAG contrast test for all four themes (text 7:1, muted and gold 4.5:1, event colours 3.5:1). Saved window size is clamped to the screen. `/mam help` lists every command; new `/mam medals` and `/mam settings`. Escape, scroll-position persistence (Settings and Medals) were already correct and are now tested.
+- Docs updated: manual, tester checklist (new alpha10 section), `SEND-TO-TESTERS.template.txt`, CurseForge description and changelog. The medal catalogue was not regenerated because no medal definition changed.
+- Suites: Chronicles **300/300**, Diagnostics **35/35**, Dashboard **39/39** (total **374**); `git diff --check` reports no whitespace errors (only the repository's LF/CRLF notices).
+- Published with `scripts/publish-build.ps1` on BOTH `_retail_` and `_classic_beta_` (21 files, 0 differences) and the release folder `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha10/`. ZIP SHA-256 `8D995FBF3814CC3D37A62C04581B7C8A958BE9DD010E7CCCB105AF7639F6116C`. Not uploaded to CurseForge; `LICENSE.txt` untouched.
+- Tooling note: run the publish script from the PowerShell tool (or set `[Console]::OutputEncoding` to UTF-8) because the script reads the `ℹ pass N` lines from `npm test`; under Git Bash it fails with "Cannot index into a null array".
+
+Decisions and cuts (alpha10):
+
+- **Cut / left as is: SavedVariables corruption recovery.** One invalid event still makes `Database:Open` replace the whole database with a fresh one (`diagnostics.recovery.reason = "corrupt root"`). Existing tests enforce that contract and a salvage path (drop only invalid events) would change it; recommended follow-up, not done.
+- **Cut: measuring the scan cost on real hardware.** Only the mechanism exists (`scan N ms` in `/mam diag`, slicing above a 6 ms budget). Real numbers come from the tester's diag line.
+- **Cut: per-frame audit of every label for clipping.** Medal descriptions do not wrap (full text is in the tooltip); toasts/timeline rows already disable word wrap. Needs a live visual check.
+- **Cut: `Comms.floods` per-sender table is not pruned** (bounded by guild size).
+- Did not touch guild-wide medals, Pi export or the Characters roster.
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -421,14 +446,15 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-0. **Retail is still on the previous build if Wow.exe was running when last published.** The installed Forever client is on the latest build. Close WoW and run `scripts/publish-build.ps1` to bring both clients and the release package current.
-1. User runs alpha9 on the WoW Forever client first: send `/mam diag` (look at `Medals:` and `Camp spells seen:`) and screenshots of the Medals tab. Confirm live: The Great Outdoors gives Happy Camper; lighting a campfire and placing an object moves Firestarter / Camp Decorator; entering the new dungeons, raids, Darkspear Islands and new zones moves their medals; Plot Twist for a new race-class combo; which statistic-based medals appear.
+0. alpha10 is installed on BOTH clients and packaged (SHA-256 in section 9). If any later change is made, run `scripts/publish-build.ps1` again from the PowerShell tool.
+1. **Next action (user):** log in on the WoW Forever client with alpha10 and (a) type `/mam diag`, click Copy diagnostics and send the pasted report (look at `Handler errors:`, `Medals:`, `Camp spells seen:`, `Statistics:` and `scan N ms`); (b) open the Medals tab, try the filters and search, hover a few medals and send a screenshot; (c) do the campfire test: complete The Great Outdoors, craft and light a campfire, place a camp object, then send `/mam diag` again. Continue with the alpha9 confirmations below. Confirm live: The Great Outdoors gives Happy Camper; lighting a campfire and placing an object moves Firestarter / Camp Decorator; entering the new dungeons, raids, Darkspear Islands and new zones moves their medals; Plot Twist for a new race-class combo; which statistic-based medals appear.
 2. Fix whatever the live check disproves (exact spell names, instance names, quest name, Statistics availability on Forever).
 3. User decides: the licence text, CurseForge project name/category, and then uploads `docs/release/curseforge` material with the ZIP following `UPLOAD-CHECKLIST.md`.
 4. Two-player guild test for sharing is still REQUIRED before guild-wide medals or the Pi export.
 
 ## 15. Recent history
 
+- alpha10 tester polish: commits `c601585` .. `3b2dd80` (see section 9).
 - `0b1263e` — added the Chronicles user manual.
 - `d90f2b9` — verified journal retention across sessions in automated coverage.
 - `7575439` — restored the persisted loot-threshold label.
