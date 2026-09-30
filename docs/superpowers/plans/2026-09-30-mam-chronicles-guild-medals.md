@@ -4,7 +4,7 @@
 
 **Goal:** Add "wave at N different guildies" variety medals, named-target medals ("Spit at Hopeless x times"), and guild-verified medals that only guild ranks 0 and 1 can award, with a test mode for use outside a guild.
 
-**Architecture:** `Counters.lua` records which guildmate each emote was aimed at (local only). `Medals.lua` turns that into variety and named medals and adds a `verified` medal kind that tracking never earns. `Comms.lua` gains `A1`/`R1` award messages: a receiver accepts one only from the GUILD channel when the sender is rank 0 in its roster, or over WHISPER when its session-only test mode is on. `UI.lua` shows verified medals as locked and gives the Guild Master slash commands plus a click-to-award action.
+**Architecture:** `Counters.lua` records which guildmate each emote was aimed at (local only). `Medals.lua` turns that into variety and named medals and adds a `verified` medal kind that tracking never earns. `Comms.lua` gains `A1`/`R1` award messages: a receiver accepts one only from the GUILD channel when the sender is rank 0 or 1 in its roster, or over WHISPER when its session-only test mode is on. `UI.lua` shows verified medals as locked and gives ranks 0 and 1 slash commands plus a click-to-award action.
 
 **Tech Stack:** Lua 5.1 WoW addon (`addons/MAMChronicles`), tested with Node 18+ `node:test` and `fengari` (`tools/mam-chronicles`). Run all tests from `tools/mam-chronicles` with `npm test` (baseline: 482 pass).
 
@@ -1057,6 +1057,6 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 
 ## Self-Review Notes
 
-- **Spec coverage:** emote target capture (Task 1); variety and named medals from a config table (Task 2); verified medals with locked text (Task 3); `A1`/`R1`, rank-0 authority, sender and recipient checks (Task 4); test mode and WHISPER path, `clear` (Tasks 4-5); award buttons visible only to the Guild Master via `IsGuildLeader()` and real authority on receivers (Tasks 4-5); roster reads (Task 1). Spec item "roster auto-complete" is dropped deliberately (see Global Constraints).
+- **Spec coverage:** emote target capture (Task 1); variety and named medals from a config table (Task 2); verified medals with locked text (Task 3); `A1`/`R1`, rank 0 and 1 authority, sender and recipient checks (Task 4); test mode and WHISPER path, `clear` (Tasks 4-5); award actions visible only to ranks 0 and 1 via the roster and real authority on receivers (Tasks 4-5); roster reads (Task 1). Spec item "roster auto-complete" is dropped deliberately (see Global Constraints).
 - **Type consistency:** `GrantVerified(id, opts)`, `RevokeVerified(id)`, `SendAward(kind, recipient, medalId)`, `RosterRank(name)`, `OnEmote(token, target)` are used with the same signatures in every task.
 - **Known risk:** the main chunk of `Medals.lua` may hit Lua's 200-locals limit; all new helpers live inside a `do ... end` block or are methods. Task 2 step 5 says what to do if it fails.
