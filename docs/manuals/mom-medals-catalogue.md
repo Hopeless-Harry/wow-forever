@@ -1,6 +1,6 @@
 # Mom Medals catalogue
 
-Generated from `addons/MAMChronicles/Medals.lua` (definition version 1). 235 medals in 83 families, worth 7005 Mom Money in total across every client.
+Generated from `addons/MAMChronicles/Medals.lua` (definition version 1). 264 medals in 96 families, worth 7985 Mom Money in total across every client.
 
 Tiers: bronze 10, silver 25, gold 50, platinum 100 Mom Money.
 
@@ -14,14 +14,12 @@ Level medals only appear when the client's level cap allows them (WoW Forever ca
 | Memory Keeper | I (10), II (25), III (50) | Pin 1 / 10 / 50 manual memories. |
 | Explorer | I (10), II (25), III (50) | Discover 10 / 50 / 200 new zones or areas. |
 | Quest Machine | I (10), II (25), III (50), IV (100) | Complete 100 / 500 / 1500 / 3000 quests. |
-| Delver | I (10), II (25), III (50) | Complete 10 / 50 / 100 delves. |
 | Dungeon Regular | I (10), II (25), III (50) | Enter 25 / 100 / 250 five-player dungeons. |
 | Slayer | I (10), II (25), III (50) | Kill 1000 / 10000 / 50000 creatures. |
 | Frequent Flyer | I (10), II (25), III (50) | Take 50 / 200 / 500 flight paths. |
 | Comeback Kid | I (10), II (25), III (50) | Return from the dead 1 / 10 / 50 times. |
 | Adventurer | I (10), II (25), III (50), IV (100), V (100) | Reach level 20 / 40 / 60 / 80 / 90. |
 | Shiny Collector | I (10), II (25), III (50) | Loot 1 / 25 / 100 notable items. |
-| Achiever | I (10), II (25), III (50) | Earn 10 / 50 / 200 achievements. |
 | Wine O'Clock | I (10), II (25), III (50), IV (100) | Drink 1 / 10 / 50 / 200 bottles of wine. |
 | Pint of Courage | I (10), II (25), III (50) | Drink 1 / 10 / 50 ales, beers or other spirits. |
 | Second Coffee | I (10), II (25), III (50) | Drink 10 / 50 / 250 coffees, teas or hot drinks. |
@@ -65,8 +63,6 @@ Level medals only appear when the client's level cap allows them (WoW Forever ca
 | Impulse Buyer | I (10), II (25), III (50) | Make 100 / 500 / 1000 auction house purchases. |
 | Healthy Snack | I (10), II (25), III (50) | Use 10 / 50 / 200 healthstones. |
 | Crazy Cat Mom | I (10), II (25), III (50) | Own 10 / 50 / 100 vanity pets. |
-| Pet Playdate | I (10), II (25), III (50) | Win 10 / 50 / 200 pet battles. |
-| Treasure Hunter Mom | I (10), II (25), III (50) | Loot 25 / 100 / 250 mislaid curiosities. |
 | Up Past Bedtime | I (10), II (25), III (50) | Log in between midnight and 5am 3 / 15 / 50 times. |
 | Early Bird Special | I (10), II (25), III (50) | Log in between 5am and 8am 3 / 15 / 50 times. |
 | Marathon Mom | I (10), II (25), III (50) | Play 4 / 8 / 12 hours in a single session. |
@@ -98,3 +94,16 @@ Level medals only appear when the client's level cap allows them (WoW Forever ca
 | Day One Mom | gold | Log in on 4 November 2026, the launch day of WoW Forever. |
 | One Year Later | gold | Still adventuring a year after your first WoW Forever session. |
 | Skyborne Landing | silver | Play a Skyborne character. |
+| Happy Camper | bronze | Complete The Great Outdoors, the quest that introduces camping. |
+| Firestarter | I (10), II (25), III (50), IV (100) | Light 1 / 10 / 50 / 200 campfires. |
+| Journeyman Camper | silver | Light a Journeyman Campfire. |
+| Expert Camper | gold | Light an Expert Campfire. |
+| Camp Decorator | I (10), II (25), III (50) | Place 5 / 25 / 100 camp objects. |
+| Well Stocked Camp | I (10), II (25), III (50) | Place 3 / 6 / 12 different kinds of camp object. |
+| Campfire Chef | I (10), II (25), III (50) | Reach 140 / 220 / 300 skill in Cooking. |
+| Unexplored Depths | I (10), II (25), III (50), IV (100) | Enter 1 / 3 / 6 / 9 of Forever's nine new dungeons. |
+| Summit Seeker | gold | Enter Hyjal Summit. |
+| Into the Barrow | silver | Enter The Barrow Deeps. |
+| Islander | I (10), II (25), III (50) | Enter the Darkspear Islands battleground 1 / 10 / 50 times. |
+| New Horizons | I (10), II (25), III (50) | Discover an area in 1 / 2 / 4 of Forever's four new zones. |
+| Plot Twist | silver | Play one of Forever's new race and class combinations. |

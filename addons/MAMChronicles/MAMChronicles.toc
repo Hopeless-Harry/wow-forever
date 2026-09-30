@@ -2,7 +2,8 @@
 ## Title: Moms Against Magic Chronicles
 ## Notes: A private, persistent chronicle of your adventures.
 ## Author: Moms Against Magic
-## Version: 0.2.0-alpha8
+## X-License: All Rights Reserved
+## Version: 0.2.0-alpha9
 ## IconTexture: Interface\AddOns\MAMChronicles\MAMChroniclesIcon
 ## Category: Chat & Communication
 ## SavedVariables: MAMChroniclesDB

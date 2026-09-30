@@ -11,6 +11,7 @@ local EMOTE_DEBOUNCE = 0.3   -- the server throttles emotes too; DoEmote and Per
 local EQUIP_GRACE = 10       -- ignore equipment changes right after entering the world
 local FALL_MEMORY = 1.5      -- how long after falling a death still counts as a fall
 
+Counters.campSpellNames = {}
 Counters.handles = {
   UNIT_SPELLCAST_SUCCEEDED = true, UNIT_SPELLCAST_START = true, UNIT_SPELLCAST_CHANNEL_START = true,
   PLAYER_MOUNT_DISPLAY_CHANGED = true, PLAYER_FLAGS_CHANGED = true, PLAYER_UPDATE_RESTING = true, SCREENSHOT_SUCCEEDED = true,
@@ -123,6 +124,47 @@ function Counters:OnCast(unit)
   for _, category in ipairs(armed.categories) do self:Add(category, 1) end
 end
 
+local function spellName(spellID)
+  if not spellID then return nil end
+  if C_Spell and C_Spell.GetSpellName then return safe(C_Spell.GetSpellName, spellID) end
+  if C_Spell and C_Spell.GetSpellInfo then
+    local info = safe(C_Spell.GetSpellInfo, spellID)
+    return type(info) == "table" and info.name or nil
+  end
+  return nil
+end
+
+-- WoW Forever camping: campfire kits and profession objects are recognised by spell name. Only counts are kept;
+-- the names of camp-related spells seen are listed in /mam diag so the keywords can be checked against the real client.
+function Counters:OnSpell(spellID)
+  local name = spellName(spellID)
+  if type(name) ~= "string" then return end
+  local lowered = string.lower(name)
+  local isCamp = false
+  if lowered:find("%f[%a]campfire%f[%A]") then
+    isCamp = true
+    self:Add("campfires", 1)
+    if lowered:find("journeyman", 1, true) then self:Add("campfire_journeyman", 1) end
+    if lowered:find("expert", 1, true) then self:Add("campfire_expert", 1) end
+  elseif Addon.Medals then
+    for _, object in ipairs(Addon.Medals.campObjects) do
+      if lowered:find(object, 1, true) then
+        isCamp = true
+        self:Add("camp_objects", 1)
+        Addon.Medals:AddToSet("campObjects", object)
+        break
+      end
+    end
+  end
+  if isCamp or lowered:find("camp", 1, true) then
+    self.campSpellsSeen = self.campSpellsSeen or {}
+    if not self.campSpellsSeen[name] and #self.campSpellNames < 12 then
+      self.campSpellsSeen[name] = true
+      table.insert(self.campSpellNames, name)
+    end
+  end
+end
+
 function Counters:WasFalling()
   return self.lastFalling ~= nil and clock() - self.lastFalling < FALL_MEMORY
 end
@@ -130,6 +172,10 @@ end
 function Counters:OnEvent(eventName, ...)
   if eventName == "UNIT_SPELLCAST_SUCCEEDED" or eventName == "UNIT_SPELLCAST_START" or eventName == "UNIT_SPELLCAST_CHANNEL_START" then
     self:OnCast((...))
+    if eventName == "UNIT_SPELLCAST_SUCCEEDED" then
+      local unit, _, spellID = ...
+      if unit == "player" then self:OnSpell(spellID) end
+    end
   elseif eventName == "PLAYER_MOUNT_DISPLAY_CHANGED" then
     local mounted = safe(IsMounted) and true or false
     if mounted and not self.mounted then self:Add("mounts", 1) end

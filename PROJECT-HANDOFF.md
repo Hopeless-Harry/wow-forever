@@ -1,7 +1,7 @@
 # Moms Against Magic Chronicles — Project Handoff
 
 **Last updated:** 30 September 2026  
-**Current addon version:** `0.2.0-alpha8`  
+**Current addon version:** `0.2.0-alpha9`  
 **Current status:** In progress. Proper-addon polish All 7 tasks are complete in automated testing (Chronicles 98/98); live acceptance pending. Live acceptance of the production addon is still required.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
@@ -350,6 +350,16 @@ Feasibility check and full medal catalogue (alpha8, 30 Sep 2026) - AUTOMATED EVI
 - WoW Forever only (client = interface number < 100000, i.e. 16001): The Journey Matters I-V, Ready for the Core (60), Old World New Tricks, Beta Testing Mom (login before 4 Nov 2026), Day One Mom (login on 4 Nov 2026), One Year Later (365 days since this client's DB was created), Skyborne Landing (race token contains "sky"; token unknown - diag prints it). Launch date and cap come from Blizzard's announcement; interface 16001 from the Warcraft Wiki.
 - Version `0.2.0-alpha8`. Chronicles **226/226**, Diagnostics **35/35**, Dashboard **39/39** (total 300). Installed and hash-verified (20 files, 0 diffs) on BOTH `_retail_` and `_classic_beta_`. Release: `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha8/` ZIP SHA-256 `68EA4989C234C784DA8CF727B0AD7875D50E521499813E4AE7C3C32723D9F75A`.
 
+WoW Forever review and CurseForge package (alpha9, 30 Sep 2026) - AUTOMATED EVIDENCE ONLY; campfire and content detection not yet observed live:
+
+- User asked: review every medal so only Forever-doable ones remain (no Mislaid Curiosities etc., level 60 max), research Forever-only features such as campfires and add medals, then prepare a CurseForge package.
+- Research (30 Sep 2026): Forever has permanent level cap 60; Normal/PvP/Hardcore rulesets; zones Mount Hyjal, Riverglades, Shen'dralas, Zephras Isle; nine new dungeons; raids Hyjal Summit and The Barrow Deeps; Darkspear Islands battleground; six new race-class combinations plus Skyborne; campfires (Basic/Journeyman/Expert kits unlocked by Cooking 1/140/220, profession camp objects at skill 20/140/300, one-hour buffs, quest The Great Outdoors around level 5); no Delves, Mislaid Curiosities or pet battles. Sources: Blizzard announcement, Warcraft Wiki, Blizzard Watch, ClassicWoW.gg, ForeverChanges (beta guides disagree on some details).
+- Review outcome (details in `docs/research/2026-09-30-medal-feasibility.md`, section "WoW Forever review"): Retail-only and hidden on Forever: Delver, Treasure Hunter Mom, Pet Playdate, Achiever, Adventurer IV-V. New availability rule `needsStat`: Slayer, Frequent Flyer, Hearth, Summons, Commitment Issues, Daily Grind, Impulse Buyer, Healthy Snack, Crazy Cat Mom, Auction Goblin, Battlemaster only appear when the client reports the statistic (Forever's Statistics content is unverified). Everything else event/hook/counter based stays.
+- Added 29 Forever-only medals: Happy Camper (quest name), Firestarter I-IV, Journeyman/Expert Camper, Camp Decorator, Well Stocked Camp (spell-name detection via `C_Spell.GetSpellName`, keyword and object-name lists in `Medals.campObjects`), Campfire Chef (Cooking 140/220/300), Unexplored Depths I-IV (distinct new dungeons by name), Summit Seeker, Into the Barrow, Islander, New Horizons (new zones), Plot Twist (race-class combos). `/mam diag` prints `Camp spells seen:` so the keyword detection can be verified or corrected.
+- Totals: **264 medals, 96 families, 7,985 Mom Money**; a Forever client shows 221 (6,645) with no statistics, up to 250 (7,445) with all statistics; Retail shows 222.
+- CurseForge package prepared, NOT uploaded: `LICENSE.txt` changed to All Rights Reserved with personal non-commercial use permitted (**decision for the user to confirm** - the old text forbade public distribution), `CHANGELOG.md` shipped in the addon, `## X-License` added to the TOC, and `docs/release/curseforge/` holds `PROJECT-DESCRIPTION.md`, `SUMMARY.txt`, `CHANGELOG.md` and `UPLOAD-CHECKLIST.md` (also copied to the release folder). Screenshots must be retaken from this build. CurseForge upload, category and game-version choices, and the project ID are the owner's.
+- Version `0.2.0-alpha9`. Chronicles **240/240**, Diagnostics **35/35**, Dashboard **39/39** (total 314). Installed and hash-verified (21 files, 0 diffs) on BOTH `_retail_` and `_classic_beta_`. Release: `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha9/` (ZIP 64 KB, one `MAMChronicles` folder, 21 files, verified against source) ZIP SHA-256 `0A85F3F93B26F6A8453F26FD56FDDF67D80F032A90D261D18D271BA5915707A9`.
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -409,10 +419,10 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-1. User runs alpha8 on Forever first, then Retail: send `/mam diag` (the `Medals:` line shows client, level cap, race token, installed hooks) and screenshots of the Medals tab. Confirm live: emotes count (`/sit`, `/dance`, `/hug`), a fall death yields Gravity's Favourite, group/ready-check/vendor/equipment counters move, Forever shows Journey/Core/Skyborne and hides level 80/90 medals.
-2. Fix whatever the live check disproves (most likely emote routing, consumable cast confirmation, or the Skyborne race token).
-3. Two-player guild test for sharing is still REQUIRED before building guild-wide medals or the Pi export.
-4. Then: Courier export of medals and non-sensitive statistics, Characters roster tab, optional pinned-stat tiles, guild-wide medals.
+1. User runs alpha9 on the WoW Forever client first: send `/mam diag` (look at `Medals:` and `Camp spells seen:`) and screenshots of the Medals tab. Confirm live: The Great Outdoors gives Happy Camper; lighting a campfire and placing an object moves Firestarter / Camp Decorator; entering the new dungeons, raids, Darkspear Islands and new zones moves their medals; Plot Twist for a new race-class combo; which statistic-based medals appear.
+2. Fix whatever the live check disproves (exact spell names, instance names, quest name, Statistics availability on Forever).
+3. User decides: the licence text, CurseForge project name/category, and then uploads `docs/release/curseforge` material with the ZIP following `UPLOAD-CHECKLIST.md`.
+4. Two-player guild test for sharing is still REQUIRED before guild-wide medals or the Pi export.
 
 ## 15. Recent history
 

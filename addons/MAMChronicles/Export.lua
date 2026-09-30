@@ -52,6 +52,8 @@ function Export:BuildDiagnosticReport()
     local raceToken = select(2, Addon:SafeCall(UnitRace, "player"))
     local hooks = Addon.Counters and Addon.Counters.hooked and table.concat(Addon.Counters.hooked, ", ") or "none"
     table.insert(lines,"Medals: client "..tostring(Addon.Medals:Client())..", level cap "..tostring(Addon.Medals:LevelCap())..", race "..tostring(raceToken or "unknown")..", hooks "..hooks)
+    local camp=Addon.Counters and Addon.Counters.campSpellNames or {}
+    if #camp>0 then table.insert(lines,"Camp spells seen: "..table.concat(camp,", ")) end
   end
   local st2=Addon.AchievementStats and Addon.AchievementStats.status
   if st2 and st2.unparsedSamples then for index=1,math.min(5,#st2.unparsedSamples) do local sample=st2.unparsedSamples[index]; table.insert(lines,"Unreadable sample: "..sample.name.." = "..sample.raw) end end

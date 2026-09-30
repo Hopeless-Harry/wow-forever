@@ -1,20 +1,20 @@
 Moms Against Magic Chronicles
 Copyright (c) 2026 Moms Against Magic. All rights reserved.
 
-This addon is a private project of the guild Moms Against Magic. Permission
-is granted to members of the guild and invited testers to install and use it
-on their own World of Warcraft clients for private testing and play.
+You may download, install and use this addon for private, non-commercial play
+on your own World of Warcraft clients, and you may share the official download
+page (not the files) with other players.
 
-Without written permission from the project owner you may not redistribute,
-sell, sublicense, or publish this addon or modified versions of it, and you
-may not include it in another addon or package.
+You may not redistribute, re-upload, sell, sublicense or publish this addon or
+modified versions of it, and you may not include it in another addon or
+package, without written permission from the project owner.
 
-The addon is provided "as is", without warranty of any kind. The project
-owner is not liable for any damage or data loss arising from its use. Back up
-your WTF folder before testing any alpha build.
+The addon is provided "as is", without warranty of any kind. The project owner
+is not liable for any damage or data loss arising from its use. Back up your
+WTF folder before testing any alpha build.
 
-World of Warcraft is a trademark of Blizzard Entertainment, Inc. This addon
-is not affiliated with or endorsed by Blizzard Entertainment.
+World of Warcraft is a trademark of Blizzard Entertainment, Inc. This addon is
+not affiliated with or endorsed by Blizzard Entertainment.
 
-The project owner may replace this notice with a public open-source licence
-in a later release.
+The project owner may replace this notice with an open-source licence in a
+later release.

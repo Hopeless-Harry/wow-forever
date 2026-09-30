@@ -119,6 +119,16 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] **Retail:** the Forever-only medals are not shown.
 - [ ] Nothing earned before alpha8 disappeared, and Mom Money total looks sensible.
 
+## WoW Forever review and camping (alpha9)
+
+- [ ] On Forever the Medals tab does not show Delver, Treasure Hunter Mom, Pet Playdate, Achiever, or level 80 and 90 medals.
+- [ ] Statistic-based medals (Slayer, Frequent Flyer, Home Is Where the Heart Is and so on) appear on Forever only if the Statistics tab shows the matching statistic. Record which appear: __________
+- [ ] Complete The Great Outdoors (around level 5): Happy Camper is earned.
+- [ ] Craft and light a campfire, then place a profession object: Firestarter and Camp Decorator progress. `/mam diag` shows `Camp spells seen:`. Record the exact names shown: __________
+- [ ] Enter one of the new dungeons (for example Hall of Thanes), Hyjal Summit, The Barrow Deeps or the Darkspear Islands: the matching medal progresses. Note the exact instance names the client uses: __________
+- [ ] Discover an area in a new zone (Mount Hyjal, Riverglades, Shen'dralas, Zephras Isle): New Horizons progresses.
+- [ ] Play an Orc Mage, Human Hunter, Gnome Priest, Dwarf Shaman, Troll Warlock or Undead Paladin: Plot Twist is earned.
+
 ## Stability
 
 - [ ] No Lua errors during the test.

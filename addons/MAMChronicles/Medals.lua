@@ -34,14 +34,14 @@ local function series(id, name, description, targets, tiers, value, options)
     register({
       id = id .. "_" .. index, name = name .. " " .. roman[index], tier = tiers[index], target = target,
       description = (description:gsub("{n}", tostring(shown))), value = value,
-      client = options.client, minCap = options.capFromTarget and target or nil,
+      client = options.client, minCap = options.capFromTarget and target or nil, needsStat = options.needsStat,
     })
   end
 end
 
 local function single(id, name, tier, target, description, value, options)
   options = options or {}
-  register({ id = id, name = name, tier = tier, target = target, description = description, value = value, client = options.client })
+  register({ id = id, name = name, tier = tier, target = target, description = description, value = value, client = options.client, needsStat = options.needsStat })
 end
 
 local function stat(ctx, patterns) return ctx.stat(patterns) end
@@ -57,14 +57,14 @@ single("fresh_start", "Fresh Start", "bronze", 1, "Record your first Chronicle e
 series("memory_keeper", "Memory Keeper", "Pin {n} manual memories.", { 1, 10, 50 }, bts, function(ctx) return ctx.event("memory.manual") end)
 series("explorer", "Explorer", "Discover {n} new zones or areas.", { 10, 50, 200 }, bts, function(ctx) return ctx.event("world.zone_discovered") end)
 series("quest_machine", "Quest Machine", "Complete {n} quests.", { 100, 500, 1500, 3000 }, btsp, function(ctx) return math.max(stat(ctx, { "quests completed" }), ctx.event("quest.completed")) end)
-series("delver", "Delver", "Complete {n} delves.", { 10, 50, 100 }, bts, statistic("delves completed"))
+series("delver", "Delver", "Complete {n} delves.", { 10, 50, 100 }, bts, statistic("delves completed"), { client = "retail" })
 series("dungeon_regular", "Dungeon Regular", "Enter {n} five-player dungeons.", { 25, 100, 250 }, bts, function(ctx) return math.max(stat(ctx, { "dungeons entered" }), ctx.event("instance.entered")) end)
-series("slayer", "Slayer", "Kill {n} creatures.", { 1000, 10000, 50000 }, bts, statistic("creatures killed"))
-series("frequent_flyer", "Frequent Flyer", "Take {n} flight paths.", { 50, 200, 500 }, bts, statistic("flight paths"))
+series("slayer", "Slayer", "Kill {n} creatures.", { 1000, 10000, 50000 }, bts, statistic("creatures killed"), { needsStat = { "creatures killed" } })
+series("frequent_flyer", "Frequent Flyer", "Take {n} flight paths.", { 50, 200, 500 }, bts, statistic("flight paths"), { needsStat = { "flight paths" } })
 series("comeback_kid", "Comeback Kid", "Return from the dead {n} times.", { 1, 10, 50 }, bts, function(ctx) return ctx.event("character.resurrected") end)
 series("adventurer", "Adventurer", "Reach level {n}.", { 20, 40, 60, 80, 90 }, { "bronze", "silver", "gold", "platinum", "platinum" }, function(ctx) return ctx.level() end, { capFromTarget = true })
 series("shiny_collector", "Shiny Collector", "Loot {n} notable items.", { 1, 25, 100 }, bts, function(ctx) return ctx.event("loot.notable") end)
-series("achiever", "Achiever", "Earn {n} achievements.", { 10, 50, 200 }, bts, function(ctx) return ctx.event("achievement.earned") end)
+series("achiever", "Achiever", "Earn {n} achievements.", { 10, 50, 200 }, bts, function(ctx) return ctx.event("achievement.earned") end, { client = "retail" })
 
 -- ---------------------------------------------------------------- Mom-themed: consumables (Counters.lua)
 series("wine", "Wine O'Clock", "Drink {n} bottles of wine.", { 1, 10, 50, 200 }, btsp, counter("wine"))
@@ -109,15 +109,15 @@ series("waves", "Friendly Neighbourhood Mom", "Wave hello {n} times.", { 25, 100
 series("cheers", "Cheerleader Mom", "Cheer {n} times.", { 10, 50, 250 }, bts, function(ctx) return math.max(stat(ctx, { "total cheers" }), ctx.counter("emote_cheer")) end)
 
 -- ---------------------------------------------------------------- Mom-themed: from the game's own statistics
-series("hearth", "Home Is Where the Heart Is", "Use your hearthstone {n} times.", { 25, 100, 500 }, bts, statistic("times hearthed"))
-series("summons", "Carpool Lane", "Accept {n} summons.", { 10, 50, 200 }, bts, statistic("summons accepted"))
-series("abandon", "Commitment Issues", "Abandon {n} quests.", { 25, 100, 300 }, bts, statistic("quests abandoned"))
-series("daily", "The Daily Grind", "Complete {n} daily quests.", { 50, 250, 1000 }, bts, statistic("daily quests completed"))
-series("buyer", "Impulse Buyer", "Make {n} auction house purchases.", { 100, 500, 1000 }, bts, statistic("auction purchases"))
-series("healthstone", "Healthy Snack", "Use {n} healthstones.", { 10, 50, 200 }, bts, statistic("healthstones used"))
-series("catmom", "Crazy Cat Mom", "Own {n} vanity pets.", { 10, 50, 100 }, bts, statistic("vanity pets owned"))
-series("playdate", "Pet Playdate", "Win {n} pet battles.", { 10, 50, 200 }, bts, statistic("pet battles won"))
-series("treasure", "Treasure Hunter Mom", "Loot {n} mislaid curiosities.", { 25, 100, 250 }, bts, statistic("curiosities looted"))
+series("hearth", "Home Is Where the Heart Is", "Use your hearthstone {n} times.", { 25, 100, 500 }, bts, statistic("times hearthed"), { needsStat = { "times hearthed" } })
+series("summons", "Carpool Lane", "Accept {n} summons.", { 10, 50, 200 }, bts, statistic("summons accepted"), { needsStat = { "summons accepted" } })
+series("abandon", "Commitment Issues", "Abandon {n} quests.", { 25, 100, 300 }, bts, statistic("quests abandoned"), { needsStat = { "quests abandoned" } })
+series("daily", "The Daily Grind", "Complete {n} daily quests.", { 50, 250, 1000 }, bts, statistic("daily quests completed"), { needsStat = { "daily quests completed" } })
+series("buyer", "Impulse Buyer", "Make {n} auction house purchases.", { 100, 500, 1000 }, bts, statistic("auction purchases"), { needsStat = { "auction purchases" } })
+series("healthstone", "Healthy Snack", "Use {n} healthstones.", { 10, 50, 200 }, bts, statistic("healthstones used"), { needsStat = { "healthstones used" } })
+series("catmom", "Crazy Cat Mom", "Own {n} vanity pets.", { 10, 50, 100 }, bts, statistic("vanity pets owned"), { needsStat = { "vanity pets owned" } })
+series("playdate", "Pet Playdate", "Win {n} pet battles.", { 10, 50, 200 }, bts, statistic("pet battles won"), { client = "retail" })
+series("treasure", "Treasure Hunter Mom", "Loot {n} mislaid curiosities.", { 25, 100, 250 }, bts, statistic("curiosities looted"), { client = "retail" })
 
 -- ---------------------------------------------------------------- Chronicle-derived (persisted tallies)
 series("late", "Up Past Bedtime", "Log in between midnight and 5am {n} times.", { 3, 15, 50 }, bts, function(ctx) return ctx.event("lateLogin") end)
@@ -137,8 +137,8 @@ series("mom_of_many", "Mom of Many", "Play {n} characters with the addon.", { 2,
 series("long_haul", "Long Haul", "Keep a character going for {n} days.", { 30, 100, 365 }, bts, function(ctx) return ctx.characterAgeDays() end)
 single("gravity", "Gravity's Favourite", "bronze", 1, "Die from a fall.", function(ctx) return ctx.signal("falling") end)
 single("murloc_magnet", "Murloc Magnet", "bronze", 1, "Be defeated while facing a murloc, or in murloc territory.", function(ctx) return ctx.signal("murloc") end)
-single("auction_goblin", "Auction House Goblin", "silver", 1000, "Post 1,000 auctions.", statistic("auctions posted"))
-single("battlemaster", "Battlemaster", "bronze", 10, "Play 10 battlegrounds.", statistic("battlegrounds played"))
+single("auction_goblin", "Auction House Goblin", "silver", 1000, "Post 1,000 auctions.", statistic("auctions posted"), { needsStat = { "auctions posted" } })
+single("battlemaster", "Battlemaster", "bronze", 10, "Play 10 battlegrounds.", statistic("battlegrounds played"), { needsStat = { "battlegrounds played" } })
 
 -- ---------------------------------------------------------------- WoW Forever only
 series("journey", "The Journey Matters", "Reach level {n} on WoW Forever.", { 10, 20, 30, 40, 50 }, { "bronze", "bronze", "silver", "silver", "gold" }, function(ctx) return ctx.level() end, { client = "forever" })
@@ -148,6 +148,36 @@ single("beta_mom", "Beta Testing Mom", "silver", 1, "Play WoW Forever before lau
 single("day_one", "Day One Mom", "gold", 1, "Log in on 4 November 2026, the launch day of WoW Forever.", tally("dayOneLogin"), { client = "forever" })
 single("one_year", "One Year Later", "gold", 365, "Still adventuring a year after your first WoW Forever session.", function(ctx) return ctx.clientDays() end, { client = "forever" })
 single("skyborne", "Skyborne Landing", "silver", 1, "Play a Skyborne character.", function(ctx) return ctx.race():find("sky", 1, true) and 1 or 0 end, { client = "forever" })
+
+-- ---------------------------------------------------------------- WoW Forever camping and new content
+-- Names come from Blizzard's announcement and beta guides. Spell and object names are matched by keyword, and
+-- /mam diag lists the camp-related spell names the client actually reports so detection can be verified.
+single("happy_camper", "Happy Camper", "bronze", 1, "Complete The Great Outdoors, the quest that introduces camping.", tally("greatOutdoors"), { client = "forever" })
+series("firestarter", "Firestarter", "Light {n} campfires.", { 1, 10, 50, 200 }, btsp, counter("campfires"), { client = "forever" })
+single("journeyman_camper", "Journeyman Camper", "silver", 1, "Light a Journeyman Campfire.", counter("campfire_journeyman"), { client = "forever" })
+single("expert_camper", "Expert Camper", "gold", 1, "Light an Expert Campfire.", counter("campfire_expert"), { client = "forever" })
+series("camp_decorator", "Camp Decorator", "Place {n} camp objects.", { 5, 25, 100 }, bts, counter("camp_objects"), { client = "forever" })
+series("well_stocked", "Well Stocked Camp", "Place {n} different kinds of camp object.", { 3, 6, 12 }, bts, tally("campObjectsCount"), { client = "forever" })
+series("campfire_chef", "Campfire Chef", "Reach {n} skill in Cooking.", { 140, 220, 300 }, bts, function(ctx) return ctx.signal("skill_cooking") end, { client = "forever" })
+series("unexplored_depths", "Unexplored Depths", "Enter {n} of Forever's nine new dungeons.", { 1, 3, 6, 9 }, btsp, tally("newDungeonsCount"), { client = "forever" })
+single("summit_seeker", "Summit Seeker", "gold", 1, "Enter Hyjal Summit.", tally("hyjalSummit"), { client = "forever" })
+single("into_the_barrow", "Into the Barrow", "silver", 1, "Enter The Barrow Deeps.", tally("barrowDeeps"), { client = "forever" })
+series("islander", "Islander", "Enter the Darkspear Islands battleground {n} times.", { 1, 10, 50 }, bts, tally("darkspearEntries"), { client = "forever" })
+series("new_horizons", "New Horizons", "Discover an area in {n} of Forever's four new zones.", { 1, 2, 4 }, bts, tally("newZonesCount"), { client = "forever" })
+single("plot_twist", "Plot Twist", "silver", 1, "Play one of Forever's new race and class combinations.", function(ctx) return ctx.newCombo() and 1 or 0 end, { client = "forever" })
+
+Medals.foreverDungeons = {
+  thanes = { "hall of thanes" }, lordaeron = { "ruins of lordaeron" }, excavation = { "excavation site", "whelgar" }, dalaran = { "dalaran" },
+  drowned = { "drowned city" }, kroldok = { "krol'dok", "kroldok" }, alcaz = { "alcaz prison" }, blackmaw = { "blackmaw hold" }, shaper = { "shaper's terrace" },
+}
+Medals.foreverZones = {
+  hyjal = { "mount hyjal" }, riverglades = { "riverglades" }, shendralas = { "shen'dralas", "shendralas" }, zephras = { "zephras isle" },
+}
+Medals.newCombos = { human = "HUNTER", gnome = "PRIEST", dwarf = "SHAMAN", orc = "MAGE", troll = "WARLOCK", scourge = "PALADIN", undead = "PALADIN" }
+Medals.campObjects = {
+  "sharpening wheel", "mana well", "faction banner", "camp tent", "incense candle", "lodestone", "camp chair", "enchanted lute",
+  "reagent bot", "first aid kit", "fish bowl", "repair bot", "anarchist's workbench", "tanning rack", "sewing machine", "rock garden", "molten foundry",
+}
 
 function Medals:GetDefinitions() return definitions end
 function Medals:GetDefinition(id) return definitionsById[id] end
@@ -174,6 +204,11 @@ end
 function Medals:IsAvailable(def)
   if def.client and def.client ~= self:Client() then return false end
   if def.minCap and self:LevelCap() < def.minCap then return false end
+  if def.needsStat then
+    -- Only offered when this client actually reports the statistic (Forever may not have every Retail statistic).
+    local AS = Addon.AchievementStats
+    if not AS or AS:FindValue(def.needsStat, Addon.characterKey) == nil then return false end
+  end
   return true
 end
 
@@ -214,6 +249,25 @@ function Medals:EnsureCounts()
     for _, event in ipairs(mine) do self:Count(event) end
   end
   return counts, builtNow
+end
+
+-- Distinct-value sets (for example which camp objects were placed) live in the tallies too.
+function Medals:AddToSet(setName, value)
+  local counts = self:EnsureCounts()
+  counts.sets = tableOr(counts.sets)
+  local set = tableOr(counts.sets[setName])
+  counts.sets[setName] = set
+  if not set[value] then
+    set[value] = true
+    local total = 0
+    for _ in pairs(set) do total = total + 1 end
+    counts[setName .. "Count"] = total
+  end
+end
+
+local function matchesAny(text, patterns)
+  for _, pattern in ipairs(patterns) do if text:find(pattern, 1, true) then return true end end
+  return false
 end
 
 function Medals:CountLogin(counts, timestamp)
@@ -266,11 +320,25 @@ function Medals:Count(event)
   elseif kind == "instance.entered" then
     counts.inInstance, counts.instanceDeaths = true, 0
     if payload.instanceType == "raid" then counts.raidEntries = (counts.raidEntries or 0) + 1 end
+    local place = string.lower(tostring(payload.instanceName or ""))
+    for id, patterns in pairs(self.foreverDungeons) do
+      if matchesAny(place, patterns) then self:AddToSet("newDungeons", id) end
+    end
+    if place:find("hyjal summit", 1, true) then counts.hyjalSummit = 1 end
+    if place:find("barrow deeps", 1, true) then counts.barrowDeeps = 1 end
+    if place:find("darkspear islands", 1, true) then counts.darkspearEntries = (counts.darkspearEntries or 0) + 1 end
   elseif kind == "instance.exited" then
     if counts.inInstance and (counts.instanceDeaths or 0) == 0 and (payload.instanceType == "party" or payload.instanceType == "raid") then
       counts.cleanRuns = (counts.cleanRuns or 0) + 1
     end
     counts.inInstance = false
+  elseif kind == "world.zone_discovered" then
+    local zone = string.lower(tostring(payload.zone or ""))
+    for id, patterns in pairs(self.foreverZones) do
+      if matchesAny(zone, patterns) then self:AddToSet("newZones", id) end
+    end
+  elseif kind == "quest.completed" then
+    if string.lower(tostring(payload.questName or "")):find("great outdoors", 1, true) then counts.greatOutdoors = 1 end
   elseif kind == "profession.changed" then
     local name = string.lower(tostring(payload.professionName or ""))
     if name ~= "" and not counts.professions[name] then counts.professions[name] = true; counts.professionCount = counts.professionCount + 1 end
@@ -319,6 +387,11 @@ function Medals:BuildContext()
       return math.max(0, math.floor((Addon:Now() - created) / 86400))
     end,
     race = function() return string.lower(tostring(select(2, safe(UnitRace, "player")) or "")) end,
+    newCombo = function()
+      local race = string.lower(tostring(select(2, safe(UnitRace, "player")) or ""))
+      local class = string.upper(tostring(select(2, safe(UnitClass, "player")) or ""))
+      return Medals.newCombos[race] ~= nil and Medals.newCombos[race] == class
+    end,
   }
 end
 

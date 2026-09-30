@@ -51,3 +51,39 @@ What is known from Blizzard's announcement: level cap 60, a reimagined original 
 | Skyborne Landing | The character's race token contains "sky" | **Live check.** The wiki says a new race gets a discoverable token but not what it is; `/mam diag` prints the race token so it can be confirmed |
 
 Retail and Forever keep separate SavedVariables, so Forever medals never leak onto Retail.
+
+## WoW Forever review (alpha9)
+
+Sources checked on 30 September 2026: Blizzard's announcement, the Warcraft Wiki page for Forever, and beta guides (Blizzard Watch, ClassicWoW.gg, ForeverChanges) for the camping system. Facts used: permanent level cap 60; Normal, PvP and Hardcore rulesets; new zones Mount Hyjal, Riverglades, Shen'dralas and Zephras Isle; nine new dungeons (Hall of Thanes, Ruins of Lordaeron, Excavation Site: Wetlands, City of Dalaran, The Drowned City, Krol'dok Stronghold, Alcaz Prison, Blackmaw Hold, Shaper's Terrace); raids Hyjal Summit and The Barrow Deeps; the Darkspear Islands battleground; six new race and class combinations plus the Skyborne race; Basic, Journeyman and Expert campfire kits with profession camp objects; launch on 4 November 2026. Delves, Mislaid Curiosities and pet battles do not exist on Forever.
+
+### What each medal family does on Forever
+
+| Rule | Families |
+|---|---|
+| Shown on Forever (built on Chronicle events, hooks or counters) | Fresh Start, Memory Keeper, Explorer, Quest Machine, Dungeon Regular, Comeback Kid, Adventurer I to III, Shiny Collector, every consumable medal, every habit medal (jumps, mounts, AFK, rest, screenshots, outfits, repairs, sales, purchases, groups, ready checks), every emote medal, Up Past Bedtime, Early Bird Special, Marathon Mom, Just Five More Minutes, Regular Regular, Weekend Warrior, Learning Experience, Clean Run, Raid Night, Oops-a-Daisy, Kitchen Witch, Patient Angler, Jack of All Trades, Mom of Many, Long Haul, Gravity's Favourite, Murloc Magnet |
+| Shown on Forever only if the client reports the statistic | Slayer, Frequent Flyer, Home Is Where the Heart Is, Carpool Lane, Commitment Issues, The Daily Grind, Impulse Buyer, Healthy Snack, Crazy Cat Mom, Auction House Goblin, Battlemaster. Forever's Statistics content is unverified, so these appear automatically when the data exists |
+| Hidden on Forever (Retail only) | Delver, Treasure Hunter Mom, Pet Playdate, Achiever, Adventurer IV and V (levels 80 and 90) |
+| WoW Forever only | The Journey Matters, Ready for the Core, Old World New Tricks, Beta Testing Mom, Day One Mom, One Year Later, Skyborne Landing, and the new camping and content set below |
+
+Counts: 264 medals in 96 families in total. A Forever client shows 221 without any statistics and up to 250 with all of them.
+
+### New Forever-only medals and how each is detected
+
+| Medal | Detection | Confidence |
+|---|---|---|
+| Happy Camper | A completed quest whose name contains "The Great Outdoors" (the camping intro quest, around level 5) | Quest name from beta guides; live check |
+| Firestarter I to IV | Player spell cast whose name contains the word "campfire" | Names from beta guides; live check via `Camp spells seen:` in `/mam diag` |
+| Journeyman Camper, Expert Camper | The same spell name also contains "journeyman" or "expert" | Same |
+| Camp Decorator, Well Stocked Camp | Spell name matches a known profession object (Sharpening Wheel, Mana Well, Faction Banner, Camp Tent, Incense Candle, Lodestone, Camp Chair, Enchanted Lute, Reagent Bot, First Aid Kit, Fish Bowl, Repair Bot, Anarchist's Workbench, Tanning Rack, Sewing Machine, Rock Garden, Molten Foundry); distinct kinds tracked separately | Object names from three guides; they may be placed by an item rather than a spell, in which case the counts stay at zero and diag shows what the client reports |
+| Campfire Chef | Cooking skill 140, 220 and 300, the unlock levels for the three campfire kits | Skill levels from beta guides |
+| Unexplored Depths I to IV | Distinct new dungeons entered (1, 3, 6, 9), matched by instance name | Names from Blizzard's list; two sources disagree on one name (Excavation Site: Wetlands or Whelgar's Excavation), so both are accepted |
+| Summit Seeker, Into the Barrow | Enter Hyjal Summit, enter The Barrow Deeps | Names from Blizzard |
+| Islander I to III | Enter the Darkspear Islands battleground | Name from Blizzard |
+| New Horizons I to III | Discover an area in 1, 2 or 4 of the four new zones | Zone names from Blizzard; relies on the existing discovery events |
+| Plot Twist | Race and class match one of Human Hunter, Gnome Priest, Dwarf Shaman, Orc Mage, Troll Warlock, Undead Paladin | Combinations from beta coverage; race token for Undead may be "Scourge" or "Undead" and both are accepted |
+
+### Not added, and why
+
+- Hardcore, PvP or Normal ruleset medals: there is no known API to read the realm ruleset. If the ruleset can be detected after the live check, hardcore-only medals can be added.
+- Sitting by a campfire for a minute to gain the camp buffs, learning Blueprint recipes, the Legacy system and account-wide collections: no known event to detect them.
+- Rested XP from the Camp Tent: the resting state is already counted for inns and cities; camp resting is not distinguishable.

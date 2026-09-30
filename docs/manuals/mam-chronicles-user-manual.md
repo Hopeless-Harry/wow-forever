@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles — User Manual
 
-- **Version:** `0.2.0-alpha8`
+- **Version:** `0.2.0-alpha9`
 - **Current test target:** World of Warcraft Retail 12.1
 - **WoW Forever:** Built with compatibility checks, but live beta testing is still pending.
 
@@ -61,12 +61,13 @@ The window has six tabs: **Home** (opens by default), **Chronicle**, **Medals**,
 - After that, each new medal appears as a **toast**, is added to your Chronicle as a Medal entry, and is announced to your guild (see below).
 - Clicking a toast opens the Medals tab. Below the medal list, **Guildmates** shows medals other players have earned recently.
 
-There are **235 medals in 83 families worth 7,005 Mom Money** in total; the full list is in `mom-medals-catalogue.md`, and `docs/research/2026-09-30-medal-feasibility.md` records how each one is tracked and what still needs a live check. Besides the serious ones (quests, delves, dungeons, levels) there is a large Mom-themed and silly set, for example:
+There are **264 medals in 96 families worth 7,985 Mom Money** across both clients. On WoW Forever you will see 221 of them (6,645 Mom Money), rising to at most 250 if the client reports every statistic the statistic-based medals need. The full list is in `mom-medals-catalogue.md`, and `docs/research/2026-09-30-medal-feasibility.md` records how each one is tracked and what still needs a live check. Besides the serious ones (quests, delves, dungeons, levels) there is a large Mom-themed and silly set, for example:
 
 - **Kitchen and bar:** Wine O'Clock, Pint of Courage, Second Coffee, Clean Plate Club, Cheese Please, Cookie Monster, Pie in the Sky, Soup of the Day, Fishy Business, Juice Box, Stay Hydrated, Boo-Boo Fixer, Medicine Cabinet.
 - **Mom habits:** Trampoline Mom (jumps), School Run (mounting), Mom Needs Five Minutes (AFK), Weekend Getaway (inns), Say Cheese (screenshots), Outfit Change Number Nine, Sewing Circle (repairs), Decluttered (vendor sales), Bargain Hunter, Team Mom (groups joined), Left on Read (groups left), Yes I'm Ready Mom (ready checks).
 - **Emotes:** Sit Down Everyone, Nap Time, Mom Stare, Are You Serious?, Because I Said So, Thank-You Note, Hugs and Kisses, Kitchen Dance Party, Smooches, Friendly Neighbourhood Mom, Cheerleader Mom.
 - **Play-pattern:** Up Past Bedtime, Early Bird Special, Marathon Mom, Just Five More Minutes, Regular Regular (login streaks), Weekend Warrior, Clean Run, Learning Experience, Raid Night, Mom of Many, Long Haul, Jack of All Trades.
+- **WoW Forever camping and content:** Happy Camper (complete The Great Outdoors), Firestarter (light campfires), Journeyman Camper and Expert Camper, Camp Decorator and Well Stocked Camp (camp objects), Campfire Chef (Cooking skill), Unexplored Depths (Forever's nine new dungeons), Summit Seeker (Hyjal Summit), Into the Barrow (The Barrow Deeps), Islander (Darkspear Islands battleground), New Horizons (the four new zones) and Plot Twist (the new race and class combinations). Campfires and camp objects are recognised by spell name, and `/mam diag` lists the camp-related spell names your client reports.
 - **WoW Forever only:** The Journey Matters, Ready for the Core (level 60), Old World New Tricks, Beta Testing Mom, Day One Mom (4 November 2026), One Year Later, Skyborne Landing. Level medals only show when the client's level cap allows them, and Forever medals are hidden on Retail.
 
 #### How the silly ones are tracked
