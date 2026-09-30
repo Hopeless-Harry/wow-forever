@@ -4,7 +4,7 @@ $ErrorActionPreference='Stop'
 $repositoryRoot=Split-Path -Parent $PSScriptRoot
 $sourceRoot=Join-Path $repositoryRoot 'addons\MAMChronicles'
 if(-not $OutputRoot){$OutputRoot=Join-Path $repositoryRoot 'dist'}
-$allowlist=@('MAMChronicles.toc','Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Export.lua','Theme.lua','Toast.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua','MAMChroniclesIcon.tga','LICENSE.txt','README.md')
+$allowlist=@('MAMChronicles.toc','Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Export.lua','Theme.lua','Toast.lua','Comms.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua','MAMChroniclesIcon.tga','LICENSE.txt','README.md')
 $manifestPath=Join-Path $sourceRoot 'MAMChronicles.toc'
 if(-not(Test-Path -LiteralPath $manifestPath -PathType Leaf)){throw "Addon manifest is missing: $manifestPath"}
 $manifest=Get-Content -Raw -LiteralPath $manifestPath

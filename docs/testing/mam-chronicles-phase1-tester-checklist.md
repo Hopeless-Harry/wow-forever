@@ -84,6 +84,21 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] Nothing behind the window shows through its background.
 - [ ] Note anything misaligned or unclear (screenshot please): __________
 
+## Settings, medals, toasts and guild sharing (alpha6)
+
+- [ ] Settings is a scrolling page with Appearance, Alerts, Recording, Statistics, Data, Window and Danger zone sections.
+- [ ] Window transparency slider changes the background immediately; 0% is fully solid.
+- [ ] Each theme button saves; Apply theme reloads the UI with that theme (check all four are readable, especially Parchment).
+- [ ] Medals tab: medals listed, earned first, progress bars for the rest, Mom Money total at the top.
+- [ ] First run shows one welcome summary of medals counted from history (not a toast per medal) and the welcome message mentions guild announcements and where to opt out.
+- [ ] Earning a new medal shows a toast, adds a Medal entry to the Chronicle, and appears on Home.
+- [ ] Level up shows a toast. In combat toasts are held and appear after combat ends.
+- [ ] Bracketed statistic labels show, for example "(Humanoid)" next to Creature type killed the most.
+- [ ] `/mam diag` shows a `Guild sharing:` line. Record the state: __________
+- [ ] **Needs two players in the same guild running alpha6:** one earns or is granted a medal; the other sees a toast and a Guildmates line. Record PASS/FAIL and what the diag line said on both: __________
+- [ ] If the realm restricts addon messages the diag line says `restricted` and nothing errors.
+- [ ] Turning off "Announce my Mom Medals" stops sending; turning off "Show toasts when guildmates earn medals" stops receiving.
+
 ## Stability
 
 - [ ] No Lua errors during the test.

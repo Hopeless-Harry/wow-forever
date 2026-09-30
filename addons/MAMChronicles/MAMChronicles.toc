@@ -2,7 +2,7 @@
 ## Title: Moms Against Magic Chronicles
 ## Notes: A private, persistent chronicle of your adventures.
 ## Author: Moms Against Magic
-## Version: 0.2.0-alpha5
+## Version: 0.2.0-alpha6
 ## IconTexture: Interface\AddOns\MAMChronicles\MAMChroniclesIcon
 ## Category: Chat & Communication
 ## SavedVariables: MAMChroniclesDB
@@ -20,6 +20,7 @@ Medals.lua
 Export.lua
 Theme.lua
 Toast.lua
+Comms.lua
 Dashboard.lua
 UI.lua
 Launcher.lua

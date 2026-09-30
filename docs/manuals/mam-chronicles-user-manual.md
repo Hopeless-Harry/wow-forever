@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles — User Manual
 
-- **Version:** `0.2.0-alpha5`
+- **Version:** `0.2.0-alpha6`
 - **Current test target:** World of Warcraft Retail 12.1
 - **WoW Forever:** Built with compatibility checks, but live beta testing is still pending.
 
@@ -50,7 +50,30 @@ The Chronicle window should open.
 - Filter and Range open small menus: pick the exact option you want. The active tab is highlighted, and hovering a control shows a short tooltip.
 - Use the mouse wheel, the scrollbar on the right, or Previous/Next to move through the timeline. Previous and Next grey out at the ends.
 
-The window has five tabs. **Home** is the first tab and opens by default.
+The window has six tabs: **Home** (opens by default), **Chronicle**, **Medals**, **Statistics**, **Settings** and **Diagnostics**.
+
+### Medals and Mom Money
+
+**Mom Medals** are the guild's own achievements, and each one is worth **Mom Money** by tier: bronze 10, silver 25, gold 50, platinum 100. There are about forty, for things like completing quests, delves and dungeons, exploring, keeping memories, levelling, and a few jokes (dying from a fall, being defeated by a murloc).
+
+- The **Medals** tab lists every medal, earned ones first, with a progress bar and count for the rest, and your Mom Money total at the top.
+- The first time the addon runs it counts your existing history and statistics as a **silent baseline**: those medals are marked "Earned before tracking began" and you see one welcome message, not a toast per medal.
+- After that, each new medal appears as a **toast**, is added to your Chronicle as a Medal entry, and is announced to your guild (see below).
+- Clicking a toast opens the Medals tab. Below the medal list, **Guildmates** shows medals other players have earned recently.
+
+### Alerts (toasts)
+
+Toasts slide in near the top of the screen for new medals, guildmates' medals, and level-ups. They are **on by default** and **never appear during combat**: they wait and appear when combat ends. If several medals arrive together they merge into one summary. A sound is optional and off by default. Everything is under Settings > Alerts.
+
+### Guild sharing
+
+When you earn a new medal, the addon sends one tiny hidden message to your guild containing only the **medal id, its points and the definition version**. Guildmates running the addon see a toast and a line in their Guildmates list. Nothing else is sent: no chat, location, gold, history or statistics.
+
+Safeguards: it is on by default but has a one-click opt-out (Settings > Alerts), a first-run notice explains it, messages are rate limited, senders are capped at five a minute, incoming messages are validated (unknown medals or wrong points are ignored), and it stops quietly if the realm restricts addon messages. Optionally you can also post a line in guild chat, which everyone can read, off by default. `/mam diag` shows the state, for example `Guild sharing: ready, sent 1, received 3, dropped 0`.
+
+### Themes and transparency
+
+Settings > Appearance has four themes (Midnight, Parchment, Crimson, Slate). Choosing one saves it; press **Apply theme** to reload the interface with it. **Window transparency** makes the window background see-through and applies immediately.
 
 ### Home
 

@@ -536,6 +536,15 @@ function UI:BuildMedalsPage(frame)
     safeMethod(row.bar, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 4, 0); safeMethod(row.bar, "SetHeight", 3)
     self.medalRows[index] = row
   end
+  self.guildHeading = child:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  safeMethod(self.guildHeading, "SetText", "Guildmates"); safeMethod(self.guildHeading, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1)
+  self.guildLines = {}
+  for index = 1, 10 do
+    local line = child:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    safeMethod(line, "SetJustifyH", "LEFT"); self.guildLines[index] = line
+  end
+  self.guildEmpty = child:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+  safeMethod(self.guildEmpty, "SetText", "No guild medals seen yet. Guildmates running the addon will appear here when they earn one.")
   area:Hide()
 end
 
@@ -577,7 +586,20 @@ function UI:RefreshMedals()
       safeMethod(row.bar, "SetColorTexture", C.accent[1], C.accent[2], C.accent[3], 1); safeMethod(row.bar, "SetWidth", math.max(1, rowWidth * entry.fraction))
     end
   end
-  self.medalsHeight = 48 + #order * (MEDAL_ROW_HEIGHT + 4) + 8
+  local base = 48 + #order * (MEDAL_ROW_HEIGHT + 4) + 16
+  safeMethod(self.guildHeading, "ClearAllPoints"); safeMethod(self.guildHeading, "SetPoint", "TOPLEFT", self.medalsArea.child, "TOPLEFT", 4, -base)
+  local feed = (Addon.db and Addon.db.guildFeed) or {}
+  for index, line in ipairs(self.guildLines) do
+    local entry = feed[index]
+    if entry then
+      local when = date and date("%d %b", entry.at) or tostring(entry.at)
+      safeMethod(line, "ClearAllPoints"); safeMethod(line, "SetPoint", "TOPLEFT", self.medalsArea.child, "TOPLEFT", 8, -(base + 26 + (index - 1) * 18))
+      safeMethod(line, "SetText", tostring(entry.sender):match("^[^-]+") .. " earned " .. entry.name .. "  (+" .. tostring(entry.points) .. ")  " .. when); safeMethod(line, "Show")
+    else safeMethod(line, "SetText", ""); safeMethod(line, "Hide") end
+  end
+  safeMethod(self.guildEmpty, "ClearAllPoints"); safeMethod(self.guildEmpty, "SetPoint", "TOPLEFT", self.medalsArea.child, "TOPLEFT", 8, -(base + 26))
+  safeMethod(self.guildEmpty, #feed == 0 and "Show" or "Hide")
+  self.medalsHeight = base + 26 + math.max(1, math.min(#feed, 10)) * 18 + 16
 end
 
 function UI:ShowMedalsPage()

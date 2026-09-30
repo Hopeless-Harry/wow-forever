@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHarness } from './harness.js';
 
-const files=['Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Export.lua','Theme.lua','Toast.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua'];
+const files=['Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Export.lua','Theme.lua','Toast.lua','Comms.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua'];
 function setup(){const h=createHarness();h.load(files);h.run('MAMChronicles:Boot(); MAMChronicles.EventStore:Append("character.death",{zone="Cave"},{occurredAt=1}); MAMChronicles.EventStore:Append("quest.completed",{questID=2,questName="Find Mum"},{occurredAt=2}); MAMChronicles.EventStore:Append("memory.manual",{text="Tea time"},{occurredAt=3})');return h;}
 
 test('theme palette is made of valid colour components and exposes hex strings',()=>{const h=setup();h.run('local T=MAMChronicles.Theme; __ok=true; for name,c in pairs(T.colors) do for i=1,4 do if type(c[i])~="number" or c[i]<0 or c[i]>1 then __ok=false end end end; __gold=T:Hex(T.colors.gold); __white=T:Hex({1,1,1,1})');assert.equal(h.get('__ok'),true);assert.match(h.get('__gold'),/^[0-9a-f]{6}$/);assert.equal(h.get('__white'),'ffffff');});

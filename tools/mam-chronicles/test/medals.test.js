@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHarness } from './harness.js';
 
-const files=['Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Export.lua','Theme.lua','Toast.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua'];
+const files=['Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Export.lua','Theme.lua','Toast.lua','Comms.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua'];
 const api=`
 __vals={[101]="12",[201]="1,234",[501]="30",[601]="5"}
 __cats={[2]={"Deaths",-1},[3]={"Quests",-1},[5]={"Dungeons & Raids",-1}}

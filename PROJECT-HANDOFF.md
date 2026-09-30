@@ -1,7 +1,7 @@
 # Moms Against Magic Chronicles — Project Handoff
 
 **Last updated:** 30 September 2026  
-**Current addon version:** `0.2.0-alpha5`  
+**Current addon version:** `0.2.0-alpha6`  
 **Current status:** In progress. Proper-addon polish All 7 tasks are complete in automated testing (Chronicles 98/98); live acceptance pending. Live acceptance of the production addon is still required.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
@@ -321,6 +321,17 @@ Home dashboard and scrolling (alpha5, 30 Sep 2026) - AUTOMATED EVIDENCE ONLY; la
 - Older tests that assumed Chronicle as default were updated (five tabs, default Home). Real defect caught: dashboard/tab layout assumptions around `frame:GetHeight` (now uses the layout height).
 - Version `0.2.0-alpha5`. Chronicles **135/135**, Diagnostics **35/35**, Dashboard **39/39**. Installed and hash-verified (16 files, 0 diffs) on BOTH `_retail_` and `_classic_beta_`. Release: `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha5/` ZIP SHA-256 `810E7642E8ADEB45A6B81E2359E37D628CA4B97C76150562A84CA58D88F168A5`.
 
+Settings, Mom Medals, toasts, guild sharing (alpha6, 30 Sep 2026) - AUTOMATED EVIDENCE ONLY; NOTHING here has been observed live and guild sharing has never run between two real players:
+
+- User feedback on alpha5: overflow fixed; background good but wants a transparency option and properly organised settings; Home is a good start. Decisions: build **Mom Medals** (custom guild achievements) earning **Mom Money**, tracked and announced to the guild; toasts on by default, silenced in combat and shown after; multiple themes; bracketed statistic labels; guild sharing on by default (with safeguards); Characters roster tab and Pi export come AFTER (user: "make sure it's working across apps and users first and sending info to the Pi").
+- Checkpoint 1 `7771341` settings: scrolling Settings page (Appearance, Alerts, Recording, Statistics, Data, Window, Danger zone); `windowAlpha` (0.3-1, live via `UI:ApplyAppearance`); four themes (`Theme.presets`: midnight, parchment, crimson, slate) applied at Boot; existing frames keep old colours, so **Apply theme calls `ReloadUI()`**; new settings `theme`, `windowAlpha`, `toastsEnabled`, `toastSound`, `announceMedals`, `announceGuildChat` (default OFF), `receiveGuildAlerts`; helpers `Theme:Slider`, `Theme:ScrollArea`.
+- Checkpoint 2 `3701b87` medals: `Medals.lua`, ~40 definitions as data (`Medals.version=1`; tiers 10/25/50/100 Mom Money), measured from statistics (via `AchievementStats:FindValue`) and Chronicle event counters; **silent retroactive baseline** on first evaluation (waits until statistics are read or ruled out); later crossings emit a `medal.earned` Chronicle event and notify listeners; `db.medals[charKey]`, `db.guildFeed`; Medals tab (six tabs now); Home month card shows Mom Money; Erase clears medals and re-baselines.
+- Checkpoint 3 `8816c87` toasts: `Toast.lua`, queue + `PLAYER_REGEN_ENABLED` flush, merges bursts of medal toasts, optional sound, click opens Medals, level-up toast.
+- Checkpoint 4 (this commit) guild sharing: `Comms.lua`, addon-message prefix `MAMCHR`, message `M1|<medalId>|<points>|<version>` only (max 64 chars, GUILD channel), 3s send interval, throttle/restricted handling (10 minute back-off, silent), optional guild chat line (default off, 30s limit), receive validation (known medal, exact points, same version, guild channel, not self, 5 per minute per sender, dedupe, feed capped at 50), `/mam diag` `Guild sharing:` line, Guildmates list on the Medals tab; welcome message v2 states what is shared and where to opt out.
+- Also: bracketed statistic labels stored in `latest.labels` and shown (e.g. `(Humanoid)`).
+- **Unproven in the real client:** appearance of the new pages and toasts; theme contrast (Parchment especially); whether `C_ChatInfo.SendAddonMessage` to GUILD works on these realms (earlier Retail probing found the sampled realm restricts outgoing addon messages even with chat lockdown off - the code degrades to `restricted` and does nothing); Enum.SendAddonMessageResult values beyond Success/throttle are assumed; CHAT_MSG_ADDON sender format; PlaySound kit availability on Forever; ScrollFrame text height measurement timing.
+- Version `0.2.0-alpha6`. Chronicles **192/192**, Diagnostics **35/35**, Dashboard **39/39** (total 266). Installed and hash-verified (19 files, 0 diffs) on BOTH `_retail_` and `_classic_beta_`. Release: `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha6/` ZIP SHA-256 `A57045173A2220A68893DBE6D1071A919071462BB2102BF5B61C461451E0DD65`.
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -380,9 +391,9 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-1. User opens `/mam` (Home) on Retail and Forever and sends screenshots: Home at default size, Home enlarged and shrunk, Statistics with scrolling, Diagnostics. Fix layout problems found.
-2. Still wanted: Forever `/mam diag` and Statistics output (never observed live on Forever).
-3. Then build, in order: statistics-driven awards and milestones, Characters roster tab, opt-in popups/toasts (off by default, never in combat), Courier export of non-sensitive statistics, then Phase 2 sync with the recorded sharing-on-by-default safeguards.
+1. User tests alpha6 on Retail and Forever: screenshots of Home, Medals, Settings (scrolled), a toast, and each theme; `/mam diag` output including the `Guild sharing:` line on each client.
+2. Two-player guild test is REQUIRED before trusting sharing: two characters in the same guild, both on alpha6, one earns a medal, confirm the other gets the toast and Guildmates line; record both `/mam diag` lines. If the realm restricts addon messages, consider the optional guild chat line as the fallback and record that decision.
+3. Then, per the user's order: Courier export of medals and non-sensitive statistics for the Raspberry Pi and the first monthly letter (after cross-user sharing is proven), the Characters roster tab, optional pinned-stat tiles (low priority), and later phases.
 
 ## 15. Recent history
 

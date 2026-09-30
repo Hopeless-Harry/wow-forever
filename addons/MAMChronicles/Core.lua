@@ -2,7 +2,7 @@ MAMChronicles = MAMChronicles or {}
 local Addon = MAMChronicles
 
 Addon.name = "MAMChronicles"
-Addon.version = "0.2.0-alpha5"
+Addon.version = "0.2.0-alpha6"
 Addon.schemaVersion = 1
 
 function Addon:Now()
@@ -39,12 +39,12 @@ function Addon:Print(message)
   end
 end
 
-local WELCOME_VERSION = "personal-chronicle-v1"
+local WELCOME_VERSION = "personal-chronicle-v2"
 
 function Addon:ShowWelcome()
   local settings = self.db and self.db.settings
   if not settings or settings.welcomeVersion == WELCOME_VERSION then return end
-  self:Print("Welcome! Type /mam to open your personal Chronicle. Everything stays on this computer; nothing is shared or uploaded.")
+  self:Print("Welcome! Type /mam to open your Chronicle. Your history stays on this computer. Only Mom Medals you earn are announced to your guild; turn that off in Settings > Alerts.")
   settings.welcomeVersion = WELCOME_VERSION
 end
 
@@ -63,6 +63,7 @@ function Addon:Boot()
   if self.SettingsPanel and self.SettingsPanel.Register then self:SafeCall(self.SettingsPanel.Register, self.SettingsPanel) end
   self:ShowWelcome()
   if self.Toast then self:SafeCall(self.Toast.Initialise, self.Toast) end
+  if self.Comms then self:SafeCall(self.Comms.Initialise, self.Comms) end
   if self.Medals then self:SafeCall(self.Medals.Evaluate, self.Medals, "boot") end
   return self.db
 end
@@ -74,6 +75,10 @@ function Addon:HandleEvent(eventName, ...)
     return
   end
   if not self.booted then self:Boot() end
+  if eventName == "CHAT_MSG_ADDON" then
+    if self.Comms then self:SafeCall(self.Comms.OnAddonMessage, self.Comms, ...) end
+    return
+  end
   if eventName == "PLAYER_REGEN_ENABLED" and self.Toast then self:SafeCall(self.Toast.Flush, self.Toast) end
   if eventName == "PLAYER_ENTERING_WORLD" and self.AchievementStats then self:SafeCall(self.AchievementStats.Schedule, self.AchievementStats) end
   if self.Collectors then self.Collectors:HandleEvent(eventName, ...) end

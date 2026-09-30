@@ -51,11 +51,11 @@ function AchievementStats:ParseValue(text)
   text = text:gsub("^%s+", ""):gsub("%s+$", "")
   if text == "" or text == "--" then return nil end
   -- Some statistics read "16025 (Humanoid)" or "9 ()": a count followed by a bracketed label.
-  local withLabel = text:match("^([%d,]+)%s*%b()$")
+  local withLabel, label = text:match("^([%d,]+)%s*%((.-)%)$")
   if withLabel then text = withLabel end
   if text:match("^[%d,%.]+$") then
     local number = tonumber((text:gsub(",", "")))
-    if finite(number) then return number, "count" end
+    if finite(number) then return number, "count", (label and label ~= "") and label or nil end
     return nil
   end
   local lowered = text:lower():gsub("|t[^|]*goldicon[^|]*|t", " gold "):gsub("|t[^|]*silvericon[^|]*|t", " silver "):gsub("|t[^|]*coppericon[^|]*|t", " copper ")
@@ -174,7 +174,7 @@ function AchievementStats:Scan()
   end
   local includeGold = database.settings.recordGoldStatistics == true
   local values, catalog, count, unparsed = {}, database.statisticCatalog, 0, 0
-  local samples, otherRoots = {}, {}
+  local samples, otherRoots, labels = {}, {}, {}
   for _, id in ipairs(categories) do
     local total = safe(GetCategoryNumAchievements, id, true)
     local root = rootTitleFor(map, id)
@@ -182,7 +182,7 @@ function AchievementStats:Scan()
       local statId, name = safe(GetAchievementInfo, id, index)
       if statId then
         local text = safe(GetStatistic, statId)
-        local number, kind = self:ParseValue(text)
+        local number, kind, label = self:ParseValue(text)
         if not number and type(text) == "string" and text:match("%S") and text ~= "--" then
           unparsed = unparsed + 1
           if #samples < 8 then table.insert(samples, { name = tostring(name or statId), raw = text:sub(1, 40) }) end
@@ -192,6 +192,7 @@ function AchievementStats:Scan()
           if group == "Other" then otherRoots[root or "unknown"] = (otherRoots[root or "unknown"] or 0) + 1 end
           if group ~= GOLD or includeGold then
             values[statId] = number; count = count + 1
+            if label then labels[statId] = label:sub(1, 40) end
             catalog[statId] = { name = tostring(name or statId), group = group, kind = kind }
           end
         end
@@ -202,7 +203,7 @@ function AchievementStats:Scan()
   local now = Addon:Now()
   local row = tableOr(database.statistics[key]); row.months = tableOr(row.months)
   row.baseline = row.baseline or { takenAt = now, values = copyValues(values) }
-  row.latest = { takenAt = now, values = values }
+  row.latest = { takenAt = now, values = values, labels = labels }
   local month = monthKey(now)
   if not row.months[month] then row.months[month] = { takenAt = now, values = copyValues(values) } end
   local keys = {}
@@ -272,7 +273,7 @@ function AchievementStats:BuildText(key)
     local entry = catalog[id]
     if entry and entry.kind ~= "money" then
       headlines[entry.group] = headlines[entry.group] or {}
-      table.insert(headlines[entry.group], { name = entry.name, value = value, kind = entry.kind })
+      table.insert(headlines[entry.group], { name = entry.name, value = value, kind = entry.kind, label = row.latest.labels and row.latest.labels[id] })
     end
   end
   for _, group in ipairs(self.groupOrder) do
@@ -281,7 +282,7 @@ function AchievementStats:BuildText(key)
       local list = headlines[group] or {}
       table.sort(list, function(a, b) if a.value ~= b.value then return a.value > b.value end return a.name < b.name end)
       local parts = {}
-      for index = 1, math.min(3, #list) do parts[index] = list[index].name .. " " .. formatStat(list[index].value, list[index].kind) end
+      for index = 1, math.min(3, #list) do parts[index] = list[index].name .. " " .. formatStat(list[index].value, list[index].kind) .. (list[index].label and (" (" .. list[index].label .. ")") or "") end
       if #parts > 0 then table.insert(lines, "  " .. table.concat(parts, "  \194\183  ")) end
       for _, change in ipairs(changes[group] or {}) do
         table.insert(lines, "  +" .. tostring(change.delta) .. " " .. change.name .. " (now " .. tostring(change.value) .. ")")
