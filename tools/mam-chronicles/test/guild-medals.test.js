@@ -191,3 +191,115 @@ test('a real grant toasts and announces to the guild, a test grant stays quiet',
   const t=setup(); t.run('MAMChronicles.Medals:GrantVerified("selfie_squad",{test=true})');
   assert.equal(t.get('#__sent'),0);
 });
+
+const msg=(h,text,channel,sender)=>h.fire('CHAT_MSG_ADDON','MAMCHR',text,channel,sender);
+
+test('an award from rank 1 over the guild channel is granted too',()=>{
+  const h=setup();
+  msg(h,'A1|Mumtest|selfie_squad|1','GUILD','Officer-Draenor');
+  assert.ok(h.get(earnedRow('selfie_squad')));
+});
+
+test('an award from the Guild Master over the guild channel is granted',()=>{
+  const h=setup();
+  msg(h,'A1|Mumtest|selfie_squad|1','GUILD','Boss-Draenor');
+  assert.ok(h.get(earnedRow('selfie_squad')));
+  assert.equal(h.get(earnedRow('selfie_squad')+'.test'),null);
+  assert.equal(h.get('MAMChronicles.Comms.status.awards'),1);
+});
+
+test('awards from anyone below rank 1 are refused and counted',()=>{
+  const h=setup();
+  msg(h,'A1|Mumtest|selfie_squad|1','GUILD','Alice-Draenor');
+  msg(h,'A1|Mumtest|selfie_squad|1','GUILD','Stranger-Draenor');
+  assert.equal(h.get(earnedRow('selfie_squad')),null);
+  assert.equal(h.get('MAMChronicles.Comms.status.unverified'),2);
+});
+
+test('an empty roster fails closed',()=>{
+  const h=setup(); h.run('__roster={}');
+  msg(h,'A1|Mumtest|selfie_squad|1','GUILD','Boss-Draenor');
+  assert.equal(h.get(earnedRow('selfie_squad')),null);
+});
+
+test('awards for someone else, unknown or unverified medals, bad versions and wrong channels are ignored',()=>{
+  const h=setup();
+  msg(h,'A1|Someone|selfie_squad|1','GUILD','Boss-Draenor');
+  msg(h,'A1|Mumtest|nope|1','GUILD','Boss-Draenor');
+  msg(h,'A1|Mumtest|wine_1|1','GUILD','Boss-Draenor');
+  msg(h,'A1|Mumtest|selfie_squad|9','GUILD','Boss-Draenor');
+  msg(h,'A1|Mumtest|selfie_squad|1','SAY','Boss-Draenor');
+  msg(h,'A1|Mumtest|selfie_squad|1','WHISPER','Boss-Draenor');
+  msg(h,'A1|Mumtest|selfie_squad|1|extra','GUILD','Boss-Draenor');
+  assert.equal(h.get(earnedRow('selfie_squad')),null);
+  assert.equal(h.get(earnedRow('wine_1')),null);
+});
+
+test('with test mode on a whispered award is accepted as a test grant, otherwise not',()=>{
+  const h=setup();
+  msg(h,'A1|Mumtest|selfie_squad|1','WHISPER','Alice-Draenor');
+  assert.equal(h.get(earnedRow('selfie_squad')),null);
+  h.run('MAMChronicles.Comms.testMode=true');
+  msg(h,'A1|Mumtest|selfie_squad|1','WHISPER','Alice-Draenor');
+  assert.equal(h.get(earnedRow('selfie_squad')+'.test'),true);
+});
+
+test('test mode does not let a non-lead guild message through',()=>{
+  const h=setup(); h.run('MAMChronicles.Comms.testMode=true');
+  msg(h,'A1|Mumtest|selfie_squad|1','GUILD','Alice-Draenor');
+  assert.equal(h.get(earnedRow('selfie_squad')),null);
+});
+
+test('a revoke from rank 0 or 1 removes the award',()=>{
+  const h=setup();
+  msg(h,'A1|Mumtest|selfie_squad|1','GUILD','Boss-Draenor');
+  msg(h,'R1|Mumtest|selfie_squad|1','GUILD','Alice-Draenor');
+  assert.ok(h.get(earnedRow('selfie_squad')));
+  msg(h,'R1|Mumtest|selfie_squad|1','GUILD','Boss-Draenor');
+  assert.equal(h.get(earnedRow('selfie_squad')),null);
+});
+
+test('existing medal announcements still work next to awards',()=>{
+  const h=setup();
+  msg(h,'M1|quest_machine_2|25|1','GUILD','Alice-Draenor');
+  assert.equal(h.get('MAMChronicles.Comms.status.received'),1);
+});
+
+test('only rank 0 or 1 can send an award, as one guild message',()=>{
+  const h=setup();
+  let r=h.get('select(2,MAMChronicles.Comms:SendAward("A1","Alice","selfie_squad"))');
+  assert.match(r,/Guild Master/); assert.equal(h.get('#__sent'),0);
+  h.run('__roster[1][3]=1');
+  assert.equal(h.get('MAMChronicles.Comms:SendAward("A1","Alice","selfie_squad")'),true);
+  assert.equal(h.get('__sent[1][2]'),'A1|Alice|selfie_squad|1'); assert.equal(h.get('__sent[1][3]'),'GUILD');
+  assert.equal(h.get('select(1,MAMChronicles.Comms:SendAward("A1","Alice","wine_1"))'),false);
+  assert.equal(h.get('#__sent'),1);
+});
+
+test('in test mode an award is whispered, or applied locally when aimed at yourself',()=>{
+  const h=setup(); h.run('MAMChronicles.Comms.testMode=true');
+  assert.equal(h.get('MAMChronicles.Comms:SendAward("A1","Alice","selfie_squad")'),true);
+  assert.equal(h.get('__sent[1][3]'),'WHISPER'); assert.equal(h.get('__sent[1][4]'),'Alice');
+  h.run('__sent={}');
+  assert.equal(h.get('MAMChronicles.Comms:SendAward("A1","Mumtest","selfie_squad")'),true);
+  assert.equal(h.get('#__sent'),0);
+  assert.equal(h.get(earnedRow('selfie_squad')+'.test'),true);
+});
+
+test('a test grant does not block a later real grant, and a test grant never overwrites a real one',()=>{
+  const h=setup();
+  h.run('__before=MAMChronicles.Medals:GetEarnedMoney(); MAMChronicles.Medals:GrantVerified("selfie_squad",{test=true})');
+  assert.equal(h.get('select(1,MAMChronicles.Medals:GrantVerified("selfie_squad",{test=true}))'),false);
+  assert.equal(h.get('MAMChronicles.Medals:GrantVerified("selfie_squad")'),true);
+  assert.ok(h.get(earnedRow('selfie_squad')));
+  assert.equal(h.get(earnedRow('selfie_squad')+'.test'),null);
+  assert.equal(h.get('MAMChronicles.Medals:GetEarnedMoney()'),h.get('__before')+h.get('MAMChronicles.Medals:GetDefinition("selfie_squad").points'));
+});
+
+test('a test grant after a real grant is refused',()=>{
+  const h=setup();
+  h.run('MAMChronicles.Medals:GrantVerified("selfie_squad")');
+  assert.equal(h.get('select(1,MAMChronicles.Medals:GrantVerified("selfie_squad",{test=true}))'),false);
+  assert.equal(h.get('select(2,MAMChronicles.Medals:GrantVerified("selfie_squad",{test=true}))'),'already');
+  assert.equal(h.get(earnedRow('selfie_squad')+'.test'),null);
+});

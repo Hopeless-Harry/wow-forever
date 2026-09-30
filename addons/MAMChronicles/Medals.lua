@@ -116,6 +116,9 @@ series("purchases", "Bargain Hunter", "Buy from vendors {n} times.", { 10, 50, 2
 series("groups", "Team Mom", "Join {n} groups.", { 10, 50, 250 }, bts, counter("groups"))
 series("left", "Left on Read", "Leave {n} groups.", { 5, 25, 100 }, bts, counter("left"))
 series("ready", "Yes, I'm Ready, Mom!", "Confirm {n} ready checks.", { 10, 50, 200 }, bts, counter("ready"))
+series("squad", "Mom Squad", "Enter {n} dungeons with a guildmate.", { 1, 5, 25 }, bts, counter("dungeon_guild"))
+series("full_party", "Full Mom Party", "Enter {n} dungeons with a full group of guildmates.", { 1, 5, 15 }, bts, counter("dungeon_guild_full"))
+series("raid_crew", "Raid Crew", "Enter {n} raids with five or more guildmates.", { 1, 3, 10 }, bts, counter("raid_guild"))
 
 -- ---------------------------------------------------------------- Mom-themed: emotes (Counters.lua hooks; only the count is kept)
 series("sit", "Sit Down, Everyone", "Use /sit {n} times.", { 5, 25, 100 }, bts, counter("emote_sit"))
@@ -575,7 +578,7 @@ assignCategory("progress", "fresh_start memory_keeper explorer quest_machine del
 assignCategory("kitchen", "wine ale coffee food cheese cookie pie soup fish juice water bandage potion")
 assignCategory("habits", "jumps mounts afk rest shots outfits repairs sales purchases groups left ready hearth summons abandon daily buyer healthstone catmom playdate treasure auction_goblin battlemaster")
 assignCategory("emotes", "sit sleep stare facepalm no thank hugs dances kisses waves cheers")
-assignCategory("pattern", "late early marathon relog streak weekend learning clean raid oops cooking fishing jack mom_of_many long_haul gravity murloc_magnet")
+assignCategory("pattern", "late early marathon relog streak weekend learning clean raid oops cooking fishing jack mom_of_many long_haul gravity murloc_magnet squad full_party raid_crew")
 -- ---------------------------------------------------------------- guild medals (variety, named, verified)
 -- Edit these two tables to add named-target and guild-verified medals, then release a new build.
 -- Named: an emote aimed at one guild character. `targets` are the tier counts (up to 4); `title` is optional.
@@ -639,6 +642,7 @@ Medals.titles = {
   quest_machine = "Quest Mom", explorer = "Explorer Mom", dungeon_regular = "Dungeon Mom", slayer = "Slayer Mom", oops = "Oops Mom",
   gravity = "Gravity Mom", jack = "Jack-of-All-Trades Mom", firestarter = "Campfire Mom", campfire_chef = "Camp Chef Mom",
   hearth = "Homebody Mom", summons = "Carpool Mom", catmom = "Cat Mom", buyer = "Impulse Mom",
+  squad = "Squad Mom", full_party = "Full Party Mom", raid_crew = "Raid Crew Mom",
 }
 
 -- Titles for every remaining family, so each family has exactly one.
@@ -848,6 +852,7 @@ local questTemplates = {
   { id = "days", slot = 3, days = true, text = "Log in on {n} different days", targets = { 2, 3, 4, 4, 5, 5 }, minBand = 1 },
   { id = "dances", slot = 3, counter = "emote_dance", text = "Dance {n} times", targets = { 2, 3, 5, 8, 10, 15 }, minBand = 1 },
   { id = "groups", slot = 3, counter = "groups", text = "Join {n} groups", targets = { 1, 2, 3, 4, 5, 6 }, minBand = 2 },
+  { id = "squadrun", slot = 3, counter = "dungeon_guild", text = "Run {n} dungeons with a guildmate", targets = { 1, 1, 2, 2, 3, 3 }, minBand = 2 },
   { id = "ready", slot = 3, counter = "ready", text = "Confirm {n} ready checks", targets = { 1, 2, 3, 4, 5, 6 }, minBand = 3 },
 }
 
@@ -1069,8 +1074,10 @@ function Medals:GrantVerified(id, opts)
   if not (def and def.verified and database and key) then return false, "unknown" end
   local row = database.medals and database.medals[key]
   if not row then return false, "not ready" end
-  if row.earned[id] then return false, "already" end
   local test = opts and opts.test == true
+  local existing = row.earned[id]
+  -- A test grant must not block a later real one; a real grant is never replaced.
+  if existing and not (existing.test and not test) then return false, "already" end
   row.earned[id] = { at = Addon:Now(), points = test and 0 or def.points, verified = true, test = test or nil }
   self.newIds[id] = true
   if test then
