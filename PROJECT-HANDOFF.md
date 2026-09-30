@@ -1,7 +1,7 @@
 # Moms Against Magic Chronicles — Project Handoff
 
 **Last updated:** 30 September 2026  
-**Current addon version:** `0.2.0-alpha2`  
+**Current addon version:** `0.2.0-alpha3`  
 **Current status:** In progress. Proper-addon polish All 7 tasks are complete in automated testing (Chronicles 98/98); live acceptance pending. Live acceptance of the production addon is still required.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
@@ -282,6 +282,16 @@ Completed Task 7 checkpoint (package and release) - AUTOMATED/PACKAGE EVIDENCE O
 - Release ZIP SHA-256 (alpha2): `929D6FB02B9A8A0E3ADAD8911C615379412B824D613BF851C9A00B2E9105C7E7`. The expanded ZIP was compared with `addons/MAMChronicles`: 13 files, 0 differences.
 - Progress: **7/7 tasks complete** (automated). The old alpha1 hash in section 7 is historical.
 
+Achievement Statistics module (alpha3) - AUTOMATED EVIDENCE ONLY, NOT LIVE-TESTED:
+
+- New `AchievementStats.lua` (loaded after `Statistics.lua`). Reads the game's Statistics tab via `GetStatisticsCategoryList/GetCategoryInfo/GetCategoryNumAchievements/GetAchievementInfo/GetStatistic` (present on Retail and Forever per the Warcraft Wiki), discovered at runtime, capability-gated, skipped in combat (retry after 15s), scheduled once per session 8s after `PLAYER_ENTERING_WORLD`.
+- Stored per character in `MAMChroniclesDB.statistics[charKey] = {baseline, latest, months}` plus shared `statisticCatalog`; months pruned to 6. Top changes = latest minus first-scan-of-month. Text shown under the Statistics tab ("Lifetime statistics"); `/mam diag` has a `Statistics: state, N read, M unreadable` line. Erase Chronicle Data clears it.
+- Settings `recordStatistics` (default on) and `recordGoldStatistics` (default OFF). Gold/money stats are local-only, purged when the setting is switched off, and not in the Courier export.
+- Decision recorded (user asked to proceed): gold = opt-in local setting. Sharing: user wants whole-guild default; not built (no sharing exists). Proposed Phase 2 resolution needing the user's explicit confirmation: non-sensitive categories share by default after a visible first-run notice with one-click opt-out and rate limits; gold never shares by default.
+- Comparison/review: `docs/research/2026-09-30-similar-addons-comparison-and-review.md` (Deathlog GPLv3, Guild Chronicle ARR, HazeAltVault ARR, alt trackers; listing pages only, no code read). Key known limitations: English-only category matching, unproven live value formats, synchronous scan cost, SavedVariables growth.
+- Version `0.2.0-alpha3`. Chronicles **112/112**, Diagnostics **35/35**, Dashboard **39/39** (total **186/186**); `git diff --check` silent.
+- Release: `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha3/` ZIP SHA-256 `C35CB12EF14A5D1CF13417EBB2A778C1005D1F0B57804B14CD213E9894759044`; expanded ZIP matches source (14 files, 0 differences). NOT yet installed in the user's WoW; installed version is alpha2 (`929D6FB0...`).
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -341,9 +351,10 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-Alpha2 is installed on the user's Retail client and the nine launcher/window/settings checks PASSED live (see `docs/testing/2026-09-30-alpha2-live-results.md`). Still NOT live-tested: event capture (level/death/quest/instance/loot/achievement/profession), two UI scales, minimum window size, full-restart persistence of captured events.
-
-Next: design the **achievement Statistics module** (read the built-in Statistics via `GetStatisticsCategoryList`/`GetCategoryNumAchievements`/`GetAchievementInfo`/`GetStatistic`, discovered at runtime, capability-gated; baseline per character + snapshot deltas for monthly summaries/awards + a Statistics view). Use the brainstorming skill first. **Blocked on two user decisions that conflict with recorded privacy rules:** (1) the user ticked Gold and money; rules currently forbid collecting gold. (2) the user chose whole-guild sharing by default; rules require opt-in, visible, rate-limited sharing. Do not change either rule without an explicit answer. Sharing is not relevant until Phase 2 anyway, so the local module can proceed with gold excluded by default.
+1. Install alpha3 to `_retail_` when the user agrees (WoW fully closed) using scripts/install-mam-chronicles.ps1 with -ClientRoot "C:/Program Files (x86)/World of Warcraft/_retail_" and -BackupRoot "C:/Users/44750/Documents/ChatGPT/WoW/addon-backups", then read back hashes.
+2. User runs the new "Achievement statistics (alpha3)" checklist section and reports group quality, the `Statistics:` diagnostics line, any hitch, and SavedVariables size.
+3. Fix from live findings (likely: key groups on category IDs, parse extra units, chunk the scan).
+4. Then build, in this order: statistics-driven awards, Characters roster tab, opt-in popups/toasts, Courier export of non-sensitive statistics. Phase 2 sync needs the sharing-default confirmation first.
 
 ## 15. Recent history
 

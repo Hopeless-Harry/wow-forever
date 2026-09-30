@@ -46,6 +46,7 @@ function Export:BuildDiagnosticReport()
   local lines={"Moms Against Magic Chronicles Diagnostics","Addon version: "..Addon.version,"Client build: "..tostring(build or "unknown"),"Interface: "..tostring(interface or "unknown"),"Schema: "..tostring(Addon.db.schemaVersion),"Events: "..tostring(#Addon.db.events),"Sessions: "..tostring(#Addon.db.sessions),"Collectors registered: "..tostring(registered),"Collector errors: "..tostring(errors)}
   table.insert(lines,"Unavailable collectors: "..(#unavailable>0 and table.concat(unavailable,", ") or "none"))
   if status and errors>0 then for index=math.max(1,errors-2),errors do local item=status.errors[index]; table.insert(lines,"Recent collector error: "..tostring(item.event or "unknown").." ("..tostring(item.message or "handler failed")..")") end end
+  if Addon.AchievementStats then local st=Addon.AchievementStats.status; table.insert(lines,"Statistics: "..(st and (st.state..(st.state=="ok" and ", "..tostring(st.statCount or 0).." read, "..tostring(st.unparsed or 0).." unreadable" or (st.reason and " ("..st.reason..")" or ""))) or "not scanned yet")) end
   if Addon.db.diagnostics.recovery then table.insert(lines,"Recovery: "..tostring(Addon.db.diagnostics.recovery.reason)) end
   return table.concat(lines,"\n")
 end

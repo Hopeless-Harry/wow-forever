@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles
 
-Version `0.2.0-alpha2` is the polished personal-Chronicle tester build for Retail and WoW Forever.
+Version `0.2.0-alpha3` is the polished personal-Chronicle tester build for Retail and WoW Forever.
 
 ## Install
 
@@ -25,6 +25,10 @@ The installer accepts `_retail_` and `_classic_beta_` client roots, refuses to r
 - `/mam export` — show a copyable, private Courier export.
 - `/mam diag` — show redacted diagnostics for bug reports.
 - `/mam help` — list commands.
+
+## Achievement statistics
+
+About eight seconds after login the addon reads the game's own Statistics tab (deaths, quests, travel, dungeons and so on) to keep a per-character baseline and monthly changes. Gold and money statistics are off by default and stay local. Both are controlled in Settings.
 
 ## What this alpha records
 

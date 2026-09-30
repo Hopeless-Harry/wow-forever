@@ -173,13 +173,15 @@ function UI:GetVisibleTimeline()
 end
 
 function UI:SetSetting(key,value)
-  local allowed={enabled=true,recordCoordinates=true,recordQuestAccepts=true,notableQuality=true,maxEvents=true}
+  local allowed={enabled=true,recordCoordinates=true,recordQuestAccepts=true,notableQuality=true,maxEvents=true,recordStatistics=true,recordGoldStatistics=true}
   if key=="showMinimapButton" and Addon.SettingsPanel then return Addon.SettingsPanel:ApplySetting(key,value==true) end
   if not allowed[key] then return false end
   if key=="notableQuality" then value=math.max(4,math.min(5,tonumber(value) or 4))
   elseif key=="maxEvents" then value=math.max(100,math.min(10000,math.floor(tonumber(value) or 10000)))
   else value=value==true end
-  Addon.db.settings[key]=value; Addon.db.meta.updatedAt=Addon:Now(); return true
+  Addon.db.settings[key]=value; Addon.db.meta.updatedAt=Addon:Now()
+  if key=="recordGoldStatistics" and not value and Addon.AchievementStats then Addon.AchievementStats:PurgeGold() end
+  return true
 end
 
 function UI:Create()
@@ -222,9 +224,9 @@ function UI:Create()
   self.rowButtons={}
   for index=1,30 do local button=CreateFrame("Button",nil,frame); safeMethod(button,"SetPoint","TOPLEFT",26,-115-index*14); safeMethod(button,"SetSize",430,14); safeMethod(button,"SetScript","OnClick",function(clicked) UI.selectedEvent=clicked.event; safeMethod(UI.details,"SetText",UI:FormatEventDetails(clicked.event)) end); self.rowButtons[index]=button end
   self.settingControls={}
-  local settingDefs={{"enabled","Record Chronicle"},{"recordQuestAccepts","Record quest accepts"},{"recordCoordinates","Attach coordinates to events"},{"showMinimapButton","Show minimap button"}}
+  local settingDefs={{"enabled","Record Chronicle"},{"recordQuestAccepts","Record quest accepts"},{"recordCoordinates","Attach coordinates to events"},{"showMinimapButton","Show minimap button"},{"recordStatistics","Collect achievement statistics"},{"recordGoldStatistics","Include gold statistics (stays on this computer)"}}
   for index,definition in ipairs(settingDefs) do
-    local key,text=definition[1],definition[2]; local check=CreateFrame("CheckButton",nil,frame,"UICheckButtonTemplate"); safeMethod(check,"SetPoint","TOPLEFT",28,-145-(index-1)*30); safeMethod(check,"SetChecked",Addon.db.settings[key]); local caption=check:CreateFontString(nil,"OVERLAY","GameFontHighlight"); safeMethod(caption,"SetPoint","LEFT",check,"RIGHT",4,0); safeMethod(caption,"SetText",text)
+    local key,text=definition[1],definition[2]; local check=CreateFrame("CheckButton",nil,frame,"UICheckButtonTemplate"); safeMethod(check,"SetPoint","TOPLEFT",index>3 and 360 or 28,-145-((index-1)%3)*30); safeMethod(check,"SetChecked",Addon.db.settings[key]); local caption=check:CreateFontString(nil,"OVERLAY","GameFontHighlight"); safeMethod(caption,"SetPoint","LEFT",check,"RIGHT",4,0); safeMethod(caption,"SetText",text)
     safeMethod(check,"SetScript","OnClick",function(button) local checked=button.GetChecked and button:GetChecked() or not Addon.db.settings[key]; UI:SetSetting(key,checked); UI:Refresh() end); self.settingControls[#self.settingControls+1]=check; self.settingControls[#self.settingControls+1]=caption
   end
   local quality=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(quality,"SetSize",210,24); safeMethod(quality,"SetPoint","TOPLEFT",30,-250); safeMethod(quality,"SetText",Addon.db.settings.notableQuality==5 and "Loot: Legendary only" or "Loot: Epic and above"); safeMethod(quality,"SetScript","OnClick",function(button) local nextValue=Addon.db.settings.notableQuality==4 and 5 or 4; UI:SetSetting("notableQuality",nextValue); safeMethod(button,"SetText",nextValue==5 and "Loot: Legendary only" or "Loot: Epic and above") end); self.qualityButton=quality; self.settingControls[#self.settingControls+1]=quality
@@ -248,7 +250,7 @@ function UI:Refresh()
     local events,total=self:GetVisibleTimeline(); if total==0 then local unfiltered=self.activeFilter=="All" and self.activeRange=="All" and (self.search or "")==""; safeMethod(self.content,"SetText",unfiltered and "No Chronicle entries yet. Play for a while, or use /mam remember to add a memory." or "No entries match this filter, range, or search. Try widening them.") else safeMethod(self.content,"SetText","Showing "..tostring(self.timelineOffset+1).."-"..tostring(self.timelineOffset+#events).." of "..tostring(total)) end
     for index=1,#events do local event=events[index]; local stamp=date and date("%d %b %H:%M",event.occurredAt) or tostring(event.occurredAt); safeMethod(self.rowPool[index],"SetWidth",420); safeMethod(self.rowPool[index],"SetText",stamp.."  "..event.type.." — "..tostring(label(event))); safeMethod(self.rowPool[index],"Show"); self.rowButtons[index].event=event; safeMethod(self.rowButtons[index],"Show") end
   elseif self.activeTab=="Statistics" then
-    local fromTime,toTime=self:GetCurrentMonthRange(); local stats=Addon.Statistics:Build(fromTime,toTime); safeMethod(self.content,"SetText",Addon.Export:BuildHumanSummary(stats.fromTime,stats.toTime))
+    local fromTime,toTime=self:GetCurrentMonthRange(); local stats=Addon.Statistics:Build(fromTime,toTime); safeMethod(self.content,"SetText",Addon.Export:BuildHumanSummary(stats.fromTime,stats.toTime)..(Addon.AchievementStats and "\n\n"..Addon.AchievementStats:BuildText(Addon.characterKey) or ""))
   elseif self.activeTab=="Settings" then
     safeMethod(self.content,"SetText","Privacy and recording controls"); for _,control in ipairs(self.settingControls) do safeMethod(control,"Show") end
   else self.copyText=Addon.Export:BuildDiagnosticReport(); safeMethod(self.copyBox,"SetText",self.copyText); safeMethod(self.copyBox,"Show") end

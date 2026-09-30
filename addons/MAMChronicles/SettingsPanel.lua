@@ -4,7 +4,7 @@ Addon.SettingsPanel = SettingsPanel
 
 local PANEL_NAME = "Moms Against Magic Chronicles"
 local POPUP = "MAMCHRONICLES_ERASE_HISTORY"
-local uiSettings = { enabled = true, recordQuestAccepts = true, recordCoordinates = true, notableQuality = true, maxEvents = true }
+local uiSettings = { enabled = true, recordQuestAccepts = true, recordCoordinates = true, notableQuality = true, maxEvents = true, recordStatistics = true, recordGoldStatistics = true }
 
 local function safeMethod(object, method, ...)
   if object and type(object[method]) == "function" then return pcall(object[method], object, ...) end
@@ -83,9 +83,11 @@ function SettingsPanel:BuildPanel()
   addCheckbox(panel, "recordQuestAccepts", "Record quest accepts", 2)
   addCheckbox(panel, "recordCoordinates", "Attach coordinates to notable events", 3)
   addCheckbox(panel, "showMinimapButton", "Show minimap button", 4)
-  addButton(panel, "Reset Window", -190, function() SettingsPanel:ResetWindow() end)
-  addButton(panel, "Reset Minimap Button", -220, function() SettingsPanel:ResetMinimap() end)
-  addButton(panel, "Erase Chronicle Data...", -260, function() SettingsPanel:RequestEraseHistory() end)
+  addCheckbox(panel, "recordStatistics", "Collect achievement statistics", 5)
+  addCheckbox(panel, "recordGoldStatistics", "Include gold statistics (stays on this computer)", 6)
+  addButton(panel, "Reset Window", -250, function() SettingsPanel:ResetWindow() end)
+  addButton(panel, "Reset Minimap Button", -280, function() SettingsPanel:ResetMinimap() end)
+  addButton(panel, "Erase Chronicle Data...", -320, function() SettingsPanel:RequestEraseHistory() end)
   return panel
 end
 

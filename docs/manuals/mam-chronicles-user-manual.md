@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles — User Manual
 
-- **Version:** `0.2.0-alpha2`
+- **Version:** `0.2.0-alpha3`
 - **Current test target:** World of Warcraft Retail 12.1
 - **WoW Forever:** Built with compatibility checks, but live beta testing is still pending.
 
@@ -81,6 +81,16 @@ It visibly summarises:
 
 It can also show light-hearted awards when there is enough evidence, including Explorer, Quest Machine, Shiny Collector, Comeback Kid, Gravity's Favourite, and Murloc Magnet.
 
+Below the summary is a **Lifetime statistics** section. It is built from the game's own Statistics tab in the Achievements window, which the game has counted for the character's whole life, not only since this addon was installed. The addon reads it shortly after you log in (about eight seconds, and not during combat) and keeps:
+
+- a **baseline** from the first time it read your statistics;
+- the **latest** reading;
+- one starting reading per month, so it can show what changed since then (for example "+3 Total deaths").
+
+Statistics are grouped into Deaths and combat, Quests, Exploration and travel, Dungeons and raids, Professions and crafting, Social, Loot and items, Time played, Player versus player, and Other. **Gold and money statistics are off by default.** Turn on *Include gold statistics* in Settings to store them; they stay on this computer and are not included in the export. Turning it off again deletes the stored gold values. *Collect achievement statistics* switches the whole feature off.
+
+If a statistic comes back in a format the addon cannot read (for example a distance with units), it is skipped and counted. `/mam diag` shows a line such as "Statistics: ok, 312 read, 4 unreadable".
+
 Every summary states its date window and source-event coverage. A missing event means the addon did not observe it; it does not prove that nothing happened.
 
 ### 3. Settings
@@ -93,6 +103,8 @@ The settings apply to the local Chronicle database.
 - **Loot: Epic and above / Legendary only:** Selects which self-looted items count as notable.
 - **History:** Cycles the raw-history limit through 1,000, 5,000, and 10,000 events.
 - **Show minimap button:** Shows or hides the minimap button.
+- **Collect achievement statistics:** Reads the game's Statistics tab after login (on by default).
+- **Include gold statistics:** Also stores gold and money statistics locally (off by default).
 - **Reset Window / Reset Minimap Button:** Restore the default window and button positions.
 - **Erase Chronicle Data...:** Permanently deletes recorded history after a confirmation pop-up. Your settings are kept. If the client cannot show the confirmation, nothing is deleted.
 

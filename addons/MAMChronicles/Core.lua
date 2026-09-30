@@ -2,7 +2,7 @@ MAMChronicles = MAMChronicles or {}
 local Addon = MAMChronicles
 
 Addon.name = "MAMChronicles"
-Addon.version = "0.2.0-alpha2"
+Addon.version = "0.2.0-alpha3"
 Addon.schemaVersion = 1
 
 function Addon:Now()
@@ -71,6 +71,7 @@ function Addon:HandleEvent(eventName, ...)
     return
   end
   if not self.booted then self:Boot() end
+  if eventName == "PLAYER_ENTERING_WORLD" and self.AchievementStats then self:SafeCall(self.AchievementStats.Schedule, self.AchievementStats) end
   if self.Collectors then self.Collectors:HandleEvent(eventName, ...) end
 end
 

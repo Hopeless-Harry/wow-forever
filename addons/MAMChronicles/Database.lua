@@ -15,7 +15,7 @@ local uiDefaults = { point="CENTER", x=0, y=0, width=780, height=560, activeTab=
 local validPoints = { CENTER=true, TOP=true, BOTTOM=true, LEFT=true, RIGHT=true, TOPLEFT=true, TOPRIGHT=true, BOTTOMLEFT=true, BOTTOMRIGHT=true }
 local validTabs = { Chronicle=true, Statistics=true, Settings=true, Diagnostics=true }
 local function freshSettings()
-  return { enabled=true, recordCoordinates=true, recordQuestAccepts=true, notableQuality=4, maxEvents=10000, showMinimapButton=true, ui=copyTable(uiDefaults) }
+  return { enabled=true, recordCoordinates=true, recordQuestAccepts=true, notableQuality=4, maxEvents=10000, showMinimapButton=true, recordStatistics=true, recordGoldStatistics=false, ui=copyTable(uiDefaults) }
 end
 local function monthKey(timestamp)
   local dateFn=date or (os and os.date); return dateFn and dateFn("%Y-%m",timestamp) or "unknown"
@@ -27,7 +27,7 @@ function Database:Fresh(reason)
     schemaVersion = 1,
     meta = { createdAt = timestamp, updatedAt = timestamp, loadCount = 0, addonVersion = Addon.version, clientBuild = select(2, Addon:SafeCall(GetBuildInfo)) },
     settings = freshSettings(),
-    characters = {}, sessions = {}, events = {}, eventIds = {}, questCompletion = {}, professionSnapshots = {}, aggregates = {}, diagnostics = {},
+    characters = {}, sessions = {}, events = {}, eventIds = {}, questCompletion = {}, professionSnapshots = {}, aggregates = {}, diagnostics = {}, statistics = {}, statisticCatalog = {},
   }
   if reason then db.diagnostics.recovery = { recoveredAt = timestamp, reason = reason } end
   return db
@@ -38,7 +38,7 @@ function Database:Open(saved)
   if type(saved) ~= "table" then if saved~=nil then reason="corrupt root" end
   elseif saved.schemaVersion ~= 1 then reason = "unsupported schema" end
   if not reason and type(saved)=="table" then
-    for _,key in ipairs({"meta","settings","characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics"}) do
+    for _,key in ipairs({"meta","settings","characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics","statistics","statisticCatalog"}) do
       if saved[key]~=nil and type(saved[key])~="table" then reason="corrupt root"; break end
     end
     if not reason and type(saved.events)=="table" then
@@ -52,7 +52,7 @@ function Database:Open(saved)
   end
   local db = reason and self:Fresh(reason) or (type(saved) == "table" and saved or self:Fresh())
   db.meta = tableOr(db.meta); db.settings = tableOr(db.settings)
-  for _, key in ipairs({"characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics"}) do db[key] = tableOr(db[key]) end
+  for _, key in ipairs({"characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics","statistics","statisticCatalog"}) do db[key] = tableOr(db[key]) end
   db.eventIds={}; for _,event in ipairs(db.events) do db.eventIds[event.id]=true end
   db.schemaVersion = 1; self.db = db; self:NormaliseSettings()
   db.meta.createdAt = db.meta.createdAt or now(); db.meta.updatedAt = now(); db.meta.loadCount = (tonumber(db.meta.loadCount) or 0) + 1
@@ -68,6 +68,8 @@ function Database:NormaliseSettings()
   local defaults = freshSettings()
   for key, value in pairs(defaults) do if key ~= "ui" and settings[key] == nil then settings[key] = value end end
   if type(settings.showMinimapButton) ~= "boolean" then settings.showMinimapButton = true end
+  if type(settings.recordStatistics) ~= "boolean" then settings.recordStatistics = true end
+  if type(settings.recordGoldStatistics) ~= "boolean" then settings.recordGoldStatistics = false end
   if settings.welcomeVersion ~= nil and type(settings.welcomeVersion) ~= "string" then settings.welcomeVersion = nil end
   local saved = tableOr(settings.ui); local ui = copyTable(uiDefaults)
   if validPoints[saved.point] then ui.point = saved.point end
@@ -90,6 +92,7 @@ function Database:ClearHistory()
   local character = Addon.character
   self.db.characters, self.db.sessions, self.db.events, self.db.eventIds = {}, {}, {}, {}
   self.db.questCompletion, self.db.professionSnapshots, self.db.aggregates = {}, {}, {}
+  self.db.statistics, self.db.statisticCatalog = {}, {}
   self.currentSession = nil; Addon.sessionId = nil
   if Addon.characterKey and character then self:RegisterCharacter(Addon.characterKey, character); self:BeginSession() end
   self.db.meta.updatedAt = now()

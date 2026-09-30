@@ -8,7 +8,7 @@ param(
 )
 $ErrorActionPreference='Stop';$repositoryRoot=Split-Path -Parent $PSScriptRoot
 if(-not $SourceRoot){$SourceRoot=Join-Path $repositoryRoot 'addons\MAMChronicles'}
-$allowlist=@('MAMChronicles.toc','Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','Export.lua','UI.lua','Launcher.lua','SettingsPanel.lua','MAMChroniclesIcon.tga','LICENSE.txt','README.md')
+$allowlist=@('MAMChronicles.toc','Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Export.lua','UI.lua','Launcher.lua','SettingsPanel.lua','MAMChroniclesIcon.tga','LICENSE.txt','README.md')
 if(-not(Test-Path -LiteralPath $ClientRoot -PathType Container)){throw "WoW client root does not exist: $ClientRoot"}
 $client=(Resolve-Path -LiteralPath $ClientRoot).Path;if((Split-Path -Leaf $client) -notin @('_retail_','_classic_beta_')){throw "ClientRoot must be a supported _retail_ or _classic_beta_ directory: $client"}
 if(-not(Test-Path -LiteralPath $SourceRoot -PathType Container)){throw "Addon source directory is missing: $SourceRoot"};$source=(Resolve-Path -LiteralPath $SourceRoot).Path

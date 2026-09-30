@@ -52,6 +52,17 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] Checked at two UI scales and at the minimum window size (layout readable, no overlap).
 - [ ] Note any optional API that was missing (Addon Compartment, Settings panel, popup): __________
 
+## Achievement statistics (alpha3)
+
+- [ ] Wait about ten seconds after login, open `/mam`, Statistics tab: a "Lifetime statistics" section lists groups with counts.
+- [ ] `/mam diag` shows `Statistics: ok, N read, M unreadable`. Record N and M: __________
+- [ ] Note any group that looks wrong or sits in "Other": __________
+- [ ] Die or complete a quest, `/reload`, wait ten seconds: a "+1 ..." change appears.
+- [ ] No visible hitch when the scan runs (about ten seconds after login). Note any freeze: __________
+- [ ] Gold statistics are absent by default; turning on "Include gold statistics" and waiting for the next scan (or `/reload`) adds a Gold and money group; turning it off removes it.
+- [ ] Note the size of `WTF\Account\<account>\SavedVariables\MAMChronicles.lua` before and after: __________
+- [ ] Switching "Collect achievement statistics" off stops new readings.
+
 ## Stability
 
 - [ ] No Lua errors during the test.
