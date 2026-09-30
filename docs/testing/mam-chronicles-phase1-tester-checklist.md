@@ -8,6 +8,7 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 
 - [ ] Addon installs with no extra files and appears on character select.
 - [ ] `/mam` opens one reusable window without a Lua error.
+- [ ] The Chronicle window moves and resizes from its bottom-right handle.
 - [ ] A `/mam remember test` entry survives `/reload`.
 - [ ] The same entry survives fully exiting and restarting WoW.
 
@@ -23,6 +24,7 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] Dungeon/raid entry and exit appear.
 - [ ] Epic or Legendary self-loot appears; lower quality does not.
 - [ ] A profession skill change appears.
+- [ ] If testing two characters, their quest completions and profession snapshots remain separate.
 - [ ] `/mam remember <text>` creates a pinned memory.
 
 ## Browse and report
@@ -31,6 +33,7 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] Deaths, Quests, World, Instances, Loot, and Memories filters work.
 - [ ] Statistics clearly state their window and source-event coverage.
 - [ ] `/mam export` is copyable and contains no chat, BattleTag, or account path.
+- [ ] Export text can be selected without timeline rows intercepting the mouse.
 - [ ] Coordinates disappear from export when coordinate recording is disabled.
 - [ ] `/mam diag` is copyable and omits the character name.
 
