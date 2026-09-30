@@ -29,7 +29,6 @@ end
 
 function Collectors:QuestName(questID)
   if C_QuestLog and C_QuestLog.GetTitleForQuestID then return safe(C_QuestLog.GetTitleForQuestID,questID) end
-  if GetQuestLogTitle and questID then return safe(GetQuestLogTitle,questID) end
   return nil
 end
 
@@ -60,15 +59,24 @@ end
 function Collectors:CaptureLoot(message)
   if type(message)~="string" then return end
   local link=string.match(message,"(|c%x+|Hitem:.-|h%[.-%]|h|r)") or string.match(message,"(|Hitem:.-|h%[.-%]|h)")
+  if not link then return end
+  local quantity=1; local isSelf=type(LOOT_ITEM_SELF)=="string" and string.format(LOOT_ITEM_SELF,link)==message
+  if not isSelf and type(LOOT_ITEM_SELF_MULTIPLE)=="string" then
+    local pattern=LOOT_ITEM_SELF_MULTIPLE:gsub("%%s","\001"):gsub("%%d","\002"):gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])","%%%1"):gsub("\001","(.+)"):gsub("\002","(%%d+)")
+    local capturedLink,capturedQuantity=string.match(message,"^"..pattern.."$")
+    if capturedLink==link then isSelf=true; quantity=tonumber(capturedQuantity) or 1 end
+  end
+  if not isSelf then return end
   local id=link and tonumber(string.match(link,"item:(%d+)"))
   if not id and GetItemInfoInstant then id=safe(GetItemInfoInstant,link) end
-  if id then self:ResolveItem(id,link,tonumber(string.match(message,"x(%d+)")) or 1) end
+  if id then self:ResolveItem(id,link,quantity) end
 end
 
 function Collectors:CaptureProfessionSnapshot()
   if not GetProfessions or not GetProfessionInfo then return end
-  local indices={safe(GetProfessions)}
-  for _,index in ipairs(indices) do if type(index)=="number" then
+  local first,second,archaeology,fishing,cooking=safe(GetProfessions)
+  local indices={first,second,archaeology,fishing,cooking}
+  for slot=1,5 do local index=indices[slot]; if type(index)=="number" then
     local name,_,skill,maxSkill,_,_,_,skillLineID=safe(GetProfessionInfo,index)
     local key=tostring(skillLineID or name or index); local old=Addon.db.professionSnapshots[key]
     if name and (not old or old.skillLevel~=skill or old.maxSkillLevel~=maxSkill) then
@@ -96,8 +104,8 @@ function Collectors:HandleEvent(eventName,...)
     elseif eventName=="PLAYER_DEAD" then
       local payload=self:CaptureLocation()
       if UnitCanAttack and safe(UnitCanAttack,"player","target") then payload.lastHostileTarget=safe(UnitName,"target") end
-      Addon.EventStore:Append("character.death",payload)
-    elseif eventName=="PLAYER_ALIVE" or eventName=="PLAYER_UNGHOST" then Addon.EventStore:Append("character.resurrected",self:CaptureLocation())
+      Addon.EventStore:Append("character.death",payload); self.isDeadObserved=true
+    elseif (eventName=="PLAYER_ALIVE" or eventName=="PLAYER_UNGHOST") and self.isDeadObserved then Addon.EventStore:Append("character.resurrected",self:CaptureLocation()); self.isDeadObserved=false
     elseif eventName=="QUEST_ACCEPTED" and Addon.db.settings.recordQuestAccepts then local questID=args[2]; Addon.EventStore:Append("quest.accepted",{questID=questID,questName=self:QuestName(questID)})
     elseif eventName=="QUEST_TURNED_IN" then local questID=args[1]; Addon.EventStore:Append("quest.completed",{questID=questID,questName=self:QuestName(questID)}); Addon.db.questCompletion[questID]=Addon:Now()
     elseif eventName=="ZONE_CHANGED" or eventName=="ZONE_CHANGED_INDOORS" or eventName=="ZONE_CHANGED_NEW_AREA" then Addon.EventStore:Append("world.zone_discovered",self:CaptureLocation())
@@ -105,7 +113,7 @@ function Collectors:HandleEvent(eventName,...)
     elseif eventName=="CHAT_MSG_LOOT" then self:CaptureLoot(args[1])
     elseif eventName=="GET_ITEM_INFO_RECEIVED" then local itemID,success=args[1],args[2]; if success and self.pendingItems[itemID] then local p=self.pendingItems[itemID]; self:ResolveItem(itemID,p.itemLink,p.quantity) end
     elseif eventName=="SKILL_LINES_CHANGED" or eventName=="TRADE_SKILL_SHOW" then self:CaptureProfessionSnapshot()
-    elseif eventName=="ACHIEVEMENT_EARNED" then local id,name,points=args[1],args[2],args[3]; if not name and GetAchievementInfo then name,points=safe(GetAchievementInfo,id) end; Addon.EventStore:Append("achievement.earned",{achievementID=id,achievementName=name,points=points}) end
+    elseif eventName=="ACHIEVEMENT_EARNED" then local id,name,points=args[1],nil,nil; if GetAchievementInfo then local ignored; ignored,name,points=safe(GetAchievementInfo,id) end; Addon.EventStore:Append("achievement.earned",{achievementID=id,achievementName=name,points=points}) end
   end)
   if not ok then table.insert(self.status.errors,{event=eventName,message=tostring(err),at=Addon:Now()}) end
 end

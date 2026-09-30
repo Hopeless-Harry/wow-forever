@@ -34,6 +34,11 @@ end
 
 function Store:Initialise()
   self.db=Addon.db; self.sequenceSecond=nil; self.sequence=0; self.recentSemantic={}
+  local now=Addon:Now()
+  for index=#self.db.events,math.max(1,#self.db.events-100),-1 do
+    local event=self.db.events[index]
+    if event and event.observedAt and now-event.observedAt<=5 then local key=self:BuildSemanticKey(event.type,event.payload or {}); if key then self.recentSemantic[key]=event.observedAt end end
+  end
 end
 
 function Store:Sanitise(eventType, payload)

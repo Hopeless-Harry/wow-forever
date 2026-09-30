@@ -21,6 +21,12 @@ function Database:Open(saved)
   local reason
   if type(saved) ~= "table" then reason = saved == nil and nil or "corrupt root"
   elseif saved.schemaVersion ~= 1 then reason = "unsupported schema" end
+  if not reason and type(saved)=="table" then
+    for _,key in ipairs({"meta","settings","characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics"}) do
+      if saved[key]~=nil and type(saved[key])~="table" then reason="corrupt root"; break end
+    end
+    if not reason and type(saved.events)=="table" then for _,event in ipairs(saved.events) do if type(event)~="table" or type(event.id)~="string" or type(event.type)~="string" then reason="corrupt root"; break end end end
+  end
   local db = reason and self:Fresh(reason) or (type(saved) == "table" and saved or self:Fresh())
   db.meta = tableOr(db.meta); db.settings = tableOr(db.settings)
   local defaults = self:Fresh().settings
