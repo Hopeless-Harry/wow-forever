@@ -239,3 +239,77 @@ function Statistics:DescribeCharacters(list)
   end
   return table.concat(lines,"\n")
 end
+
+-- Memory Book: a scrapbook of firsts, milestones, pinned memories and close calls, built from this character's events.
+local firstLabels = { { "quest", "First quest" }, { "death", "First death" }, { "dungeon", "First dungeon" }, { "loot", "First notable loot" }, { "medal", "First medal" } }
+
+function Statistics:BuildMemoryBook(characterKey)
+  characterKey=characterKey or Addon.characterKey
+  local book={firsts={},levels={},memories={},deaths={},medals={},memoryCount=0}
+  local events=Addon.EventStore:Query({characterKey=characterKey})
+  local levelSeen={}
+  for index=#events,1,-1 do
+    local event=events[index]
+    local kind,payload,at=event.type,event.payload or {},event.occurredAt
+    local function first(key,text) if text and not book.firsts[key] then book.firsts[key]={text=tostring(text),at=at} end end
+    if kind=="quest.completed" then first("quest",payload.questName or ("quest "..tostring(payload.questID)))
+    elseif kind=="character.death" then first("death",payload.zone or "somewhere")
+    elseif kind=="instance.entered" then first("dungeon",payload.instanceName)
+    elseif kind=="loot.notable" then first("loot",payload.itemName)
+    elseif kind=="medal.earned" then first("medal",payload.medalName or payload.medalId)
+    elseif kind=="character.level_up" then
+      local level=tonumber(payload.level)
+      if level and level%10==0 and not levelSeen[level] then levelSeen[level]=true; table.insert(book.levels,{level=level,at=at}) end
+    end
+  end
+  table.sort(book.levels,function(a,b) return a.level<b.level end)
+  for _,event in ipairs(events) do
+    local payload=event.payload or {}
+    if event.type=="memory.manual" then
+      book.memoryCount=book.memoryCount+1
+      if #book.memories<30 then table.insert(book.memories,{text=tostring(payload.text or ""),zone=payload.zone,at=event.occurredAt}) end
+    elseif event.type=="character.death" and #book.deaths<8 then
+      table.insert(book.deaths,{zone=payload.zone or "somewhere",fell=string.find(string.lower(tostring(payload.deathKind or "")),"fall",1,true)~=nil,at=event.occurredAt})
+    end
+  end
+  local row=Addon.db and Addon.db.medals and Addon.db.medals[characterKey]
+  if row and Addon.Medals then
+    for id,earned in pairs(row.earned or {}) do
+      local def=Addon.Medals:GetDefinition(id)
+      if def then table.insert(book.medals,{name=def.name,points=tonumber(earned.points) or def.points,at=tonumber(earned.at) or 0}) end
+    end
+    table.sort(book.medals,function(a,b) if a.points~=b.points then return a.points>b.points end if a.at~=b.at then return a.at<b.at end return a.name<b.name end)
+    while #book.medals>5 do table.remove(book.medals) end
+  end
+  return book
+end
+
+function Statistics:DescribeMemoryBook(book)
+  book=book or self:BuildMemoryBook()
+  local lines={"Memory Book"}
+  local empty=true
+  local firstLines={}
+  for _,entry in ipairs(firstLabels) do
+    local first=book.firsts[entry[1]]
+    if first then table.insert(firstLines,"  "..entry[2]..": "..first.text.." ("..dayLabel(first.at)..")") end
+  end
+  if #firstLines>0 then empty=false; table.insert(lines,"Firsts"); for _,line in ipairs(firstLines) do table.insert(lines,line) end end
+  if #book.levels>0 or #book.medals>0 then
+    empty=false; table.insert(lines,"Milestones")
+    for _,entry in ipairs(book.levels) do table.insert(lines,"  Reached level "..entry.level.." ("..dayLabel(entry.at)..")") end
+    if #book.medals>0 then
+      table.insert(lines,"Best medals")
+      for _,entry in ipairs(book.medals) do table.insert(lines,"  "..entry.name.." (+"..entry.points..")") end
+    end
+  end
+  if #book.memories>0 then
+    empty=false; table.insert(lines,"Memories ("..book.memoryCount..")")
+    for _,entry in ipairs(book.memories) do table.insert(lines,"  "..dayLabel(entry.at).."  "..entry.text..(entry.zone and (" - "..entry.zone) or "")) end
+  end
+  if #book.deaths>0 then
+    empty=false; table.insert(lines,"Close calls")
+    for _,entry in ipairs(book.deaths) do table.insert(lines,"  "..dayLabel(entry.at).."  "..entry.zone..(entry.fell and " (fell)" or "")) end
+  end
+  if empty then table.insert(lines,"Nothing in the book yet. Play for a while, or pin a memory with /mam remember.") end
+  return table.concat(lines,"\n")
+end

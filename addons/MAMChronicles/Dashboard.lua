@@ -148,6 +148,9 @@ function Dashboard:Create(parent, ui)
 
   self.recapButton = T:Button(self.monthCard, "Copy recap", 90, 20)
   safeMethod(self.recapButton, "SetPoint", "TOPRIGHT", self.monthCard, "TOPRIGHT", -8, -7)
+  self.bookButton = T:Button(self.monthCard, "Memory Book", 100, 20)
+  safeMethod(self.bookButton, "SetPoint", "RIGHT", self.recapButton, "LEFT", -6, 0)
+  safeMethod(self.bookButton, "SetScript", "OnClick", function() if self.ui then self.ui:HandleSlash("book") end end)
   safeMethod(self.recapButton, "SetScript", "OnClick", function() if self.ui then self.ui:HandleSlash("recap") end end)
 
   self.recentCard = createCard(frame, "Recent activity")

@@ -1167,6 +1167,7 @@ UI.helpLines={
   "/mam medals - open the Mom Medals tab",
   "/mam settings - open the Settings tab",
   "/mam recap - show a shareable summary of this month to copy (/mam recap week for the last 7 days)",
+  "/mam book - open your Memory Book of firsts, milestones, memories and close calls",
   "/mam export - show the Courier export text to copy",
   "/mam diag - show the diagnostics report to paste into a bug report",
   "/mam quests - show this week's Mom Quests and your progress",
@@ -1191,6 +1192,7 @@ function UI:HandleSlash(command)
   elseif verb=="recap" then
     if string.lower(rest or "")=="week" then self:ShowCopy(Addon.Export:BuildWeeklyRecap())
     else local from,to=self:GetCurrentMonthRange(); self:ShowCopy(Addon.Export:BuildMonthlyRecap(from,to)) end
+  elseif verb=="book" then self:ShowCopy(Addon.Statistics:DescribeMemoryBook())
   elseif verb=="quests" then
     local week,questLines=Addon.Medals:DescribeQuests()
     Addon:Print("Week "..tostring(week).." Mom Quests (extra Mom Money, new ones every week):")
