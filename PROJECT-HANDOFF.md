@@ -1,7 +1,7 @@
 # Moms Against Magic Chronicles — Project Handoff
 
 **Last updated:** 30 September 2026  
-**Current addon version:** `0.2.0-alpha14`  
+**Current addon version:** `0.2.0-alpha15`  
 **Current status:** alpha11 (recap, goals, safer data) complete in AUTOMATED testing (Chronicles 322/322; alpha10 polish before it) and published to both clients and the CurseForge package. Nothing new has been observed live; Forever and two-player guild sharing are still unproven.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
@@ -421,6 +421,17 @@ Toast sounds and scan pacing (alpha14, 30 Sep 2026) - AUTOMATED EVIDENCE ONLY:
 - **Toast sound choices (user request):** `Toast.sounds` (chime, quest, fanfare, loot, ready, raid, ping, whisper, coins), each a stock `SOUNDKIT` name with a numeric fallback id; `settings.toastSoundChoice` (validated, default chime); Settings > Alerts "Toast sound" button cycles and previews; `Toast:PreviewSound`. Sounds still need "Play a sound with toasts" ticked. Unverified live: which kits exist on Forever (the ids are from public sound-kit lists; unknown ids play nothing).
 - Commit `993d515`. Suites: Chronicles **340/340**, Diagnostics **35/35**, Dashboard **39/39** (total **414**). Published on BOTH clients (21 files, 0 differences). Release `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha14/`, ZIP SHA-256 `FEA7C5E34D6D19AD73B56A880F2BD22FCE3C5BBB780D356CB64C7E4164F0D83F`. Not uploaded to CurseForge.
 
+Next up, titles, shop, halls, last session, weekly recap (alpha15, 30 Sep 2026) - AUTOMATED EVIDENCE ONLY; user asked for these while waiting for WoW Forever / CurseForge approval:
+
+- **Weekly recap:** `Export:BuildRecap(from,to,options)` generalises the monthly recap; `Export:BuildWeeklyRecap()` (last 7 days, no statistic changes, "Quiet week" text); `/mam recap week`. Recaps now start with `Title: ...`.
+- **Last session line:** `Statistics:BuildSinceLastLogin()` / `DescribeSinceLastLogin()`. Events only exist while playing, so "since last login" is implemented as "what the previous session of this character did" (levels, quests, discoveries, deaths, notable loot, medals and Mom Money, plus how long ago and how long played). Quick relogs under 5 minutes, other characters and empty sessions give nothing; an unended session ends at its last event. Shown as the first line of the Home month card.
+- **Hall of Shame and Fame:** `Statistics:BuildHighlights()` / `DescribeHighlights()` from events still in the journal (most dangerous place, worst day, falls, busiest day, longest session, time played, favourite place, highest level, Chronicle started); shown on the Statistics tab with gold headings. Limit: compacted-away history is not included.
+- **Next up filter:** fifth Medals filter, `def.family` added to every medal (series id or single id), first unearned medal per family; filter buttons moved to their own row (list top 124).
+- **Mom titles:** `Medals.titles` (family to title, about 60), `GetTitle/GetEarnedTitles/SetTitleChoice`, `settings.titleChoice` (auto or a family). Shown under the Home greeting, on the Medals tab and in recaps. Rookie Mom by default.
+- **Mom Money shop:** `Medals.cosmetics` (4 toast colours 50/75/100/150, 3 title flourishes 100/250/500), `Buy/Equip/Unequip/IsOwned/IsEquipped/GetMomMoney/GetToastColour`; per-character `db.medals[char].spent`, account-wide `settings.cosmetics = {unlocked, toastStyle, flourish}` (validated in `Database:NormaliseSettings`). Medals header shows `Mom Money N (M earned)` when something was spent; `GetSummary().total` still means earned. Settings > Mom Money shop has one button per item, a default-colours button and a Title button. Erasing the Chronicle resets spending but keeps bought cosmetics. Cosmetic only; nothing new is sent to the guild.
+- Commits: `1e6a54d`..`079f9ea` group (weekly recap + last session, Hall of Fame, Next up, titles/shop/release). Suites: Chronicles **378/378**, Diagnostics **35/35**, Dashboard **39/39** (total **452**). Published on BOTH clients (21 files, 0 differences). Release `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha15/`, ZIP SHA-256 `0BBD65072808686539DBBA2D9F563BE84225E679E8DCD7D800BBE01EE71399E0`. Not uploaded to CurseForge.
+- Unverified live: the new Settings section layout (length grew by about 11 buttons), Next up filter row layout, title and flourish wording, Hall of Shame/Fame against real history, toast colours.
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -480,7 +491,7 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-0. alpha14 is installed on BOTH clients and packaged (SHA-256 in the alpha14 block of section 9). The alpha10 instructions below still apply. If any later change is made, run `scripts/publish-build.ps1` again from the PowerShell tool.
+0. alpha15 is installed on BOTH clients and packaged (SHA-256 in the alpha15 block of section 9). The alpha10 instructions below still apply. If any later change is made, run `scripts/publish-build.ps1` again from the PowerShell tool.
 1. **Next action (user):** log in on the WoW Forever client with alpha10 and (a) type `/mam diag`, click Copy diagnostics and send the pasted report (look at `Handler errors:`, `Medals:`, `Camp spells seen:`, `Statistics:` and `scan N ms`); (b) open the Medals tab, try the filters and search, hover a few medals and send a screenshot; (c) do the campfire test: complete The Great Outdoors, craft and light a campfire, place a camp object, then send `/mam diag` again. Continue with the alpha9 confirmations below. Confirm live: The Great Outdoors gives Happy Camper; lighting a campfire and placing an object moves Firestarter / Camp Decorator; entering the new dungeons, raids, Darkspear Islands and new zones moves their medals; Plot Twist for a new race-class combo; which statistic-based medals appear.
 2. Fix whatever the live check disproves (exact spell names, instance names, quest name, Statistics availability on Forever).
 3. User decides: the licence text, CurseForge project name/category, and then uploads `docs/release/curseforge` material with the ZIP following `UPLOAD-CHECKLIST.md`.
