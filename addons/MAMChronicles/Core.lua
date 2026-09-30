@@ -19,6 +19,30 @@ function Addon:SafeCall(fn, ...)
   return (table.unpack or unpack)(results, 2, results.n)
 end
 
+Addon.errorStats = { count = 0, last = nil }
+
+local function shortMessage(label, err)
+  local text = tostring(err or "failed")
+  text = text:gsub("%a:[/\\]%S*", ""):gsub("Interface[/\\]%S*", ""):gsub("%S*#%d+", ""):gsub("%s+", " "):gsub("^%s+", "")
+  return string.sub(tostring(label) .. ": " .. text, 1, 80)
+end
+
+function Addon:RecordError(label, err)
+  local stats = self.errorStats
+  stats.count = stats.count + 1
+  stats.last = shortMessage(label, err)
+end
+
+-- Runs a handler so one failure never breaks the addon; failures are counted for /mam diag.
+function Addon:Guard(label, fn, ...)
+  if type(fn) ~= "function" then return nil end
+  local results = { n = 0 }
+  local function pack(...) results = { n = select("#", ...), ... } end
+  pack(pcall(fn, ...))
+  if not results[1] then self:RecordError(label, results[2]); return nil end
+  return (table.unpack or unpack)(results, 2, results.n)
+end
+
 local function normalise(value)
   return string.lower(tostring(value or "unknown")):gsub("[^%w%-]", "-")
 end
@@ -59,13 +83,13 @@ function Addon:Boot()
   if self.EventStore and self.EventStore.Initialise then self.EventStore:Initialise() end
   if self.Collectors and self.Collectors.Register then self.Collectors:Register() end
   if self.UI and self.UI.InitialiseSlashCommands then self.UI:InitialiseSlashCommands() end
-  if self.Launcher and self.Launcher.Initialise then self:SafeCall(self.Launcher.Initialise, self.Launcher) end
-  if self.SettingsPanel and self.SettingsPanel.Register then self:SafeCall(self.SettingsPanel.Register, self.SettingsPanel) end
+  if self.Launcher and self.Launcher.Initialise then self:Guard("Launcher", self.Launcher.Initialise, self.Launcher) end
+  if self.SettingsPanel and self.SettingsPanel.Register then self:Guard("SettingsPanel", self.SettingsPanel.Register, self.SettingsPanel) end
   self:ShowWelcome()
-  if self.Toast then self:SafeCall(self.Toast.Initialise, self.Toast) end
-  if self.Counters then self:SafeCall(self.Counters.Initialise, self.Counters) end
-  if self.Comms then self:SafeCall(self.Comms.Initialise, self.Comms) end
-  if self.Medals then self:SafeCall(self.Medals.Evaluate, self.Medals, "boot") end
+  if self.Toast then self:Guard("Toast", self.Toast.Initialise, self.Toast) end
+  if self.Counters then self:Guard("Counters", self.Counters.Initialise, self.Counters) end
+  if self.Comms then self:Guard("Comms", self.Comms.Initialise, self.Comms) end
+  if self.Medals then self:Guard("Medals", self.Medals.Evaluate, self.Medals, "boot") end
   return self.db
 end
 
@@ -76,13 +100,13 @@ function Addon:HandleEvent(eventName, ...)
     return
   end
   if not self.booted then self:Boot() end
-  if self.Counters and self.Counters.handles[eventName] then self:SafeCall(self.Counters.OnEvent, self.Counters, eventName, ...) end
+  if self.Counters and self.Counters.handles[eventName] then self:Guard("Counters", self.Counters.OnEvent, self.Counters, eventName, ...) end
   if eventName == "CHAT_MSG_ADDON" then
-    if self.Comms then self:SafeCall(self.Comms.OnAddonMessage, self.Comms, ...) end
+    if self.Comms then self:Guard("Comms", self.Comms.OnAddonMessage, self.Comms, ...) end
     return
   end
-  if eventName == "PLAYER_REGEN_ENABLED" and self.Toast then self:SafeCall(self.Toast.Flush, self.Toast) end
-  if eventName == "PLAYER_ENTERING_WORLD" and self.AchievementStats then self:SafeCall(self.AchievementStats.Schedule, self.AchievementStats) end
+  if eventName == "PLAYER_REGEN_ENABLED" and self.Toast then self:Guard("Toast", self.Toast.Flush, self.Toast) end
+  if eventName == "PLAYER_ENTERING_WORLD" and self.AchievementStats then self:Guard("Statistics", self.AchievementStats.Schedule, self.AchievementStats) end
   if self.Collectors then self.Collectors:HandleEvent(eventName, ...) end
 end
 

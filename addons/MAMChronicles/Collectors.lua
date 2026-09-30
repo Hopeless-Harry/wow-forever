@@ -126,5 +126,5 @@ function Collectors:HandleEvent(eventName,...)
     elseif eventName=="SKILL_LINES_CHANGED" or eventName=="TRADE_SKILL_SHOW" then self:CaptureProfessionSnapshot()
     elseif eventName=="ACHIEVEMENT_EARNED" then local id,name,points=args[1],nil,nil; if GetAchievementInfo then local ignored; ignored,name,points=safe(GetAchievementInfo,id) end; Addon.EventStore:Append("achievement.earned",{achievementID=id,achievementName=name,points=points}) end
   end)
-  if not ok then table.insert(self.status.errors,{event=eventName,message="collector handler failed",at=Addon:Now()}); while #self.status.errors>10 do table.remove(self.status.errors,1) end end
+  if not ok then Addon:RecordError(eventName, err); table.insert(self.status.errors,{event=eventName,message="collector handler failed",at=Addon:Now()}); while #self.status.errors>10 do table.remove(self.status.errors,1) end end
 end

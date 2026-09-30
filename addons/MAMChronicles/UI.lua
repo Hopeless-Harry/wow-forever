@@ -292,6 +292,17 @@ function UI:PlaceContent(belowToolbar)
   safeMethod(self.textSlider, "SetPoint", "BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", -SIDE, FOOTER + 4)
 end
 
+function UI:SetDiagBarVisible(visible)
+  local method = visible and "Show" or "Hide"
+  safeMethod(self.copyDiagButton, method); safeMethod(self.diagNote, method)
+end
+
+function UI:SelectDiagnostics()
+  safeMethod(self.copyBox, "SetFocus"); safeMethod(self.copyBox, "HighlightText")
+  self.lastMessage = "Diagnostics selected. Press Ctrl+C to copy, then paste them into your message."
+  Addon:Print(self.lastMessage)
+end
+
 function UI:ShowTextArea(copy)
   self.copyShown = copy and true or false; self.textVisible = true
   safeMethod(self.textScroll, "Show"); self:UpdateTextScroll()
@@ -681,6 +692,16 @@ function UI:Create()
   safeMethod(range, "SetScript", "OnClick", function(button) UI:OpenRangeMenu(button) end)
   self.rangeButton = range; attachTooltip(range, "Date range", "Choose how far back to look.")
 
+  -- diagnostics bar (Diagnostics tab only): select-all button and a paste-back note
+  local copyDiag = T:Button(frame, "Copy diagnostics", 130, 26)
+  safeMethod(copyDiag, "SetPoint", "TOPLEFT", frame, "TOPLEFT", SIDE, -78); safeMethod(copyDiag, "Hide")
+  safeMethod(copyDiag, "SetScript", "OnClick", function() UI:SelectDiagnostics() end)
+  self.copyDiagButton = copyDiag; attachTooltip(copyDiag, "Copy diagnostics", "Selects the whole report. Press Ctrl+C to copy it.")
+  local diagNote = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  safeMethod(diagNote, "SetPoint", "LEFT", copyDiag, "RIGHT", 10, 0); safeMethod(diagNote, "SetJustifyH", "LEFT"); safeMethod(diagNote, "Hide")
+  safeMethod(diagNote, "SetText", "Found a problem? Click Copy diagnostics, press Ctrl+C, then paste the report into your message. It holds no chat, names or gold.")
+  self.diagNote = diagNote
+
   -- body text (empty states, statistics, diagnostics) lives in a scroll area that follows the window
   local textScroll = CreateFrame("ScrollFrame", nil, frame)
   local textChild = CreateFrame("Frame", nil, textScroll)
@@ -789,13 +810,14 @@ function UI:HideAllViews()
   if self.dashboard then self.dashboard:Hide() end
   if self.settingsArea then self.settingsArea:Hide() end
   if self.medalsArea then self.medalsArea:Hide() end
+  self:SetDiagBarVisible(false)
 end
 
 function UI:Refresh()
   self:Create(); self:HideAllViews(); self:UpdateTabStates()
   local chronicle = self.activeTab == "Chronicle"
   self:SetToolbarVisible(chronicle); if not chronicle then self:CloseMenu() end
-  self:PlaceContent(chronicle)
+  self:PlaceContent(chronicle or self.activeTab == "Diagnostics")
   if self.activeTab == "Home" then
     if self.dashboard then self.dashboard:Show(); self.dashboard:Refresh() end
   elseif chronicle then
@@ -818,14 +840,15 @@ function UI:Refresh()
   elseif self.activeTab == "Settings" then
     self:ShowSettingsPage()
   else
-    self.copyText = Addon.Export:BuildDiagnosticReport(); safeMethod(self.copyBox, "SetText", self.copyText); safeMethod(self.copyBox, "Show"); self:ShowTextArea(true)
+    self.copyText = Addon.Export:BuildDiagnosticReport(); safeMethod(self.copyBox, "SetText", self.copyText); safeMethod(self.copyBox, "Show"); self:ShowTextArea(true); self:SetDiagBarVisible(true)
   end
 end
 
 function UI:Show() self:Create(); self:Refresh(); safeMethod(self.frame,"Show") end
 function UI:Hide() if self.frame then safeMethod(self.frame,"Hide") end end
-function UI:ShowCopy(text)
-  self:Create(); self:HideAllViews(); self:CloseMenu(); self:SetToolbarVisible(false); self:PlaceContent(false)
+function UI:ShowCopy(text, diagnostics)
+  self:Create(); self:HideAllViews(); self:CloseMenu(); self:SetToolbarVisible(false); self:PlaceContent(diagnostics and true or false)
+  self:SetDiagBarVisible(diagnostics)
   self.copyText = text or ""; self.textOffset = 0
   safeMethod(self.copyBox, "SetText", self.copyText); safeMethod(self.copyBox, "Show"); self:ShowTextArea(true)
   safeMethod(self.copyBox, "SetFocus"); safeMethod(self.copyBox, "HighlightText"); safeMethod(self.frame, "Show")
@@ -838,7 +861,7 @@ function UI:HandleSlash(command)
   elseif verb=="stats" then self.activeTab="Statistics"; Addon.db.settings.ui.activeTab="Statistics"; self:Show()
   elseif verb=="export" then local value,err=Addon.Export:BuildCourierPayload(0,Addon:Now()); self:ShowCopy(value or err)
   elseif verb=="toast" then if Addon.Toast then Addon.Toast:SendTest() end
-  elseif verb=="diag" then self.activeTab="Diagnostics"; Addon.db.settings.ui.activeTab="Diagnostics"; self:ShowCopy(Addon.Export:BuildDiagnosticReport())
+  elseif verb=="diag" then self.activeTab="Diagnostics"; Addon.db.settings.ui.activeTab="Diagnostics"; self:ShowCopy(Addon.Export:BuildDiagnosticReport(), true)
   else self.lastMessage="Commands: /mam, remember, stats, export, diag, toast, help"; Addon:Print(self.lastMessage) end
 end
 
