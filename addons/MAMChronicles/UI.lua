@@ -572,8 +572,8 @@ function UI:UpdateMedalsScroll()
 end
 
 local MEDAL_PITCH = MEDAL_ROW_HEIGHT + 4
-local MEDAL_LIST_TOP = 92
-UI.medalFilters = { "All", "Earned", "In progress", "Locked" }
+local MEDAL_LIST_TOP = 124
+UI.medalFilters = { "All", "Earned", "In progress", "Locked", "Next up" }
 UI.medalFilter = "All"
 UI.medalSearch = ""
 
@@ -703,7 +703,9 @@ end
 local filterTips = {
   All = "Show every medal.", Earned = "Medals you have earned.",
   ["In progress"] = "Medals you have started but not earned.", Locked = "Medals you have not started yet.",
+  ["Next up"] = "The next tier to aim for in each medal family.",
 }
+local filterWidths = { All = 84, Earned = 92, ["In progress"] = 112, Locked = 96, ["Next up"] = 104 }
 
 function UI:BuildMedalsPage(frame)
   local T = Addon.Theme; local C = T.colors
@@ -728,10 +730,10 @@ function UI:BuildMedalsPage(frame)
   safeMethod(search, "SetScript", "OnEscapePressed", function(box) safeMethod(box, "ClearFocus") end)
   self.medalSearchBox = search; attachTooltip(search, "Search medals", "Type part of a medal's name or description.")
   self.medalFilterButtons = {}
-  local previous = search
+  local previous
   for index, name in ipairs(self.medalFilters) do
-    local b = T:Button(child, name, index == 3 and 110 or 92, 26)
-    safeMethod(b, "SetPoint", "LEFT", previous, "RIGHT", 6, 0)
+    local b = T:Button(child, name, filterWidths[name] or 92, 26)
+    if previous then safeMethod(b, "SetPoint", "LEFT", previous, "RIGHT", 6, 0) else safeMethod(b, "SetPoint", "TOPLEFT", child, "TOPLEFT", 4, -88) end
     safeMethod(b, "SetScript", "OnClick", function() UI:SetMedalFilter(name) end)
     attachTooltip(b, name, filterTips[name])
     self.medalFilterButtons[index] = b; previous = b
@@ -755,18 +757,23 @@ function UI:RefreshMedals()
   local T = Addon.Theme; local C = T.colors
   local progress = Addon.Medals:GetProgress(Addon.characterKey)
   local needle = string.lower(self.medalSearch or "")
-  local searched, counts = {}, { All = 0, Earned = 0, ["In progress"] = 0, Locked = 0 }
+  local searched, counts = {}, { All = 0, Earned = 0, ["In progress"] = 0, Locked = 0, ["Next up"] = 0 }
+  local familySeen = {}
   for index, entry in ipairs(progress) do
     entry.index = index; entry.isNew = entry.earned ~= nil and Addon.Medals.newIds[entry.def.id] == true
+    -- definitions are listed in tier order, so the first unearned one of a family is its next tier
+    entry.isNextUp = false
+    if not entry.earned and not familySeen[entry.def.family] then entry.isNextUp = true; familySeen[entry.def.family] = true end
     local text = string.lower(entry.def.name .. " " .. entry.def.description)
     if needle == "" or string.find(text, needle, 1, true) then
       searched[#searched + 1] = entry
       counts.All = counts.All + 1; local state = medalState(entry); counts[state] = counts[state] + 1
+      if entry.isNextUp then counts["Next up"] = counts["Next up"] + 1 end
     end
   end
   local order = {}
   for _, entry in ipairs(searched) do
-    if self.medalFilter == "All" or medalState(entry) == self.medalFilter then order[#order + 1] = entry end
+    if self.medalFilter == "All" or (self.medalFilter == "Next up" and entry.isNextUp) or medalState(entry) == self.medalFilter then order[#order + 1] = entry end
   end
   table.sort(order, function(a, b)
     local ea, eb = a.earned ~= nil, b.earned ~= nil

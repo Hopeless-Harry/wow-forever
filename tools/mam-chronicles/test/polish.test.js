@@ -110,7 +110,7 @@ test('medal filters split the list into earned, in progress and locked',()=>{
 });
 test('medal filter buttons show which filter is active',()=>{
   const h=medalsSetup(); h.run('MAMChronicles.UI:SetMedalFilter("Earned")');
-  assert.equal(h.get('#MAMChronicles.UI.medalFilterButtons'),4);
+  assert.equal(h.get('#MAMChronicles.UI.medalFilterButtons'),5);
   assert.equal(h.get('MAMChronicles.UI.medalFilterButtons[2].highlighted'),true);
   assert.equal(h.get('MAMChronicles.UI.medalFilterButtons[1].highlighted'),false);
 });

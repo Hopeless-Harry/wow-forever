@@ -52,7 +52,7 @@ local function series(id, name, description, targets, tiers, value, options)
   for index, target in ipairs(targets) do
     local shown = options.format and options.format(target) or target
     register({
-      id = id .. "_" .. index, name = name .. " " .. roman[index], tier = tiers[index], target = target,
+      id = id .. "_" .. index, family = id, name = name .. " " .. roman[index], tier = tiers[index], target = target,
       description = (description:gsub("{n}", tostring(shown))), value = value,
       client = options.client, minCap = options.capFromTarget and target or nil, needsStat = options.needsStat,
     })
@@ -61,7 +61,7 @@ end
 
 local function single(id, name, tier, target, description, value, options)
   options = options or {}
-  register({ id = id, name = name, tier = tier, target = target, description = description, value = value, client = options.client, needsStat = options.needsStat })
+  register({ id = id, family = id, name = name, tier = tier, target = target, description = description, value = value, client = options.client, needsStat = options.needsStat })
 end
 
 local function stat(ctx, patterns) return ctx.stat(patterns) end
