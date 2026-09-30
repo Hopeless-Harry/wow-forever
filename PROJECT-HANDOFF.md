@@ -1,8 +1,8 @@
 # Moms Against Magic Chronicles — Project Handoff
 
 **Last updated:** 30 September 2026  
-**Current addon version:** `0.2.0-alpha10`  
-**Current status:** alpha10 tester-polish pass complete in AUTOMATED testing (Chronicles 300/300) and published to both clients and the CurseForge package. Nothing new has been observed live; Forever and two-player guild sharing are still unproven.
+**Current addon version:** `0.2.0-alpha11`  
+**Current status:** alpha11 (recap, goals, safer data) complete in AUTOMATED testing (Chronicles 322/322; alpha10 polish before it) and published to both clients and the CurseForge package. Nothing new has been observed live; Forever and two-player guild sharing are still unproven.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
 This is the first file a new agent should read. Keep it current whenever the version, design, verification status, release location, major decision, or next action changes.
@@ -387,6 +387,19 @@ Decisions and cuts (alpha10):
 - **Cut: `Comms.floods` per-sender table is not pruned** (bounded by guild size).
 - Did not touch guild-wide medals, Pi export or the Characters roster.
 
+Recap, goals and safer data (alpha11, 30 Sep 2026) - AUTOMATED EVIDENCE ONLY; nothing observed live:
+
+Commits: `1e6a54d` salvage + version counters; `ab66cb5` monthly recap; `97a6781` goals + release.
+
+- **Salvage**: `Database:Open` now keeps valid events and drops only invalid, duplicate or future-schema ones; `diagnostics.recovery.reason = "dropped N invalid event(s)"` and `/mam diag` prints it. A damaged root (non-table collections, wrong schema) still starts fresh. The two old database tests were changed to this contract.
+- **Guild versions**: `Comms` now counts well-formed medals this build does not know as `status.unknown` and known medals with a different catalogue version as `status.otherVersion` (both flood-limited, neither shown nor dropped); forged points and malformed ids are still `dropped`. `/mam diag` line: `Guild sharing: ..., dropped N, unknown N, other version N`. Still no handshake message; `Medals.version` remains 1.
+- **Monthly recap**: `Export:BuildMonthlyRecap(from,to)` (sessions, events, deaths/quests/discoveries/loot, medals earned this month with Mom Money, top 3 statistic changes excluding the gold group, Mom Money total; no name/realm/gold; "Quiet month" when empty). `/mam recap` and a Copy recap button on the Home month card open it in the copy view.
+- **Goals**: `settings.pinnedMedals` (max 3, normalised), `Medals:SetPinned/IsPinned/GetGoals`; clicking an unearned medal row toggles the pin (GOAL tag, tooltip hint, limit message); Home month card lists goals with progress or a hint. Earned or unavailable pins drop off.
+- Suites: Chronicles **322/322**, Diagnostics **35/35**, Dashboard **39/39** (total **396**).
+- Published on BOTH clients (21 files, 0 differences); release folder `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha11/`; ZIP SHA-256 `BF10176851F262DFB9A52807A70BD48FFC5C129D4648012171C764D6DE683C17`. Not uploaded to CurseForge.
+- **Cut**: medal description clipping (still single-line, full text in the tooltip); non-English consumable keywords (needs locale word lists); guild medal board (waits for two-player proof); Characters roster tab; Pi export. Goal toasts ("9/10") not built.
+- Publish with the PowerShell tool and UTF-8 console encoding (see alpha10 note).
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -446,7 +459,7 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-0. alpha10 is installed on BOTH clients and packaged (SHA-256 in section 9). If any later change is made, run `scripts/publish-build.ps1` again from the PowerShell tool.
+0. alpha11 is installed on BOTH clients and packaged (SHA-256 in the alpha11 block of section 9). The alpha10 instructions below still apply. If any later change is made, run `scripts/publish-build.ps1` again from the PowerShell tool.
 1. **Next action (user):** log in on the WoW Forever client with alpha10 and (a) type `/mam diag`, click Copy diagnostics and send the pasted report (look at `Handler errors:`, `Medals:`, `Camp spells seen:`, `Statistics:` and `scan N ms`); (b) open the Medals tab, try the filters and search, hover a few medals and send a screenshot; (c) do the campfire test: complete The Great Outdoors, craft and light a campfire, place a camp object, then send `/mam diag` again. Continue with the alpha9 confirmations below. Confirm live: The Great Outdoors gives Happy Camper; lighting a campfire and placing an object moves Firestarter / Camp Decorator; entering the new dungeons, raids, Darkspear Islands and new zones moves their medals; Plot Twist for a new race-class combo; which statistic-based medals appear.
 2. Fix whatever the live check disproves (exact spell names, instance names, quest name, Statistics availability on Forever).
 3. User decides: the licence text, CurseForge project name/category, and then uploads `docs/release/curseforge` material with the ZIP following `UPLOAD-CHECKLIST.md`.
@@ -454,7 +467,7 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 15. Recent history
 
-- alpha10 tester polish: commits `c601585` .. `3b2dd80` (see section 9).
+- alpha11: `1e6a54d`, `ab66cb5`, `97a6781`. alpha10 tester polish: commits `c601585` .. `3b2dd80` (see section 9).
 - `0b1263e` — added the Chronicles user manual.
 - `d90f2b9` — verified journal retention across sessions in automated coverage.
 - `7575439` — restored the persisted loot-threshold label.
