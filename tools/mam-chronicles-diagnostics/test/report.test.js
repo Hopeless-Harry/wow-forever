@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createWowHarness } from './harness.js';
+import { createWowHarness, multi } from './harness.js';
 
 function reportHarness() {
   const harness = createWowHarness({
@@ -35,7 +35,7 @@ test('report contains deterministic diagnostic sections and no private markers',
     assert.match(report, new RegExp(`(^|\\n)${heading}($|\\n)`, 'u'));
   }
   assert.match(report, /Build: 70009/u);
-  assert.match(report, /Addon version: 0\.1\.4-phase0/u);
+  assert.match(report, /Addon version: 0\.1\.5-phase0/u);
   assert.match(report, /Client version: 1\.60\.1/u);
   assert.match(report, /Current marker: 1790704800-1/u);
   assert.match(report, /Loaded marker: 1790704800-1/u);
@@ -86,6 +86,31 @@ test('slash commands dispatch only the named diagnostic actions', () => {
     selfPing: 1,
     toggle: 1,
   });
+});
+
+test('restricted self ping reports that no message was sent', () => {
+  const harness = createWowHarness({
+    globals: {
+      UnitFullName: () => multi('PRIVATE_CHARACTER', 'PRIVATE_REALM'),
+      C_ChatInfo: {
+        RegisterAddonMessagePrefix: () => 0,
+        AreOutgoingAddonChatMessagesRestricted: () => true,
+        InChatMessagingLockdown: () => false,
+        SendAddonMessage: () => { throw new Error('send must not be attempted while restricted'); },
+      },
+      Enum: {
+        RegisterAddonMessagePrefixResult: { Success: 0, DuplicatePrefix: 1 },
+      },
+    },
+  });
+  harness.load(['Core.lua', 'Capabilities.lua', 'Events.lua', 'UI.lua']);
+  harness.call('MAMChroniclesDiagnostics.Initialize()');
+
+  harness.runSlash('ping self');
+
+  assert.equal(harness.calls.printed.length, 1);
+  assert.match(harness.calls.printed[0], /self ping was not sent/u);
+  assert.match(harness.calls.printed[0], /Messaging status/u);
 });
 
 test('unknown slash commands print concise help without echoing input', () => {

@@ -265,6 +265,16 @@ local function printHelp()
     DEFAULT_CHAT_FRAME:AddMessage("MAM Chronicles: /mamdiag | /mamdiag run | /mamdiag mark | /mamdiag ping self | /mamdiag ping guild | /mamdiag reset")
 end
 
+local function runPing(scope)
+    local sent = addon.SendPing(scope)
+    if sent then
+        DEFAULT_CHAT_FRAME:AddMessage("MAM Chronicles: " .. scope .. " ping sent.")
+    else
+        DEFAULT_CHAT_FRAME:AddMessage("MAM Chronicles: " .. scope .. " ping was not sent. Check Messaging status in /mamdiag.")
+    end
+    refreshVisibleReport()
+end
+
 SLASH_MAMCHRONICLESDIAGNOSTICS1 = "/mamdiag"
 SlashCmdList.MAMCHRONICLESDIAGNOSTICS = function(message)
     local command = string.lower((message or ""):match("^%s*(.-)%s*$"))
@@ -275,9 +285,9 @@ SlashCmdList.MAMCHRONICLESDIAGNOSTICS = function(message)
     elseif command == "mark" then
         addon.MarkAndRefresh()
     elseif command == "ping self" then
-        addon.SendPing("self")
+        runPing("self")
     elseif command == "ping guild" then
-        addon.SendPing("guild")
+        runPing("guild")
     elseif command == "reset" then
         addon.ResetDiagnostics()
     else

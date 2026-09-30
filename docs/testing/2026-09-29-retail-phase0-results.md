@@ -57,6 +57,15 @@ When the SavedVariables global is not yet available, versions `0.1.2-phase0` and
 - Package: `MAMChroniclesDiagnostics-0.1.4-phase0.zip`
 - Package SHA-256: `F3C6990A3E1CD0DF02EA6B1FB2F7423856CBBD7111501829B48008DB7F1B83D5`
 
+### Prepared feedback fix
+
+On `0.1.4-phase0`, `/mamdiag ping self` produced no visible response when the realm restriction prevented sending. The command did run, but the slash handler discarded the failed result. Version `0.1.5-phase0` now prints whether a self or guild ping was sent and refreshes an open report after the attempt.
+
+- Diagnostic tests: 33/33 passed.
+- Package: `MAMChroniclesDiagnostics-0.1.5-phase0.zip`
+- Package SHA-256: `C4A51EDD0BE30907D919612F412AD4B3E6828433680A0B8A7A688A7547DC9635`
+- Installation: pending because `Wow.exe` was running during packaging.
+
 ## Messaging research note
 
 Blizzard's generated API documentation treats outgoing-addon-message restriction and chat messaging lockdown as separate states. It describes outgoing permission as realm-controlled and receiving permission as separate. Retail `0.1.4-phase0` confirmed `Outgoing restricted: yes` and `Chat lockdown: no`. This rules out chat lockdown as the sampled cause; the addon must respect the realm result rather than try to bypass it, and Forever still needs its own test.
