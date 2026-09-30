@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0-alpha11
+
+- **Monthly recap:** `/mam recap` or the Copy recap button on Home gives a short, shareable summary of the month (sessions, deaths, quests, medals earned with their Mom Money, top statistic changes). It never includes your character name, realm or gold.
+- **Medal goals:** click an unearned medal on the Medals tab to pin it as a goal (up to three). Goals and their progress show on Home. A pinned medal drops off the list when you earn it.
+- **Safer saved data:** one damaged event no longer erases your history. Valid events are kept, the broken ones are dropped, and `/mam diag` shows a `Recovery:` line saying how many.
+- **Guild sharing versions:** medals sent by a newer or older build are counted quietly as "unknown" or "other version" in `/mam diag` instead of being treated as dropped or forged messages.
+
 ## 0.2.0-alpha10
 
 - Getting started card on Home for new testers (dismissible and remembered) and a "What's new" line after an update. The chat welcome is one short line.

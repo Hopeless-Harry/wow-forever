@@ -144,6 +144,13 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] Shrink and enlarge the window and use Escape: it closes. The Settings page keeps its scroll position when you switch tabs.
 - [ ] `/mam diag` shows `Statistics: ok, ... scan N ms`. Record the ms: __________
 
+## Recap, goals and safer data (alpha11)
+
+- [ ] `/mam recap` shows a short summary of the month with no character name, realm or gold. Home has a Copy recap button that shows the same text.
+- [ ] Click an unearned medal on the Medals tab: it shows GOAL and appears on Home with its progress. Click again to unpin. A fourth pin says you can pin 3 goals.
+- [ ] Earn a pinned medal: it leaves the goals list.
+- [ ] Two players in one guild: earn a medal on one, confirm the other sees a toast. Then check `/mam diag` on both for `Guild sharing: ... unknown N, other version N`. Record: __________
+
 ## Stability
 
 - [ ] No Lua errors during the test.

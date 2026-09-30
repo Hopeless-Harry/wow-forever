@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles — User Manual
 
-- **Version:** `0.2.0-alpha10`
+- **Version:** `0.2.0-alpha11`
 - **Primary test target:** WoW Forever (interface 16001, level cap 60)
 - **Secondary test target:** World of Warcraft Retail 12.1
 - **Live evidence:** Retail has been observed live for the window and statistics. Forever, guild sharing between two real players, and most detection (campfires, emotes, consumables, vendor, group, ready checks, fall deaths) are not yet proven live.
@@ -60,6 +60,7 @@ The window has six tabs: **Home** (opens by default), **Chronicle**, **Medals**,
 - The **Medals** tab lists every medal, earned ones first, with a progress bar and count for the rest, and your Mom Money total at the top.
 - Use the **All / Earned / In progress / Locked** buttons (each shows its count) and the **search box** to narrow the list. Search matches a medal's name or description.
 - Hover a medal for a tooltip: what it asks for, **how it is tracked** (game statistics, addon counters that store only numbers, or your Chronicle) and your progress.
+- **Click an unearned medal to pin it as a goal** (up to three, marked GOAL). Goals and their progress appear on Home, and a goal drops off when you earn it. Click again to unpin.
 - Medals you earn during the current session carry a **NEW** marker. Medals the client cannot support (for example Retail-only medals on Forever) are hidden, and the counts and Mom Money total only include medals that are listed.
 - The first time the addon runs it counts your existing history and statistics as a **silent baseline**: those medals are marked "Earned before tracking began" and you see one welcome message, not a toast per medal.
 - After that, each new medal appears as a **toast**, is added to your Chronicle as a Medal entry, and is announced to your guild (see below).
@@ -98,6 +99,7 @@ A dashboard for the current character:
 
 - a greeting with realm, level and zone;
 - six headline tiles (creatures killed, quests completed, deaths, dungeons entered, flight paths, and **Delves completed** on Retail or **Campfires lit** on Forever, which has no Delves), each with "+N this month" when it has changed;
+- a **Copy recap** button on the This month card (same as `/mam recap`) and your pinned medal goals;
 - a **Getting started** card for new installs and a **What's new** line after updates, both dismissible;
 - **This month**: events, sessions, deaths, quests, discoveries, loot, awards and statistics status;
 - **Recent activity**: the latest entries, colour-coded by type, with **View all** to open the full Chronicle;
@@ -187,6 +189,7 @@ Click **Copy diagnostics**, press `Ctrl+C`, and paste the report into your messa
 | `/mam stats` | Opens this month's Statistics tab. |
 | `/mam medals` | Opens the Medals tab. |
 | `/mam settings` | Opens the Settings tab. |
+| `/mam recap` | Shows a short summary of this month to copy and share: sessions, deaths, quests, medals earned, top statistic changes and Mom Money. It has no character name, realm or gold. |
 | `/mam toast` | Shows a sample toast so you can check alerts (click again for the medal and guildmate looks). |
 | `/mam export` | Opens and selects the copyable Courier export. Press `Ctrl+C` to copy it. |
 | `/mam diag` | Opens and selects the redacted diagnostic report. Press `Ctrl+C` to copy it. |
@@ -199,6 +202,10 @@ Example:
 ```
 
 Manual memories are limited to 500 characters and are pinned so normal history compaction does not remove them.
+
+## Damaged saved data
+
+If the saved file contains a broken event, the addon keeps every valid event and drops only the broken ones. `/mam diag` then shows a `Recovery: dropped N invalid events` line. A file that is damaged at the top level still starts fresh, and the diagnostics say so.
 
 ## Combat
 

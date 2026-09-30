@@ -10,6 +10,8 @@ A private, persistent diary of your adventures, plus **Mom Medals**: silly and s
 - **Chronicle** timeline of levels, deaths, quests, discoveries, dungeons, loot, professions and memories. Search and filter it.
 - **Medals**: about 260 Mom Medals across serious goals (quests, dungeons, levels) and Mom-themed fun (Wine O'Clock, Trampoline Mom, Mom Stare, Up Past Bedtime, Clean Plate Club and many more). Each is worth 10 to 100 Mom Money. Filter by Earned, In progress or Locked, search by name, and hover a medal to see how it is tracked.
 - **WoW Forever medals**: The Journey Matters, Ready for the Core, campfire and camping medals (Firestarter, Camp Decorator, Campfire Chef), Unexplored Depths for the new dungeons, Summit Seeker and Into the Barrow for the new raids, Islander for the Darkspear Islands battleground, New Horizons for the new zones, Plot Twist, Skyborne Landing, and launch-day medals.
+- **Monthly recap** (`/mam recap`): a short, shareable summary of your month with no name or gold.
+- **Medal goals**: pin up to three medals and follow their progress on Home.
 - **Statistics**: your lifetime game statistics with a baseline and monthly changes, where the client provides them.
 - **Toasts**: slide-in alerts for new medals and level-ups. On by default, never shown in combat (they wait until combat ends).
 - **Guild sharing**: when you earn a medal, guildmates running the addon see a toast. It is on by default and easy to switch off.
@@ -29,7 +31,7 @@ A private, persistent diary of your adventures, plus **Mom Medals**: silly and s
 
 - `/mam` opens the window on the tab you used last.
 - `/mam remember your text` pins a memory.
-- `/mam stats`, `/mam medals`, `/mam settings`, `/mam export`, `/mam diag` (diagnostics with a Copy button), `/mam toast` (sends a test toast), `/mam help`.
+- `/mam stats`, `/mam medals`, `/mam settings`, `/mam recap`, `/mam export`, `/mam diag` (diagnostics with a Copy button), `/mam toast` (sends a test toast), `/mam help`.
 
 ## Compatibility
 

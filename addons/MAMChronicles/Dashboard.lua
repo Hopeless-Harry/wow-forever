@@ -267,6 +267,14 @@ function Dashboard:Refresh()
     "Deaths " .. tostring(month.deaths) .. "   Quests " .. tostring(month.quests) .. "   Discoveries " .. tostring(month.discoveries) .. "   Loot " .. tostring(month.loot),
   }
   table.insert(lines, T:Colorize("Mom Money " .. tostring(model.medals.total), C.gold) .. "  \194\183  " .. tostring(model.medals.count) .. " of " .. tostring(model.medals.possible) .. " medals")
+  local goals = Addon.Medals and Addon.Medals:GetGoals() or {}
+  if #goals == 0 then
+    table.insert(lines, T:Colorize("Pin up to 3 medals as goals on the Medals tab (click a medal).", C.muted))
+  else
+    for _, goal in ipairs(goals) do
+      table.insert(lines, T:Colorize("Goal: " .. escapeText(goal.def.name), C.gold) .. "  " .. tostring(math.floor(math.min(goal.current, goal.target))) .. " / " .. tostring(goal.target))
+    end
+  end
   for _, award in ipairs(model.awards) do table.insert(lines, T:Colorize(award.name, C.gold) .. " " .. tostring(award.count)) end
   local statistics = model.status.statistics == "ok" and (tostring(model.status.statCount) .. " lifetime statistics tracked")
     or (model.status.statistics == "unavailable" and "Statistics: not reported by this client" or ("Statistics: " .. tostring(model.status.statistics)))

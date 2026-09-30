@@ -19,7 +19,7 @@ local booleanDefaults = { toastsEnabled=true, toastSound=false, announceMedals=t
 local validTabs = { Home=true, Chronicle=true, Medals=true, Statistics=true, Settings=true, Diagnostics=true }
 local function freshSettings()
   return { enabled=true, recordCoordinates=true, recordQuestAccepts=true, notableQuality=4, maxEvents=10000, showMinimapButton=true, recordStatistics=true, recordGoldStatistics=false,
-    windowAlpha=1, theme="midnight", toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, ui=copyTable(uiDefaults) }
+    windowAlpha=1, theme="midnight", toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, pinnedMedals={}, ui=copyTable(uiDefaults) }
 end
 local function monthKey(timestamp)
   local dateFn=date or (os and os.date); return dateFn and dateFn("%Y-%m",timestamp) or "unknown"
@@ -83,6 +83,14 @@ function Database:NormaliseSettings()
   if not finite(settings.windowAlpha) then settings.windowAlpha = 1 else settings.windowAlpha = clamp(settings.windowAlpha, 0.3, 1) end
   if not validThemes[settings.theme] then settings.theme = "midnight" end
   if settings.welcomeVersion ~= nil and type(settings.welcomeVersion) ~= "string" then settings.welcomeVersion = nil end
+  -- Up to three pinned medal ids; anything else is discarded.
+  local pins, seenPins = {}, {}
+  if type(settings.pinnedMedals) == "table" then
+    for _, id in ipairs(settings.pinnedMedals) do
+      if type(id) == "string" and #id > 0 and #id <= 40 and not seenPins[id] and #pins < 3 then seenPins[id] = true; table.insert(pins, id) end
+    end
+  end
+  settings.pinnedMedals = pins
   if type(settings.whatsNewVersion) ~= "string" then settings.whatsNewVersion = nil end
   if type(settings.whatsNewSeen) ~= "string" then settings.whatsNewSeen = nil end
   local saved = tableOr(settings.ui); local ui = copyTable(uiDefaults)

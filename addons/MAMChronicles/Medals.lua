@@ -463,6 +463,52 @@ function Medals:OnEvent(event)
   self:Evaluate("event")
 end
 
+-- Goals: up to three unearned medals the player pins to follow on Home.
+Medals.maxPinned = 3
+
+function Medals:IsPinned(id)
+  local list = Addon.db and Addon.db.settings and Addon.db.settings.pinnedMedals
+  if type(list) ~= "table" then return false end
+  for _, pinned in ipairs(list) do if pinned == id then return true end end
+  return false
+end
+
+function Medals:SetPinned(id, pinned)
+  local settings = Addon.db and Addon.db.settings
+  if not settings then return false end
+  if type(settings.pinnedMedals) ~= "table" then settings.pinnedMedals = {} end
+  local list = settings.pinnedMedals
+  local index
+  for position, value in ipairs(list) do if value == id then index = position end end
+  if not pinned then
+    if index then table.remove(list, index) end
+    return true
+  end
+  local def = definitionsById[id]
+  if not def or not self:IsAvailable(def) then return false end
+  local row = Addon.db.medals and Addon.db.medals[Addon.characterKey]
+  if row and row.earned[id] then return false end
+  if index then return true end
+  if #list >= self.maxPinned then return false end
+  table.insert(list, id)
+  return true
+end
+
+-- Progress entries for the pinned medals, in pin order. Earned or unavailable ones drop off the list.
+function Medals:GetGoals()
+  local settings = Addon.db and Addon.db.settings
+  local list = settings and settings.pinnedMedals
+  if type(list) ~= "table" then return {} end
+  local byId = {}
+  for _, entry in ipairs(self:GetProgress(Addon.characterKey)) do if not entry.earned then byId[entry.def.id] = entry end end
+  local goals, kept = {}, {}
+  for _, id in ipairs(list) do
+    if byId[id] then table.insert(goals, byId[id]); table.insert(kept, id) end
+  end
+  settings.pinnedMedals = kept
+  return goals
+end
+
 function Medals:GetSummary(key)
   local row = Addon.db and Addon.db.medals and Addon.db.medals[key or Addon.characterKey]
   local count, possible, total = 0, 0, 0

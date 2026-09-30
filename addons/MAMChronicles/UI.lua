@@ -586,6 +586,8 @@ local function createMedalRow(ui, index)
   safeMethod(row.name, "SetPoint", "TOPLEFT", row, "TOPLEFT", 14, -7); safeMethod(row.name, "SetJustifyH", "LEFT")
   row.newTag = Addon.Theme:Text(row, "GameFontNormalSmall")
   safeMethod(row.newTag, "SetPoint", "LEFT", row.name, "RIGHT", 8, 0); safeMethod(row.newTag, "SetText", "NEW"); safeMethod(row.newTag, "SetTextColor", T.kindColors.world[1], T.kindColors.world[2], T.kindColors.world[3], 1); safeMethod(row.newTag, "Hide")
+  row.goalTag = Addon.Theme:Text(row, "GameFontNormalSmall")
+  safeMethod(row.goalTag, "SetPoint", "LEFT", row.newTag, "RIGHT", 6, 0); safeMethod(row.goalTag, "SetText", "GOAL"); safeMethod(row.goalTag, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1); safeMethod(row.goalTag, "Hide")
   row.desc = Addon.Theme:Text(row, "GameFontDisableSmall")
   safeMethod(row.desc, "SetPoint", "TOPLEFT", row.name, "BOTTOMLEFT", 0, -3); safeMethod(row.desc, "SetPoint", "RIGHT", row, "RIGHT", -130, 0); safeMethod(row.desc, "SetJustifyH", "LEFT"); safeMethod(row.desc, "SetWordWrap", false)
   row.points = Addon.Theme:Text(row, "GameFontNormal")
@@ -596,8 +598,18 @@ local function createMedalRow(ui, index)
   safeMethod(row.bar, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 4, 0); safeMethod(row.bar, "SetHeight", 3)
   safeMethod(row, "SetScript", "OnEnter", function(r) UI:ShowMedalTooltip(r) end)
   safeMethod(row, "SetScript", "OnLeave", function() if GameTooltip then safeMethod(GameTooltip, "Hide") end end)
+  safeMethod(row, "SetScript", "OnMouseUp", function(r, button) UI:ToggleGoal(r, button) end)
   ui.medalRows[index] = row
   return row
+end
+
+function UI:ToggleGoal(row, button)
+  local entry = row and row.entry
+  if button ~= "LeftButton" or not entry or entry.earned then return end
+  local id = entry.def.id
+  if Addon.Medals:IsPinned(id) then Addon.Medals:SetPinned(id, false)
+  elseif not Addon.Medals:SetPinned(id, true) then Addon:Print("You can pin 3 goals. Unpin one first.") end
+  self:RefreshMedals()
 end
 
 function UI:ShowMedalTooltip(row)
@@ -612,6 +624,7 @@ function UI:ShowMedalTooltip(row)
     safeMethod(GameTooltip, "AddLine", "Earned " .. when .. " (+" .. tostring(def.points) .. " Mom Money)", 0.9, 0.8, 0.3, true)
   else
     safeMethod(GameTooltip, "AddLine", "Progress: " .. tostring(math.floor(math.min(entry.current, entry.target))) .. " / " .. tostring(entry.target), 0.9, 0.8, 0.3, true)
+    safeMethod(GameTooltip, "AddLine", Addon.Medals:IsPinned(def.id) and "Click to unpin this goal." or "Click to pin as a goal.", 0.6, 0.8, 1, true)
   end
   safeMethod(GameTooltip, "Show")
 end
@@ -626,6 +639,7 @@ function UI:BindMedalRow(row, entry, position)
   safeMethod(row.name, "SetText", def.name); safeMethod(row.desc, "SetText", def.description)
   safeMethod(row.points, "SetText", "+" .. tostring(def.points))
   safeMethod(row.newTag, entry.isNew and "Show" or "Hide")
+  safeMethod(row.goalTag, (not entry.earned and Addon.Medals:IsPinned(def.id)) and "Show" or "Hide")
   local earned = entry.earned ~= nil
   local nameColour = earned and C.gold or C.muted
   safeMethod(row.name, "SetTextColor", nameColour[1], nameColour[2], nameColour[3], 1)
