@@ -464,7 +464,7 @@ function Medals:Evaluate(reason)
       end
     end
   end
-  if not baseline then self:CheckGoalProgress(row) end
+  if not baseline then self:CheckGoalProgress(row); self:CheckQuests(row) end
   return awarded
 end
 
@@ -643,10 +643,15 @@ function Medals:GetTitleCounts()
   return { earned = #order, total = total }
 end
 
+-- Mom Money earned from medals plus the bonus from weekly Mom Quests.
+function Medals:GetEarnedMoney()
+  local row = characterRow()
+  return self:GetSummary(Addon.characterKey).total + (row and tonumber(row.bonus) or 0)
+end
+
 function Medals:GetMomMoney()
   local row = characterRow()
-  local summary = self:GetSummary(Addon.characterKey)
-  return math.max(0, summary.total - (row and tonumber(row.spent) or 0))
+  return math.max(0, self:GetEarnedMoney() - (row and tonumber(row.spent) or 0))
 end
 
 function Medals:IsOwned(id)
@@ -697,6 +702,173 @@ function Medals:GetToastColour()
   local cosmetics = cosmeticSettings()
   local item = cosmetics and self.cosmeticsById[cosmetics.toastStyle]
   return item and item.color or nil
+end
+
+-- ---------------------------------------------------------------- weekly Mom Quests
+-- Three small tasks a week that pay extra Mom Money. The week number counts from the WoW Forever launch
+-- (4 November 2026, 00:00 UTC) and the choice is worked out from that number alone, so every guildmate on the same
+-- build sees the same quests without any messages. Difficulty ramps from week one (a few quests, a few meals)
+-- up to band six around week twelve. Retail players use the same calendar.
+Medals.launchEpoch = 1793750400
+local WEEK_SECONDS = 604800
+local levelTargets = { 10, 15, 20, 25, 30, 36, 42, 48, 54, 60 }
+
+function Medals:GetWeek(now)
+  now = tonumber(now) or Addon:Now()
+  local week = math.max(1, math.floor((now - self.launchEpoch) / WEEK_SECONDS) + 1)
+  return week, self.launchEpoch + (week - 1) * WEEK_SECONDS
+end
+
+function Medals:GetBand(week) return math.max(1, math.min(6, math.floor(((tonumber(week) or 1) - 1) / 2) + 1)) end
+function Medals:GetLevelTarget(week) return levelTargets[math.min(math.max(1, tonumber(week) or 1), #levelTargets)] end
+
+-- slot 1 adventure, slot 2 Mom life, slot 3 stretch. targets are per difficulty band (1 to 6).
+local questTemplates = {
+  { id = "quests", slot = 1, event = "quest.completed", text = "Complete {n} quests", targets = { 5, 10, 18, 28, 40, 55 }, minBand = 1 },
+  { id = "discover", slot = 1, event = "world.zone_discovered", text = "Discover {n} new areas", targets = { 3, 5, 8, 12, 16, 20 }, minBand = 1 },
+  { id = "level", slot = 1, level = true, forever = true, text = "Reach level {n}", targets = { 10, 15, 20, 25, 30, 36 }, minBand = 1 },
+  { id = "dungeon", slot = 1, event = "instance.entered", text = "Enter {n} dungeons", targets = { 1, 2, 3, 4, 6, 8 }, minBand = 2 },
+  { id = "loot", slot = 1, event = "loot.notable", text = "Loot {n} notable items", targets = { 1, 1, 2, 2, 3, 4 }, minBand = 4 },
+  { id = "food", slot = 2, counter = "food", text = "Eat {n} meals", targets = { 3, 6, 10, 15, 20, 30 }, minBand = 1 },
+  { id = "coffee", slot = 2, counter = "coffee", text = "Drink {n} coffees or hot drinks", targets = { 2, 3, 5, 8, 10, 14 }, minBand = 1 },
+  { id = "wine", slot = 2, counter = "wine", text = "Enjoy {n} glasses of wine", targets = { 1, 2, 3, 4, 6, 8 }, minBand = 1 },
+  { id = "jumps", slot = 2, counter = "jumps", text = "Jump {n} times", targets = { 30, 60, 120, 200, 350, 500 }, minBand = 1 },
+  { id = "hugs", slot = 2, counter = "emote_hug", text = "Give {n} hugs", targets = { 2, 3, 5, 8, 10, 15 }, minBand = 1 },
+  { id = "shots", slot = 2, counter = "shots", text = "Take {n} screenshots", targets = { 1, 2, 3, 4, 5, 6 }, minBand = 1 },
+  { id = "sales", slot = 2, counter = "sales", text = "Make {n} vendor sales", targets = { 3, 5, 8, 12, 16, 20 }, minBand = 1 },
+  { id = "repairs", slot = 2, counter = "repairs", text = "Repair your gear {n} times", targets = { 1, 1, 2, 3, 4, 5 }, minBand = 2 },
+  { id = "potion", slot = 2, counter = "potion", text = "Use {n} potions", targets = { 1, 2, 3, 5, 8, 10 }, minBand = 3 },
+  { id = "mounts", slot = 2, counter = "mounts", text = "Mount up {n} times", targets = { 5, 8, 12, 18, 25, 35 }, minBand = 4 },
+  { id = "campfire", slot = 3, counter = "campfires", forever = true, text = "Light {n} campfires", targets = { 1, 2, 3, 4, 6, 8 }, minBand = 1 },
+  { id = "days", slot = 3, days = true, text = "Log in on {n} different days", targets = { 2, 3, 4, 4, 5, 5 }, minBand = 1 },
+  { id = "dances", slot = 3, counter = "emote_dance", text = "Dance {n} times", targets = { 2, 3, 5, 8, 10, 15 }, minBand = 1 },
+  { id = "groups", slot = 3, counter = "groups", text = "Join {n} groups", targets = { 1, 2, 3, 4, 5, 6 }, minBand = 2 },
+  { id = "ready", slot = 3, counter = "ready", text = "Confirm {n} ready checks", targets = { 1, 2, 3, 4, 5, 6 }, minBand = 3 },
+}
+
+function Medals:GetQuestTemplates() return questTemplates end
+
+local function questReward(band, slot) return (band <= 2 and 10 or (band <= 4 and 15 or 20)) + (slot == 3 and 5 or 0) end
+Medals.questAllBonus = 10
+
+-- The three quests for a week (no saved state involved).
+function Medals:SelectQuests(week, levelNow)
+  local band = self:GetBand(week)
+  local forever = self:Client() == "forever"
+  local picks = {}
+  for slot = 1, 3 do
+    local eligible = {}
+    for _, template in ipairs(questTemplates) do
+      if template.slot == slot and template.minBand <= band and (not template.forever or forever) then eligible[#eligible + 1] = template end
+    end
+    local n = #eligible
+    if n > 0 then
+      local start = ((week - 1) + slot * 2) % n
+      local chosen
+      for step = 0, n - 1 do
+        local template = eligible[(start + step) % n + 1]
+        -- a level goal the character has already passed is skipped
+        if not (template.level and levelNow and levelNow >= self:GetLevelTarget(week)) then chosen = template; break end
+      end
+      picks[slot] = chosen or eligible[start + 1]
+    end
+  end
+  return picks, band
+end
+
+local function questState(week)
+  local database = Addon.db
+  if not (database and Addon.characterKey) then return nil end
+  database.challenges = tableOr(database.challenges)
+  local state = database.challenges[Addon.characterKey]
+  if type(state) ~= "table" or state.week ~= week then
+    state = { week = week, baselines = {}, done = {} }
+    database.challenges[Addon.characterKey] = state
+  end
+  state.baselines, state.done = tableOr(state.baselines), tableOr(state.done)
+  return state
+end
+
+local function loginDaysThisWeek(weekStart)
+  if not (Addon.EventStore and dateFn) then return 0 end
+  local days, total = {}, 0
+  for _, event in ipairs(Addon.EventStore:Query({ type = "session.login", characterKey = Addon.characterKey, fromTime = weekStart })) do
+    local key = dateFn("%Y%m%d", event.occurredAt)
+    if not days[key] then days[key] = true; total = total + 1 end
+  end
+  return total
+end
+
+-- The quests for a week with progress. Progress and baselines exist only for the current week.
+function Medals:GetWeeklyQuests(week)
+  local current, weekStart = self:GetWeek()
+  week = tonumber(week) or current
+  local isCurrent = week == current
+  local levelNow = tonumber(safe(UnitLevel, "player"))
+  local picks, band = self:SelectQuests(week, levelNow)
+  local state = isCurrent and questState(week) or nil
+  local ctx = isCurrent and self:BuildContext() or nil
+  local list = {}
+  for slot = 1, 3 do
+    local template = picks[slot]
+    if template then
+      local target = template.level and self:GetLevelTarget(week) or template.targets[band]
+      local quest = {
+        id = "w" .. week .. "_" .. template.id, key = template.id, slot = slot, band = band, target = target, reward = questReward(band, slot),
+        text = (template.text:gsub("{n}", tostring(target))), forever = template.forever, counter = template.counter, metric = template.event,
+        kind = template.level and "level" or (template.days and "days" or (template.counter and "counter" or "event")), current = 0, done = false,
+      }
+      if isCurrent and state and ctx then
+        local value
+        if template.level then value = ctx.level(); quest.current = value
+        elseif template.days then quest.current = loginDaysThisWeek(weekStart)
+        else
+          value = template.counter and ctx.counter(template.counter) or ctx.event(template.event)
+          if state.baselines[template.id] == nil then state.baselines[template.id] = value end
+          quest.current = math.max(0, value - state.baselines[template.id])
+        end
+        quest.done = state.done[template.id] == true
+      end
+      list[#list + 1] = quest
+    end
+  end
+  return list
+end
+
+function Medals:CheckQuests(row)
+  local week = self:GetWeek()
+  local state = questState(week)
+  if not state then return end
+  local quests = self:GetWeeklyQuests()
+  local finished = 0
+  for _, quest in ipairs(quests) do
+    if not quest.done and quest.current >= quest.target then
+      state.done[quest.key] = true; quest.done = true
+      row.bonus = (tonumber(row.bonus) or 0) + quest.reward
+      row.questsDone = (tonumber(row.questsDone) or 0) + 1
+      if Addon.Toast then
+        Addon:Guard("Quests", Addon.Toast.Show, Addon.Toast, { kind = "info", title = "Mom Quest done: " .. quest.text, text = "+" .. tostring(quest.reward) .. " Mom Money", action = "Medals" })
+      end
+    end
+    if quest.done then finished = finished + 1 end
+  end
+  if #quests > 0 and finished == #quests and not state.allDone then
+    state.allDone = true
+    row.bonus = (tonumber(row.bonus) or 0) + self.questAllBonus
+    if Addon.Toast then
+      Addon:Guard("Quests", Addon.Toast.Show, Addon.Toast, { kind = "medal", title = "All Mom Quests done this week!", text = "Bonus +" .. tostring(self.questAllBonus) .. " Mom Money", action = "Medals" })
+    end
+  end
+end
+
+function Medals:DescribeQuests()
+  local week = self:GetWeek()
+  local lines = {}
+  for _, quest in ipairs(self:GetWeeklyQuests()) do
+    local progress = math.floor(math.min(quest.current, quest.target))
+    lines[#lines + 1] = (quest.done and "[x] " or "[ ] ") .. quest.text .. "  " .. tostring(progress) .. " / " .. tostring(quest.target) .. "  +" .. tostring(quest.reward)
+  end
+  return week, lines
 end
 
 -- Goals: up to three unearned medals the player pins to follow on Home.

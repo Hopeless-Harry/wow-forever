@@ -31,7 +31,7 @@ function Database:Fresh(reason)
     schemaVersion = 1,
     meta = { createdAt = timestamp, updatedAt = timestamp, loadCount = 0, addonVersion = Addon.version, clientBuild = select(2, Addon:SafeCall(GetBuildInfo)) },
     settings = freshSettings(),
-    characters = {}, sessions = {}, events = {}, eventIds = {}, questCompletion = {}, professionSnapshots = {}, aggregates = {}, diagnostics = {}, statistics = {}, statisticCatalog = {}, medals = {}, guildFeed = {}, counters = {}, medalTallies = {},
+    characters = {}, sessions = {}, events = {}, eventIds = {}, questCompletion = {}, professionSnapshots = {}, aggregates = {}, diagnostics = {}, statistics = {}, statisticCatalog = {}, medals = {}, guildFeed = {}, counters = {}, medalTallies = {}, challenges = {},
   }
   if reason then db.diagnostics.recovery = { recoveredAt = timestamp, reason = reason } end
   return db
@@ -43,7 +43,7 @@ function Database:Open(saved)
   if type(saved) ~= "table" then if saved~=nil then reason="corrupt root" end
   elseif saved.schemaVersion ~= 1 then reason = "unsupported schema" end
   if not reason and type(saved)=="table" then
-    for _,key in ipairs({"meta","settings","characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics","statistics","statisticCatalog","medals","guildFeed","counters","medalTallies"}) do
+    for _,key in ipairs({"meta","settings","characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics","statistics","statisticCatalog","medals","guildFeed","counters","medalTallies","challenges"}) do
       if saved[key]~=nil and type(saved[key])~="table" then reason="corrupt root"; break end
     end
     if not reason and type(saved.events)=="table" then
@@ -58,7 +58,7 @@ function Database:Open(saved)
   end
   local db = reason and self:Fresh(reason) or (type(saved) == "table" and saved or self:Fresh())
   db.meta = tableOr(db.meta); db.settings = tableOr(db.settings)
-  for _, key in ipairs({"characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics","statistics","statisticCatalog","medals","guildFeed","counters","medalTallies"}) do db[key] = tableOr(db[key]) end
+  for _, key in ipairs({"characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics","statistics","statisticCatalog","medals","guildFeed","counters","medalTallies","challenges"}) do db[key] = tableOr(db[key]) end
   db.eventIds={}; for _,event in ipairs(db.events) do db.eventIds[event.id]=true end
   if droppedEvents>0 and not reason then db.diagnostics.recovery={recoveredAt=now(),reason="dropped "..droppedEvents.." invalid event"..(droppedEvents==1 and "" or "s")} end
   db.schemaVersion = 1; self.db = db; self:NormaliseSettings()
@@ -133,6 +133,7 @@ function Database:ClearHistory()
   self.db.questCompletion, self.db.professionSnapshots, self.db.aggregates = {}, {}, {}
   self.db.statistics, self.db.statisticCatalog = {}, {}
   self.db.medals, self.db.guildFeed, self.db.counters, self.db.medalTallies = {}, {}, {}, {}
+  self.db.challenges = {}
   if Addon.Medals then Addon.Medals:Reset() end
   self.currentSession = nil; Addon.sessionId = nil
   if Addon.characterKey and character then self:RegisterCharacter(Addon.characterKey, character); self:BeginSession() end

@@ -270,6 +270,13 @@ function Dashboard:Refresh()
   table.insert(lines, T:Colorize("Mom Money " .. tostring(model.medals.total), C.gold) .. "  \194\183  " .. tostring(model.medals.count) .. " of " .. tostring(model.medals.possible) .. " medals")
   local since = Addon.Statistics:DescribeSinceLastLogin(Addon.Statistics:BuildSinceLastLogin())
   if since then table.insert(lines, 1, T:Colorize(escapeText(since), C.muted)) end
+  if Addon.Medals then
+    local week, questLines = Addon.Medals:DescribeQuests()
+    if #questLines > 0 then
+      table.insert(lines, T:Colorize("Week " .. tostring(week) .. " Mom Quests", C.gold))
+      for _, questLine in ipairs(questLines) do table.insert(lines, "  " .. escapeText(questLine)) end
+    end
+  end
   local goals = Addon.Medals and Addon.Medals:GetGoals() or {}
   if #goals == 0 then
     table.insert(lines, T:Colorize("Pin up to 3 medals as goals on the Medals tab (click a medal).", C.muted))

@@ -871,8 +871,8 @@ function UI:RefreshMedals()
   end)
   self.medalList = order
   local summary = Addon.Medals:GetSummary(Addon.characterKey)
-  local available = Addon.Medals:GetMomMoney()
-  safeMethod(self.medalHeader, "SetText", "Mom Money " .. tostring(available) .. (available ~= summary.total and (" (" .. tostring(summary.total) .. " earned)") or ""))
+  local available, earnedMoney = Addon.Medals:GetMomMoney(), Addon.Medals:GetEarnedMoney()
+  safeMethod(self.medalHeader, "SetText", "Mom Money " .. tostring(available) .. (available ~= earnedMoney and (" (" .. tostring(earnedMoney) .. " earned)") or ""))
   safeMethod(self.medalSub, "SetText", tostring(summary.count) .. " of " .. tostring(summary.possible) .. " Mom Medals earned  \194\183  " .. Addon.Medals:GetTitle() .. "  \194\183  " .. tostring(Addon.Medals:GetTitleCounts().earned) .. " of " .. tostring(Addon.Medals:GetTitleCounts().total) .. " titles" .. ((self.medalFilter ~= "All" or needle ~= "" or self.medalCategory ~= "all") and ("  \194\183  showing " .. tostring(#order)) or ""))
   for index, name in ipairs(self.medalFilters) do
     local b = self.medalFilterButtons[index]
@@ -1154,6 +1154,7 @@ UI.helpLines={
   "/mam recap - show a shareable summary of this month to copy (/mam recap week for the last 7 days)",
   "/mam export - show the Courier export text to copy",
   "/mam diag - show the diagnostics report to paste into a bug report",
+  "/mam quests - show this week's Mom Quests and your progress",
   "/mam toast - show a sample toast (test alerts)",
   "/mam help - show this list",
 }
@@ -1175,6 +1176,10 @@ function UI:HandleSlash(command)
   elseif verb=="recap" then
     if string.lower(rest or "")=="week" then self:ShowCopy(Addon.Export:BuildWeeklyRecap())
     else local from,to=self:GetCurrentMonthRange(); self:ShowCopy(Addon.Export:BuildMonthlyRecap(from,to)) end
+  elseif verb=="quests" then
+    local week,questLines=Addon.Medals:DescribeQuests()
+    Addon:Print("Week "..tostring(week).." Mom Quests (extra Mom Money, new ones every week):")
+    for _,questLine in ipairs(questLines) do Addon:Print(questLine) end
   elseif verb=="toast" then if Addon.Toast then Addon.Toast:SendTest() end
   elseif verb=="diag" then self.activeTab="Diagnostics"; Addon.db.settings.ui.activeTab="Diagnostics"; self:ShowCopy(Addon.Export:BuildDiagnosticReport(), true)
   elseif verb=="help" then self:PrintHelp()
