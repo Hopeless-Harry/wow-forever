@@ -17,6 +17,18 @@ end
 
 local function inCombat() return InCombatLockdown and InCombatLockdown() and true or false end
 
+local quietTypes = { party = true, raid = true, scenario = true, pvp = true, arena = true }
+
+-- Toasts wait in dungeons, raids, scenarios and battlegrounds (when Settings > Alerts allows it) and during combat.
+local function held()
+  if inCombat() then return true end
+  local settings = Addon.db and Addon.db.settings
+  if settings and settings.quietInstances == false then return false end
+  if type(IsInInstance) ~= "function" then return false end
+  local ok, inInstance, kind = pcall(IsInInstance)
+  return ok and inInstance and quietTypes[kind] == true or false
+end
+
 function Toast:Initialise()
   if self.initialised then return end
   self.initialised = true
@@ -70,7 +82,7 @@ function Toast:Show(spec)
   local settings = Addon.db and Addon.db.settings
   if not settings or settings.toastsEnabled == false then return "dropped" end
   if spec.kind == "guild" and settings.receiveGuildAlerts == false then return "dropped" end
-  if self.current or inCombat() then enqueue(self, spec); return "queued" end
+  if self.current or held() then enqueue(self, spec); return "queued" end
   self:Start(spec)
   return "shown"
 end
@@ -153,7 +165,7 @@ end
 function Toast:Finish()
   self.current, self.phase, self.timer = nil, nil, 0
   safeMethod(self.frame, "Hide")
-  if #self.queue > 0 and not inCombat() then self:Start(table.remove(self.queue, 1)) end
+  if #self.queue > 0 and not held() then self:Start(table.remove(self.queue, 1)) end
 end
 
 function Toast:Advance(elapsed)
@@ -183,7 +195,7 @@ function Toast:SendTest()
 end
 
 function Toast:Flush()
-  if not self.current and #self.queue > 0 and not inCombat() then self:Start(table.remove(self.queue, 1)) end
+  if not self.current and #self.queue > 0 and not held() then self:Start(table.remove(self.queue, 1)) end
 end
 
 function Toast:Click(button)

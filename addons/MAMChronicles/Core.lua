@@ -152,7 +152,7 @@ function Addon:HandleEvent(eventName, ...)
     if self.Comms then self:Guard("Comms", self.Comms.OnAddonMessage, self.Comms, ...) end
     return
   end
-  if eventName == "PLAYER_REGEN_ENABLED" and self.Toast then self:Guard("Toast", self.Toast.Flush, self.Toast) end
+  if (eventName == "PLAYER_REGEN_ENABLED" or eventName == "PLAYER_ENTERING_WORLD") and self.Toast then self:Guard("Toast", self.Toast.Flush, self.Toast) end
   if eventName == "PLAYER_ENTERING_WORLD" and self.AchievementStats then self:Guard("Statistics", self.AchievementStats.Schedule, self.AchievementStats) end
   if self.Collectors then self.Collectors:HandleEvent(eventName, ...) end
 end

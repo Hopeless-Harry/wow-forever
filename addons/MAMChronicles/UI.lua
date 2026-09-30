@@ -214,7 +214,7 @@ function UI:GetVisibleTimeline()
   local result={}; for index=offset+1,math.min(offset+30,#events) do table.insert(result,events[index]) end return result,#events
 end
 
-local booleanSettings={enabled=true,recordCoordinates=true,recordQuestAccepts=true,recordStatistics=true,recordGoldStatistics=true,toastsEnabled=true,toastSound=true,announceMedals=true,announceGuildChat=true,receiveGuildAlerts=true}
+local booleanSettings={enabled=true,recordCoordinates=true,recordQuestAccepts=true,recordStatistics=true,recordGoldStatistics=true,toastsEnabled=true,toastSound=true,quietInstances=true,announceMedals=true,announceGuildChat=true,receiveGuildAlerts=true}
 function UI:SetSetting(key,value)
   if key=="showMinimapButton" and Addon.SettingsPanel then return Addon.SettingsPanel:ApplySetting(key,value==true) end
   local settings=Addon.db.settings
@@ -542,6 +542,7 @@ function UI:BuildSettingsPage(frame)
   check("announceMedals", "Announce my Mom Medals to the guild", "Guildmates running the addon see a toast when you earn a medal. Nothing is sent when messaging is restricted.")
   check("announceGuildChat", "Also post my medals in guild chat", "Posts one line to guild chat that everyone can read, even without the addon. Off by default.")
   check("receiveGuildAlerts", "Show toasts when guildmates earn medals")
+  check("quietInstances", "Hold toasts in dungeons, raids and battlegrounds", "Toasts wait until you are back in the open world. They are always held in combat.")
   y = y - 4
   local function soundText() local s = Addon.Toast.soundKeys[Addon.db.settings.toastSoundChoice] or Addon.Toast.sounds[1]; return "Toast sound: " .. s.label end
   self.soundButton = button(soundText(), 220, 8, function(b)
