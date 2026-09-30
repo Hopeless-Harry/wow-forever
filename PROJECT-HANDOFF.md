@@ -2,10 +2,12 @@
 
 **Last updated:** 30 September 2026  
 **Current addon version:** `0.2.0-alpha1`  
-**Current status:** Functional personal-Chronicle tester build; automated verification passes, but live acceptance of the production addon is still required.  
+**Current status:** Full proper-addon polish design has been written and is awaiting user approval; the personal-Chronicle tester build remains functional and its prior automated verification passed, but live acceptance of the production addon is still required.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
 This is the first file a new agent should read. Keep it current whenever the version, design, verification status, release location, major decision, or next action changes.
+
+**Standing continuity rule from the user:** update this handoff as work progresses, including during a partially completed milestone. If the active agent stops or runs out of usage, another agent must be able to identify the last completed check, the current work in progress, and the exact next action from this file alone.
 
 ## 1. Project vision
 
@@ -217,7 +219,9 @@ The core works, but the outer shell still feels like an alpha. The next design/i
 - add a changelog and explicit licence statement;
 - update the manual, tester checklist, package allowlist, and tests for every new shipped file.
 
-No code for this polish pass should be considered approved until the user chooses the desired scope/design. The current recommendation is a full tester-quality polish pass rather than a minimap-only patch.
+The user said to proceed on 30 September 2026. Unless corrected, this is being treated as approval to design the recommended **full tester-quality polish pass**, not a minimap-only patch. Production code must still follow the recorded design and verification checkpoints.
+
+The proposed design is recorded in `docs/superpowers/specs/2026-09-30-mam-chronicles-proper-addon-polish-design.md`. It recommends a native, dependency-free implementation with two focused new modules (`Launcher.lua` and `SettingsPanel.lua`) plus an original icon. Status: **awaiting explicit design approval before production-code changes**.
 
 ## 10. Later roadmap
 
@@ -278,7 +282,7 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-Agree the scope and interaction design for the **proper-addon polish pass**, beginning with the minimap launcher, Addon Compartment entry, Blizzard Settings page, saved window state, icon, and reset/onboarding controls. Then write the design document and implementation plan before changing production code.
+Obtain approval for `docs/superpowers/specs/2026-09-30-mam-chronicles-proper-addon-polish-design.md`. Then write the test-driven implementation plan, update this handoff, and begin with settings/UI-state migration tests before changing production behaviour.
 
 ## 15. Recent history
 
@@ -290,4 +294,3 @@ Agree the scope and interaction design for the **proper-addon polish pass**, beg
 - `40d522c` — supported Retail quest-acceptance events.
 - `18122bf` — completed Phase 1 acceptance coverage.
 - `5071a8a` — hardened full tester-build runtime coverage.
-
