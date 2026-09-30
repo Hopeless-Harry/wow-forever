@@ -1,0 +1,14 @@
+## Interface: 120100, 120105, 16001
+## Title: Moms Against Magic Chronicles
+## Notes: A private, persistent chronicle of your adventures.
+## Author: Moms Against Magic
+## Version: 0.2.0-alpha1
+## SavedVariables: MAMChroniclesDB
+
+Core.lua
+Database.lua
+EventStore.lua
+Collectors.lua
+Statistics.lua
+Export.lua
+UI.lua
