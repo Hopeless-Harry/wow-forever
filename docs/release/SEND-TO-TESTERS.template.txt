@@ -18,16 +18,21 @@ INSTALL
 5. Log in and type: /mam
 
 QUICK TEST
-1. Type: /mam toast   (shows a test toast)
-2. Type: /mam remember tester check
-3. Type: /reload
-4. Open /mam and confirm the memory is still present.
-5. Work through TESTER-CHECKLIST.md where practical.
+1. Read the Getting started card on Home, then click Got it.
+2. Type: /mam toast   (shows a test toast)
+3. Open the Medals tab: try the filters, the search box and hover a medal.
+4. Type: /mam remember tester check
+5. Type: /reload
+6. Open /mam and confirm the memory is still present.
+7. Work through TESTER-CHECKLIST.md where practical.
 
 IF SOMETHING BREAKS
 1. Type: /mam diag
-2. Copy the report or take a screenshot.
+2. Click "Copy diagnostics", press Ctrl+C, and paste the report into your message.
+   (It holds no chat, gold, item names or character name.)
 3. Include exactly what you did immediately before the problem.
+4. On WoW Forever please send /mam diag even when nothing broke: we still need to
+   confirm campfire, emote, consumable and other detection there.
 
 IMPORTANT
 - This is an alpha build. Back up the WTF folder before extended testing.

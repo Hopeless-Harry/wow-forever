@@ -1,8 +1,9 @@
 # Moms Against Magic Chronicles — User Manual
 
-- **Version:** `0.2.0-alpha9`
-- **Current test target:** World of Warcraft Retail 12.1
-- **WoW Forever:** Built with compatibility checks, but live beta testing is still pending.
+- **Version:** `0.2.0-alpha10`
+- **Primary test target:** WoW Forever (interface 16001, level cap 60)
+- **Secondary test target:** World of Warcraft Retail 12.1
+- **Live evidence:** Retail has been observed live for the window and statistics. Forever, guild sharing between two real players, and most detection (campfires, emotes, consumables, vendor, group, ready checks, fall deaths) are not yet proven live.
 
 ## What the addon does
 
@@ -29,7 +30,7 @@ This first version stores everything locally on your computer. It does not yet s
    /mam
    ```
 
-The Chronicle window should open.
+The Chronicle window opens on the **Home** tab. New installs show a **Getting started** card there that explains `/mam`, where Medals and Settings are, what is shared with your guild and how to opt out. Click **Got it** to hide it for good. After an update Home shows a one-line **What's new** note with an x button to dismiss it.
 
 ## Opening the Chronicle
 
@@ -54,9 +55,12 @@ The window has six tabs: **Home** (opens by default), **Chronicle**, **Medals**,
 
 ### Medals and Mom Money
 
-**Mom Medals** are the guild's own achievements, and each one is worth **Mom Money** by tier: bronze 10, silver 25, gold 50, platinum 100. There are about forty, for things like completing quests, delves and dungeons, exploring, keeping memories, levelling, and a few jokes (dying from a fall, being defeated by a murloc).
+**Mom Medals** are the guild's own achievements, and each one is worth **Mom Money** by tier: bronze 10, silver 25, gold 50, platinum 100. There are hundreds, for things like completing quests and dungeons, exploring, keeping memories, levelling, and a lot of jokes (dying from a fall, being defeated by a murloc, wine drunk).
 
 - The **Medals** tab lists every medal, earned ones first, with a progress bar and count for the rest, and your Mom Money total at the top.
+- Use the **All / Earned / In progress / Locked** buttons (each shows its count) and the **search box** to narrow the list. Search matches a medal's name or description.
+- Hover a medal for a tooltip: what it asks for, **how it is tracked** (game statistics, addon counters that store only numbers, or your Chronicle) and your progress.
+- Medals you earn during the current session carry a **NEW** marker. Medals the client cannot support (for example Retail-only medals on Forever) are hidden, and the counts and Mom Money total only include medals that are listed.
 - The first time the addon runs it counts your existing history and statistics as a **silent baseline**: those medals are marked "Earned before tracking began" and you see one welcome message, not a toast per medal.
 - After that, each new medal appears as a **toast**, is added to your Chronicle as a Medal entry, and is announced to your guild (see below).
 - Clicking a toast opens the Medals tab. Below the medal list, **Guildmates** shows medals other players have earned recently.
@@ -93,7 +97,8 @@ Settings > Appearance has four themes (Midnight, Parchment, Crimson, Slate). Cho
 A dashboard for the current character:
 
 - a greeting with realm, level and zone;
-- six headline tiles from the game's own statistics (creatures killed, quests completed, deaths, dungeons entered, flight paths, delves completed), each with "+N this month" when it has changed;
+- six headline tiles (creatures killed, quests completed, deaths, dungeons entered, flight paths, and **Delves completed** on Retail or **Campfires lit** on Forever, which has no Delves), each with "+N this month" when it has changed;
+- a **Getting started** card for new installs and a **What's new** line after updates, both dismissible;
 - **This month**: events, sessions, deaths, quests, discoveries, loot, awards and statistics status;
 - **Recent activity**: the latest entries, colour-coded by type, with **View all** to open the full Chronicle;
 - a **Remember this moment** box at the bottom that pins a manual memory (press Enter or click Remember).
@@ -164,25 +169,28 @@ When the history limit is reached, older raw events are compacted into monthly t
 
 This tab produces a copyable technical report containing:
 
-- addon version;
-- WoW build and interface;
-- database schema;
-- event and session counts;
-- registered or unavailable collectors;
-- safe collector-error summaries.
+- addon version, WoW build and interface, client type and level cap;
+- database schema and **SavedVariables counts** (events, medals, guild feed entries);
+- **handler errors**: how many times an addon handler failed and the last short message (no personal data);
+- registered or unavailable collectors and safe collector-error summaries;
+- statistics status, including how long the scan took;
+- the Guild sharing state and the Medals line (hooks installed, camp spell names seen), which is the evidence for detection that is not yet proven live.
 
-The diagnostic report deliberately omits the character name. Use it when reporting a problem.
+Click **Copy diagnostics**, press `Ctrl+C`, and paste the report into your message (WoW addons cannot write to the clipboard themselves, so the button selects the text for you). The report deliberately omits the character name, chat, gold and item names. `/mam diag` opens it directly.
 
 ## Slash commands
 
 | Command | What it does |
 |---|---|
-| `/mam` | Opens the Chronicle tab. |
+| `/mam` | Opens or closes the window on the tab you used last. |
 | `/mam remember your text` | Creates a pinned manual memory at the current place when location information is available. |
 | `/mam stats` | Opens this month's Statistics tab. |
+| `/mam medals` | Opens the Medals tab. |
+| `/mam settings` | Opens the Settings tab. |
+| `/mam toast` | Shows a sample toast so you can check alerts (click again for the medal and guildmate looks). |
 | `/mam export` | Opens and selects the copyable Courier export. Press `Ctrl+C` to copy it. |
 | `/mam diag` | Opens and selects the redacted diagnostic report. Press `Ctrl+C` to copy it. |
-| `/mam help` | Prints the available commands in chat. |
+| `/mam help` | Prints every command in chat. An unknown command points here. |
 
 Example:
 
@@ -191,6 +199,10 @@ Example:
 ```
 
 Manual memories are limited to 500 characters and are pinned so normal history compaction does not remove them.
+
+## Combat
+
+The addon stays out of the way in combat. If you type `/mam` or click the minimap button during combat, the window opens when combat ends (chat tells you so). Toasts wait until combat ends. Resizing the window in combat is applied afterwards. You can still close the window in combat. Nothing the addon does touches secure buttons.
 
 ## What is recorded automatically
 
@@ -389,6 +401,6 @@ Send all four of these:
 1. What you clicked or typed.
 2. What you expected.
 3. What happened instead.
-4. The copied `/mam diag` report or a screenshot of the Lua error.
+4. The diagnostics: type `/mam diag`, click **Copy diagnostics**, press `Ctrl+C` and paste it into your message. Add a screenshot of any Lua error.
 
 Do not send private SavedVariables publicly. Share them only through an agreed private route if they are genuinely required for diagnosis.

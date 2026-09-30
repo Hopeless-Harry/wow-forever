@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0-alpha10
+
+- Getting started card on Home for new testers (dismissible and remembered) and a "What's new" line after an update. The chat welcome is one short line.
+- Diagnostics tab has a **Copy diagnostics** button and a note on what to paste back. The report now includes the level cap, SavedVariables counts (events, medals, guild feed entries) and a handler error count with the last short message.
+- Medals tab: All / Earned / In progress / Locked filters, a search box, a tooltip on every medal saying how it is tracked and how far along you are, a NEW marker for medals earned this session, and rows created only for what is on screen.
+- Forever-first: Home shows Campfires lit instead of the Retail-only Delves tile, the guild sharing line shows its real state, and empty statistics explain which medals still work.
+- Stability: every growing table is bounded (sessions, duplicate filter, counters); the statistics scan is split across frames on slow machines and reports its cost in `/mam diag`; a failure in one handler no longer affects the others and is counted.
+- Combat safety: the window, minimap button and layout changes wait until combat ends. Counters stop while recording is switched off.
+- Item lookups use the modern `C_Item` API where it exists.
+- Parchment theme: readable labels, event colours and medal tiers.
+- New commands `/mam medals` and `/mam settings`; `/mam help` lists every command. The window never starts larger than the screen.
+
 ## 0.2.0-alpha9
 
 - Reviewed every medal for WoW Forever. Retail-only medals (Delver, Treasure Hunter Mom, Pet Playdate, Achiever, level 80 and 90) are hidden on Forever. Medals that depend on a game statistic only appear when the client reports that statistic. Level medals stop at Forever's level 60 cap.

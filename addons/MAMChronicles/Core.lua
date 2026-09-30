@@ -2,7 +2,7 @@ MAMChronicles = MAMChronicles or {}
 local Addon = MAMChronicles
 
 Addon.name = "MAMChronicles"
-Addon.version = "0.2.0-alpha9"
+Addon.version = "0.2.0-alpha10"
 Addon.schemaVersion = 1
 
 function Addon:Now()

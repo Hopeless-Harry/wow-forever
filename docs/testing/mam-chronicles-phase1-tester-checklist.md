@@ -129,6 +129,21 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] Discover an area in a new zone (Mount Hyjal, Riverglades, Shen'dralas, Zephras Isle): New Horizons progresses.
 - [ ] Play an Orc Mage, Human Hunter, Gnome Priest, Dwarf Shaman, Troll Warlock or Undead Paladin: Plot Twist is earned.
 
+## Tester polish (alpha10)
+
+- [ ] First launch: Home shows the Getting started card; Got it hides it and it stays hidden after `/reload`.
+- [ ] After updating from alpha9 a "What's new" line appears on Home and its x button dismisses it.
+- [ ] The chat welcome is a single short line.
+- [ ] `/mam diag`: click Copy diagnostics, press Ctrl+C, paste into a text editor. The report shows `Level cap: 60` on Forever, `SavedVariables: events N, medals N, feed N`, `Handler errors: 0` and the `Medals:` and `Guild sharing:` lines. Record any handler error text: __________
+- [ ] Medals tab: the four filter buttons change the list and their counts add up; searching `wine` shows the wine medals; hovering a medal shows how it is tracked and your progress; a medal earned now shows NEW.
+- [ ] Opening the Medals tab and scrolling the whole list has no hitch or freeze.
+- [ ] On Forever: Home shows Campfires lit (no Delves tile) and no Retail-only medals appear. If Statistics are missing the Statistics tab says so and explains which medals still work.
+- [ ] Type `/mam` during combat: nothing opens until combat ends, then the window appears.
+- [ ] `/mam help` lists every command; `/mam medals` and `/mam settings` open those tabs.
+- [ ] Try the Parchment theme (Settings, Apply theme): all text, event labels and medal points are readable.
+- [ ] Shrink and enlarge the window and use Escape: it closes. The Settings page keeps its scroll position when you switch tabs.
+- [ ] `/mam diag` shows `Statistics: ok, ... scan N ms`. Record the ms: __________
+
 ## Stability
 
 - [ ] No Lua errors during the test.

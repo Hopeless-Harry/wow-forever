@@ -6,9 +6,9 @@ A private, persistent diary of your adventures, plus **Mom Medals**: silly and s
 
 ## What you get
 
-- **Home** dashboard: your headline numbers, this month at a glance, recent activity, and a "Remember this moment" box.
+- **Home** dashboard: a Getting started card for new installs, your headline numbers, this month at a glance, recent activity, and a "Remember this moment" box.
 - **Chronicle** timeline of levels, deaths, quests, discoveries, dungeons, loot, professions and memories. Search and filter it.
-- **Medals**: about 260 Mom Medals across serious goals (quests, dungeons, levels) and Mom-themed fun (Wine O'Clock, Trampoline Mom, Mom Stare, Up Past Bedtime, Clean Plate Club and many more). Each is worth 10 to 100 Mom Money.
+- **Medals**: about 260 Mom Medals across serious goals (quests, dungeons, levels) and Mom-themed fun (Wine O'Clock, Trampoline Mom, Mom Stare, Up Past Bedtime, Clean Plate Club and many more). Each is worth 10 to 100 Mom Money. Filter by Earned, In progress or Locked, search by name, and hover a medal to see how it is tracked.
 - **WoW Forever medals**: The Journey Matters, Ready for the Core, campfire and camping medals (Firestarter, Camp Decorator, Campfire Chef), Unexplored Depths for the new dungeons, Summit Seeker and Into the Barrow for the new raids, Islander for the Darkspear Islands battleground, New Horizons for the new zones, Plot Twist, Skyborne Landing, and launch-day medals.
 - **Statistics**: your lifetime game statistics with a baseline and monthly changes, where the client provides them.
 - **Toasts**: slide-in alerts for new medals and level-ups. On by default, never shown in combat (they wait until combat ends).
@@ -29,7 +29,7 @@ A private, persistent diary of your adventures, plus **Mom Medals**: silly and s
 
 - `/mam` opens the window on the tab you used last.
 - `/mam remember your text` pins a memory.
-- `/mam stats`, `/mam export`, `/mam diag`, `/mam toast` (sends a test toast), `/mam help`.
+- `/mam stats`, `/mam medals`, `/mam settings`, `/mam export`, `/mam diag` (diagnostics with a Copy button), `/mam toast` (sends a test toast), `/mam help`.
 
 ## Compatibility
 
@@ -40,6 +40,7 @@ A private, persistent diary of your adventures, plus **Mom Medals**: silly and s
 ## Known limits
 
 - Alpha software: back up your WTF folder before installing.
+- The window, minimap button and layout changes wait until combat ends.
 - Guild sharing has not yet been tested between many real players. On realms that restrict addon messages it stops quietly.
 - Campfire and camp-object medals are detected by spell name from public beta information. `/mam diag` lists the camp spell names your client reports so we can fix any mismatch.
 - Emote, consumable, vendor, group and ready-check medals rely on game hooks that still need live confirmation.
@@ -47,4 +48,4 @@ A private, persistent diary of your adventures, plus **Mom Medals**: silly and s
 
 ## Feedback
 
-Please include the output of `/mam diag` when reporting a problem. It contains no character name or personal data.
+Please include the output of `/mam diag` when reporting a problem: open the Diagnostics tab, click **Copy diagnostics**, press Ctrl+C and paste it. It contains no character name, chat or personal data.
