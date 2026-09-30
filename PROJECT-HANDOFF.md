@@ -244,6 +244,7 @@ Paused Task 3 checkpoint:
 - Package RED run: **1 expected failure**, because the package does not yet contain `Launcher.lua`.
 - No Task 3 production code, TOC metadata, or package-script change has been made.
 - Last fully green production checkpoint: commit `9a6d726`, Chronicles **75/75**.
+- Intentional Task 3 RED checkpoint: commit `3198ed4` (`test: define launcher polish behavior`). Current HEAD is expected to fail until Task 3 Step 3 is implemented.
 
 ## 10. Later roadmap
 
