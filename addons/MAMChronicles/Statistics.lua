@@ -124,3 +124,70 @@ function Statistics:DescribeSinceLastLogin(summary)
   local header="Last session ("..ago(summary.away)..(summary.played and (", "..played(summary.played).." played") or "").."): "
   return header..table.concat(parts,", ")
 end
+
+
+-- Hall of Shame and Fame: fun facts worked out from the events still in the journal (older history may be compacted).
+local function dayLabel(timestamp)
+  local dateFn=date or (os and os.date)
+  return dateFn and dateFn("%d %b %Y",timestamp) or tostring(math.floor(timestamp/86400))
+end
+local function dayKey(timestamp) return math.floor(timestamp/86400) end
+local function topOf(counts)
+  local bestKey,bestCount
+  for key,count in pairs(counts) do
+    if not bestCount or count>bestCount or (count==bestCount and tostring(key)<tostring(bestKey)) then bestKey,bestCount=key,count end
+  end
+  return bestKey,bestCount
+end
+
+function Statistics:BuildHighlights(characterKey)
+  characterKey=characterKey or Addon.characterKey
+  local result={deaths=0,falls=0,timePlayed=0,longestSession=0,highestLevel=0}
+  local deathZones,deathDays,eventDays,discoveryZones={}, {}, {}, {}
+  for _,event in ipairs(Addon.EventStore:Query({characterKey=characterKey})) do
+    local kind,payload,at=event.type,event.payload or {},event.occurredAt
+    if not result.firstAt or at<result.firstAt then result.firstAt=at end
+    if not kind:match("^session%.") and kind~="medal.earned" then eventDays[dayKey(at)]=(eventDays[dayKey(at)] or 0)+1 end
+    if kind=="character.death" then
+      result.deaths=result.deaths+1
+      if payload.zone then deathZones[payload.zone]=(deathZones[payload.zone] or 0)+1 end
+      deathDays[dayKey(at)]=(deathDays[dayKey(at)] or 0)+1
+      if string.find(string.lower(tostring(payload.deathKind or "")),"fall",1,true) then result.falls=result.falls+1 end
+    elseif kind=="world.zone_discovered" and payload.zone then discoveryZones[payload.zone]=(discoveryZones[payload.zone] or 0)+1
+    elseif kind=="session.logout" and tonumber(payload.duration) then
+      result.timePlayed=result.timePlayed+payload.duration
+      if payload.duration>result.longestSession then result.longestSession=payload.duration end
+    elseif kind=="character.level_up" and tonumber(payload.level) and payload.level>result.highestLevel then result.highestLevel=payload.level end
+  end
+  result.deathZone,result.deathZoneCount=topOf(deathZones)
+  local worstDay,worstCount=topOf(deathDays)
+  if worstDay then result.worstDayAt,result.worstDayDeaths=worstDay*86400+43200,worstCount end
+  local busiest,busiestCount=topOf(eventDays)
+  if busiest then result.busiestDayAt,result.busiestDayEvents=busiest*86400+43200,busiestCount end
+  result.favouriteZone,result.favouriteZoneCount=topOf(discoveryZones)
+  return result
+end
+
+local function span(seconds)
+  if seconds>=3600 then return math.floor(seconds/3600).."h "..math.floor((seconds%3600)/60).."m" end
+  return math.max(1,math.floor(seconds/60)).."m"
+end
+
+function Statistics:DescribeHighlights(h)
+  if not h then return nil end
+  local shame,fame={}, {}
+  if h.deathZone then table.insert(shame,"Most dangerous place: "..h.deathZone.." ("..h.deathZoneCount.." death"..(h.deathZoneCount==1 and "" or "s")..")") end
+  if h.worstDayDeaths then table.insert(shame,"Worst day: "..dayLabel(h.worstDayAt).." ("..h.worstDayDeaths.." death"..(h.worstDayDeaths==1 and "" or "s")..")") end
+  if h.falls>0 then table.insert(shame,"Falls: "..h.falls) end
+  if h.busiestDayEvents then table.insert(fame,"Busiest day: "..dayLabel(h.busiestDayAt).." ("..h.busiestDayEvents.." entries)") end
+  if h.longestSession>0 then table.insert(fame,"Longest session: "..span(h.longestSession)) end
+  if h.timePlayed>0 then table.insert(fame,"Time played: "..span(h.timePlayed).." (recorded sessions)") end
+  if h.favouriteZone then table.insert(fame,"Favourite place: "..h.favouriteZone.." ("..h.favouriteZoneCount.." discover"..(h.favouriteZoneCount==1 and "y" or "ies")..")") end
+  if h.highestLevel>0 then table.insert(fame,"Highest level: "..h.highestLevel) end
+  if h.firstAt then table.insert(fame,"Chronicle started: "..dayLabel(h.firstAt)) end
+  local lines={}
+  if #shame>0 then table.insert(lines,"Hall of Shame"); for _,line in ipairs(shame) do table.insert(lines,"  "..line) end end
+  if #fame>0 then table.insert(lines,"Hall of Fame"); for _,line in ipairs(fame) do table.insert(lines,"  "..line) end end
+  if #lines==0 then return nil end
+  return table.concat(lines,"\n")
+end

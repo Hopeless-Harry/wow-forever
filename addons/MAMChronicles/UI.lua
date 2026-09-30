@@ -351,7 +351,7 @@ function UI:ColouriseStatistics(text)
   for line in (text .. "\n"):gmatch("(.-)\n") do
     local head, rest = line:match("^(Lifetime statistics)(.*)$")
     if head then line = T:Colorize(head, T.colors.gold) .. T:Colorize(rest, T.colors.muted)
-    elseif line == "Moms Against Magic Chronicles" or groups[line] then line = T:Colorize(line, T.colors.gold)
+    elseif line == "Moms Against Magic Chronicles" or line == "Hall of Shame" or line == "Hall of Fame" or groups[line] then line = T:Colorize(line, T.colors.gold)
     elseif line:match("^  %+") then line = T:Colorize(line, T.kindColors.world)
     elseif line:match("^Changes shown") or line:match("^Coverage") or line:match("^Reporting window") then line = T:Colorize(line, T.colors.muted) end
     table.insert(lines, line)
@@ -1023,7 +1023,8 @@ function UI:Refresh()
     for index = 1, #events do self:FillRow(index, events[index]) end
   elseif self.activeTab == "Statistics" then
     local fromTime, toTime = self:GetCurrentMonthRange(); local stats = Addon.Statistics:Build(fromTime, toTime)
-    local text = Addon.Export:BuildHumanSummary(stats.fromTime, stats.toTime) .. (Addon.AchievementStats and "\n\n" .. Addon.AchievementStats:BuildText(Addon.characterKey) or "")
+    local halls = Addon.Statistics:DescribeHighlights(Addon.Statistics:BuildHighlights())
+    local text = Addon.Export:BuildHumanSummary(stats.fromTime, stats.toTime) .. (halls and "\n\n" .. halls or "") .. (Addon.AchievementStats and "\n\n" .. Addon.AchievementStats:BuildText(Addon.characterKey) or "")
     safeMethod(self.content, "SetText", self:ColouriseStatistics(text)); self:ShowTextArea(false)
   elseif self.activeTab == "Medals" then
     if self.medalsArea then self:ShowMedalsPage() end
