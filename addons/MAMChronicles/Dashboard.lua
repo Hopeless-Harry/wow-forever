@@ -97,7 +97,7 @@ local function createCard(parent, title)
   local T = Addon.Theme; local C = T.colors
   local card = CreateFrame("Frame", nil, parent, "BackdropTemplate")
   T:Panel(card, C.panel, C.border)
-  card.title = card:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  card.title = Addon.Theme:Text(card, "GameFontNormal")
   safeMethod(card.title, "SetPoint", "TOPLEFT", card, "TOPLEFT", 12, -10); safeMethod(card.title, "SetText", title); safeMethod(card.title, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1)
   return card
 end
@@ -110,20 +110,20 @@ function Dashboard:Create(parent, ui)
   safeMethod(frame, "Hide")
   self.frame, self.ui = frame, ui
 
-  self.greeting = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  self.greeting = Addon.Theme:Text(frame, "GameFontNormalLarge")
   safeMethod(self.greeting, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 2, -2); safeMethod(self.greeting, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1)
-  self.subtitle = frame:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+  self.subtitle = Addon.Theme:Text(frame, "GameFontDisable")
   safeMethod(self.subtitle, "SetPoint", "TOPLEFT", self.greeting, "BOTTOMLEFT", 0, -4)
 
   self.startCard = createCard(frame, "Getting started")
-  self.startBody = self.startCard:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  self.startBody = Addon.Theme:Text(self.startCard, "GameFontHighlight")
   safeMethod(self.startBody, "SetPoint", "TOPLEFT", self.startCard, "TOPLEFT", 12, -32); safeMethod(self.startBody, "SetJustifyH", "LEFT"); safeMethod(self.startBody, "SetJustifyV", "TOP"); safeMethod(self.startBody, "SetSpacing", 3)
   safeMethod(self.startBody, "SetText", startText)
   self.startDismiss = T:Button(self.startCard, "Got it", 70, 20)
   safeMethod(self.startDismiss, "SetPoint", "TOPRIGHT", self.startCard, "TOPRIGHT", -8, -7)
   safeMethod(self.startDismiss, "SetScript", "OnClick", function() Addon.db.settings.gettingStartedDismissed = true; self:Refresh() end)
   safeMethod(self.startCard, "Hide")
-  self.newsLine = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  self.newsLine = Addon.Theme:Text(frame, "GameFontNormalSmall")
   safeMethod(self.newsLine, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 2, -48); safeMethod(self.newsLine, "SetJustifyH", "LEFT"); safeMethod(self.newsLine, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1); safeMethod(self.newsLine, "Hide")
   self.newsDismiss = T:Button(frame, "x", 20, 18)
   safeMethod(self.newsDismiss, "SetScript", "OnClick", function() Addon:DismissWhatsNew(); self:Refresh() end)
@@ -133,17 +133,17 @@ function Dashboard:Create(parent, ui)
   for index in ipairs(visibleTiles()) do
     local tile = CreateFrame("Frame", nil, frame, "BackdropTemplate")
     T:Panel(tile, C.panel, C.border)
-    tile.value = tile:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    tile.value = Addon.Theme:Text(tile, "GameFontNormalLarge")
     safeMethod(tile.value, "SetPoint", "TOPLEFT", tile, "TOPLEFT", 10, -8); safeMethod(tile.value, "SetTextColor", C.text[1], C.text[2], C.text[3], 1); safeMethod(tile.value, "SetTextHeight", 22)
-    tile.label = tile:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    tile.label = Addon.Theme:Text(tile, "GameFontDisableSmall")
     safeMethod(tile.label, "SetPoint", "BOTTOMLEFT", tile, "BOTTOMLEFT", 10, 8)
-    tile.delta = tile:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    tile.delta = Addon.Theme:Text(tile, "GameFontNormalSmall")
     safeMethod(tile.delta, "SetPoint", "BOTTOMRIGHT", tile, "BOTTOMRIGHT", -10, 8); safeMethod(tile.delta, "SetTextColor", T.kindColors.world[1], T.kindColors.world[2], T.kindColors.world[3], 1)
     self.tileFrames[index] = tile
   end
 
   self.monthCard = createCard(frame, "This month")
-  self.monthBody = self.monthCard:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  self.monthBody = Addon.Theme:Text(self.monthCard, "GameFontHighlight")
   safeMethod(self.monthBody, "SetPoint", "TOPLEFT", self.monthCard, "TOPLEFT", 12, -34); safeMethod(self.monthBody, "SetJustifyH", "LEFT"); safeMethod(self.monthBody, "SetJustifyV", "TOP"); safeMethod(self.monthBody, "SetSpacing", 4)
 
   self.recentCard = createCard(frame, "Recent activity")
@@ -153,20 +153,20 @@ function Dashboard:Create(parent, ui)
   self.viewAllButton = viewAll
   self.recentRows = {}
   for index = 1, 8 do
-    local row = self.recentCard:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    local row = Addon.Theme:Text(self.recentCard, "GameFontHighlightSmall")
     safeMethod(row, "SetPoint", "TOPLEFT", self.recentCard, "TOPLEFT", 12, -34 - (index - 1) * 16)
     safeMethod(row, "SetPoint", "RIGHT", self.recentCard, "RIGHT", -12, 0)
     safeMethod(row, "SetJustifyH", "LEFT"); safeMethod(row, "SetWordWrap", false)
     self.recentRows[index] = row
   end
-  self.recentEmpty = self.recentCard:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+  self.recentEmpty = Addon.Theme:Text(self.recentCard, "GameFontDisable")
   safeMethod(self.recentEmpty, "SetPoint", "TOPLEFT", self.recentCard, "TOPLEFT", 12, -34); safeMethod(self.recentEmpty, "SetText", "Nothing yet. Explore, quest, or add a memory below.")
 
   local box = CreateFrame("EditBox", nil, frame, "BackdropTemplate")
   safeMethod(box, "SetHeight", 28); safeMethod(box, "SetAutoFocus", false); safeMethod(box, "SetMaxLetters", 200)
   T:Input(box)
   self.memoryBox = box
-  self.memoryHint = box:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+  self.memoryHint = Addon.Theme:Text(box, "GameFontDisable")
   safeMethod(self.memoryHint, "SetPoint", "LEFT", box, "LEFT", 9, 0); safeMethod(self.memoryHint, "SetText", "Remember this moment... (pinned to your Chronicle)")
   safeMethod(box, "SetScript", "OnTextChanged", function(edit) safeMethod(self.memoryHint, (edit.GetText and edit:GetText() or "") == "" and "Show" or "Hide") end)
   local remember = T:Button(frame, "Remember", 100, 28)

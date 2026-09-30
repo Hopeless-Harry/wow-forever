@@ -13,7 +13,7 @@ Theme.colors = {
   raised   = { 0.125, 0.125, 0.165, 1.00 },
   hover    = { 0.190, 0.190, 0.250, 1.00 },
   border   = { 0.240, 0.240, 0.310, 1.00 },
-  accent   = { 0.720, 0.160, 0.240, 1.00 },
+  accent   = { 0.800, 0.210, 0.290, 1.00 },
   gold     = { 0.900, 0.720, 0.280, 1.00 },
   text     = { 0.900, 0.900, 0.930, 1.00 },
   muted    = { 0.620, 0.640, 0.720, 1.00 },
@@ -71,6 +71,20 @@ end
 function Theme:KindFor(eventType)
   local info = typeInfo[eventType]
   return info and info[2] or nil
+end
+
+-- Stock font objects have fixed colours (white, grey, gold) that vanish on the light Parchment panel,
+-- so every label is created through here and takes its colour from the current palette.
+local textRoles = {
+  GameFontHighlight = "text", GameFontHighlightSmall = "text", GameFontNormal = "gold", GameFontNormalSmall = "gold",
+  GameFontNormalLarge = "gold", GameFontDisable = "muted", GameFontDisableSmall = "muted",
+}
+
+function Theme:Text(parent, template)
+  local fontString = parent:CreateFontString(nil, "OVERLAY", template)
+  local role = textRoles[template]
+  if role then safeMethod(fontString, "SetTextColor", unpackColor(self.colors[role])) end
+  return fontString
 end
 
 function Theme:Fill(frame, layer, color)
@@ -207,7 +221,7 @@ Theme.presets = {
   parchment = {
     bg = { 0.930, 0.890, 0.800, 1.00 }, panel = { 0.890, 0.840, 0.730, 1.00 }, raised = { 0.840, 0.780, 0.660, 1.00 },
     hover = { 0.780, 0.700, 0.560, 1.00 }, border = { 0.550, 0.440, 0.280, 1.00 }, accent = { 0.620, 0.140, 0.160, 1.00 },
-    gold = { 0.450, 0.290, 0.050, 1.00 }, text = { 0.160, 0.120, 0.080, 1.00 }, muted = { 0.400, 0.330, 0.240, 1.00 },
+    gold = { 0.450, 0.290, 0.050, 1.00 }, text = { 0.160, 0.120, 0.080, 1.00 }, muted = { 0.330, 0.270, 0.180, 1.00 },
     disabled = { 0.580, 0.520, 0.420, 1.00 }, danger = { 0.700, 0.120, 0.120, 1.00 }, stripe = { 0.000, 0.000, 0.000, 0.050 },
   },
   crimson = {
@@ -223,7 +237,27 @@ Theme.presets = {
     disabled = { 0.380, 0.440, 0.500, 1.00 }, danger = { 0.900, 0.350, 0.350, 1.00 }, stripe = { 1.000, 1.000, 1.000, 0.035 },
   },
 }
+-- Event and medal-tier colours are tuned for dark panels; Parchment has a light panel and needs darker ones.
+Theme.presetKinds = {
+  parchment = {
+    death = { 0.620, 0.100, 0.120, 1 }, quest = { 0.480, 0.290, 0.000, 1 }, world = { 0.080, 0.380, 0.200, 1 },
+    instance = { 0.120, 0.290, 0.640, 1 }, loot = { 0.440, 0.170, 0.600, 1 }, memory = { 0.040, 0.350, 0.370, 1 },
+  },
+}
+Theme.presetTiers = {
+  parchment = {
+    bronze = { 0.500, 0.260, 0.060, 1 }, silver = { 0.300, 0.330, 0.400, 1 }, gold = { 0.470, 0.330, 0.000, 1 }, platinum = { 0.080, 0.360, 0.480, 1 },
+  },
+}
+Theme.defaultKinds = copyPalette(Theme.kindColors)
 Theme.current = "midnight"
+
+local function assignColors(target, source)
+  for key, color in pairs(source or {}) do
+    local slot = target[key]
+    if slot then for index = 1, 4 do slot[index] = color[index] or 1 end end
+  end
+end
 
 -- Recolours the shared palette in place, so any code holding a reference sees the new colours.
 -- Frames that were already built keep the colours they were created with; a UI reload applies it everywhere.
@@ -232,6 +266,12 @@ function Theme:ApplyPreset(name)
   for key, color in pairs(self.presets[name]) do
     local target = self.colors[key]
     for index = 1, 4 do target[index] = color[index] end
+  end
+  assignColors(self.kindColors, self.presetKinds[name] or self.defaultKinds)
+  local medals = Addon.Medals
+  if medals and medals.tierColours then
+    medals.defaultTiers = medals.defaultTiers or copyPalette(medals.tierColours)
+    assignColors(medals.tierColours, self.presetTiers[name] or medals.defaultTiers)
   end
   self.current = name
   return name

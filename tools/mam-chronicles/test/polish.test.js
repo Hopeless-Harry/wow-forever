@@ -309,3 +309,31 @@ test('the source no longer calls deprecated item globals directly',async()=>{
   const { readAddonFile } = await import('./harness.js');
   for (const f of ['Collectors.lua','Counters.lua']) { const t=readAddonFile(f); assert.ok(!/safe\(GetItemInfo[,)]/.test(t),`${f} calls GetItemInfo directly`); assert.ok(!/safe\(GetItemInfoInstant/.test(t),`${f} calls GetItemInfoInstant directly`); }
 });
+
+// ---- theme contrast (WCAG) ----
+function lum(c){const f=v=>v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);return 0.2126*f(c[0])+0.7152*f(c[1])+0.0722*f(c[2]);}
+function ratio(a,b){const x=lum(a),y=lum(b);return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);}
+function palette(h,name){h.run(`MAMChronicles.Theme:ApplyPreset("${name}")`);return {c:h.get('MAMChronicles.Theme.colors'),k:h.get('MAMChronicles.Theme.kindColors'),t:h.get('MAMChronicles.Medals and MAMChronicles.Medals.tierColours or {}')};}
+const arr=o=>[o['1'],o['2'],o['3']];
+for (const name of ['midnight','parchment','crimson','slate']) {
+  test(`theme ${name} meets contrast targets for text, accents and event colours`,()=>{
+    const h=dashSetup(); const {c,k,t}=palette(h,name); const grounds=['bg','panel','raised'];
+    const fails=[];
+    const check=(label,fg,bg,min)=>{const r=ratio(arr(fg),arr(c[bg]));if(r<min)fails.push(`${label} on ${bg}: ${r.toFixed(2)} < ${min}`);};
+    for(const g of grounds){check('text',c.text,g,7);check('muted',c.muted,g,4.5);check('gold',c.gold,g,4.5);check('danger',c.danger,g,3.5);check('accent',c.accent,g,3);}
+    check('text on hover',c.text,'hover',4.5);
+    check('disabled',c.disabled,'panel',2.2);
+    for(const [kind,col] of Object.entries(k)) for(const g of ['bg','panel']) check(`kind ${kind}`,col,g,3.5);
+    for(const [tier,col] of Object.entries(t)) check(`tier ${tier}`,col,'panel',3);
+    assert.deepEqual(fails,[]);
+  });
+}
+
+test('on Parchment every stock-font label gets a readable palette colour',()=>{
+  const h=dashSetup({schemaVersion:1,settings:{theme:'parchment',gettingStartedDismissed:false}});
+  h.run('local UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Medals"); MAMChronicles.Toast:Show({title="Medal",text="x",kind="medal",points=10}); UI:SetActiveTab("Home")');
+  const fields=['MAMChronicles.Dashboard.monthBody','MAMChronicles.Dashboard.recentRows[1]','MAMChronicles.Dashboard.startBody','MAMChronicles.Dashboard.subtitle','MAMChronicles.UI.content','MAMChronicles.UI.details','MAMChronicles.UI.pageLabel','MAMChronicles.UI.medalSub','MAMChronicles.UI.medalEmpty','MAMChronicles.UI.guildLines[1]','MAMChronicles.UI.medalRows[1].desc','MAMChronicles.UI.diagNote','MAMChronicles.UI.versionText','MAMChronicles.Toast.body'];
+  const c=h.get('MAMChronicles.Theme.colors'); const fails=[];
+  for(const f of fields){const col=h.get(`${f}.textColor`); if(!col){fails.push(`${f}: no colour`);continue;} const r=ratio(arr(col),arr(c.panel)); if(r<4.5)fails.push(`${f}: ${r.toFixed(2)}`);}
+  assert.deepEqual(fails,[]);
+});
