@@ -73,18 +73,18 @@ export function createHarness({ globals = {}, savedVariables } = {}) {
     function CreateFrame(_,name)
       local f={scripts={},shown=false,name=name,width=0,height=0,enabled=true,highlighted=false}
       function f:RegisterEvent(e) if __mamFailEvent==e then error("unsupported event: "..e) end table.insert(__mamCalls.registered,e) end
-      function f:SetScript(k,v) self.scripts[k]=v end
+      function f:SetScript(k,v) self.scripts[k]=v end function f:HookScript(k,fn) local prior=self.scripts[k] self.scripts[k]=function(...) if prior then prior(...) end fn(...) end end
       function f:Show() self.shown=true end function f:Hide() self.shown=false end function f:IsShown() return self.shown end
       function f:SetSize(w,h) self.width=w self.height=h end function f:GetWidth() return self.width end function f:GetHeight() return self.height end
       function f:SetPoint(...) self.point={...} end function f:GetPoint() return table.unpack(self.point or {}) end function f:ClearAllPoints() self.point=nil end
       function f:SetMovable() end function f:EnableMouse() end function f:SetUserPlaced(value) self.userPlaced=value end
       function f:RegisterForDrag() end function f:RegisterForClicks() end function f:SetClampedToScreen() end function f:SetResizable() end function f:SetMinResize(w,h) self.minResize={w,h} end
-      function f:SetBackdrop() end function f:SetBackdropColor() end function f:SetBackdropBorderColor() end function f:SetFrameStrata() end
+      function f:SetBackdrop(t) self.backdrop=t end function f:SetBackdropColor(r,g,b,a) self.backdropColor={r,g,b,a} end function f:SetBackdropBorderColor(r,g,b,a) self.borderColor={r,g,b,a} end function f:SetFontString(fs) self.fontString=fs end function f:SetThumbTexture(t) self.thumb=self.thumb or {} self.thumb.texture=t end function f:GetThumbTexture() self.thumb=self.thumb or {SetSize=function()end,SetVertexColor=function(t,r,g,b,a) t.color={r,g,b,a} end} return self.thumb end function f:SetFrameStrata() end
       function f:SetText(value) self.text=value end function f:SetNormalFontObject() end function f:SetWidth(value) self.width=value end function f:SetHeight(value) self.height=value end
       function f:SetMinMaxValues(lo,hi) self.minValue=lo self.maxValue=hi end function f:GetValue() return self.value end function f:SetValue(v) self.value=v if self.scripts.OnValueChanged then self.scripts.OnValueChanged(self,v) end end
       function f:SetEnabled(value) self.enabled=value end function f:LockHighlight() self.highlighted=true end function f:UnlockHighlight() self.highlighted=false end
-      function f:CreateFontString() return {SetPoint=function()end,SetText=function(self,v)self.text=v end,SetWidth=function()end,SetJustifyH=function()end,Show=function()end,Hide=function()end} end
-      function f:CreateTexture() return {SetAllPoints=function()end,SetColorTexture=function()end,SetPoint=function()end,SetSize=function()end,SetTexture=function(self,value)self.texture=value end,SetTexCoord=function()end} end
+      function f:CreateFontString() return {SetTextColor=function(t,r,g,b,a)t.textColor={r,g,b,a}end,SetFontObject=function()end,SetPoint=function()end,SetText=function(self,v)self.text=v end,SetWidth=function()end,SetJustifyH=function()end,Show=function()end,Hide=function()end} end
+      function f:CreateTexture() return {SetAllPoints=function()end,SetColorTexture=function(t,r,g,b,a)t.color={r,g,b,a}end,SetVertexColor=function(t,r,g,b,a)t.color={r,g,b,a}end,Show=function(t)t.shown=true end,Hide=function(t)t.shown=false end,SetPoint=function()end,SetSize=function()end,SetTexture=function(self,value)self.texture=value end,SetTexCoord=function()end} end
       __mamLastFrame=f return f
     end`, 'frame-stub');
   return {

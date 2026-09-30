@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles — User Manual
 
-- **Version:** `0.2.0-alpha3`
+- **Version:** `0.2.0-alpha4`
 - **Current test target:** World of Warcraft Retail 12.1
 - **WoW Forever:** Built with compatibility checks, but live beta testing is still pending.
 

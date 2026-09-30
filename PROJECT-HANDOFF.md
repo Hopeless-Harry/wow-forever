@@ -1,7 +1,7 @@
 # Moms Against Magic Chronicles — Project Handoff
 
 **Last updated:** 30 September 2026  
-**Current addon version:** `0.2.0-alpha3`  
+**Current addon version:** `0.2.0-alpha4`  
 **Current status:** In progress. Proper-addon polish All 7 tasks are complete in automated testing (Chronicles 98/98); live acceptance pending. Live acceptance of the production addon is still required.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
@@ -304,6 +304,15 @@ Fix (source, NOT yet installed because WoW was running again): parser now accept
 
 Third live Retail result (user, 30 Sep 2026, build 69933, interface 120100, bb4b6e1 installed on BOTH clients, hash-verified): `Statistics: ok, 429 read, 0 unreadable`; no `Uncategorised` line; 33 events, 0 collector errors. Groups displayed with sensible headline values: Deaths and combat, Quests, Exploration and travel, Dungeons and raids, Social, Player versus player, Character, World events, Pet battles, Legacy. Statistics on **Retail: PASS (user-observed)**. No Professions, Loot and items, or Time played group appeared for this character (consumable stats such as Healthstones used sit under Character). **Forever: still NOT tested live** - this screenshot is Retail.
 
+UI redesign (alpha4, 30 Sep 2026) - AUTOMATED EVIDENCE ONLY, visual result NOT yet seen by anyone:
+
+- Inspiration: the installed DialogueUI addon (author Peterodox; no licence file found, treated as all rights reserved - ideas only, no code or art copied). Its approach: own themes (Brown/Dark), custom-art buttons with hover overlays, custom scrollbars. We chose a flat, texture-free style from solid colours on the stock `WHITE8x8` texture so it works on Retail and Forever with no assets.
+- New `Theme.lua` (loaded before `UI.lua`): palette (dark panels, crimson accent echoing the icon, gold headings), event-type labels and colours (`DescribeType`), and helpers `Panel`, `Button` (hover/disabled), `Tab` (accent underline), `Check`, `Scrollbar`, `Input`.
+- `UI.lua` rebuilt with relative anchors: title bar with icon and flat close button, tab strip, toolbar (search with hint, Filter/Range) shown only on the Chronicle tab, colour-coded rows (stripe, time column, type label, hover and selected highlight, zebra), details panel, flat scrollbar, footer with Previous/Next, page range and version, resizing re-lays rows (13-20px pitch). Settings tab uses themed checkboxes in two columns and a red Erase button; Statistics text is colourised (gold headings, green changes). Tooltips now chain via `HookScript` so hover highlight survives (real defect caught in review).
+- Statistics headline separator changed from a pipe to a middle dot (pipes are escape characters in WoW text).
+- Known risk: the stubs cannot prove appearance. First live look may show misalignment, clipped text, or wrong colours; user screenshots needed. Blizzard Settings page (`SettingsPanel.lua`) still uses stock templates on purpose.
+- Version `0.2.0-alpha4`. Chronicles **127/127**, Diagnostics **35/35**, Dashboard **39/39**. Installed and hash-verified (15 files, 0 diffs) on BOTH `_retail_` and `_classic_beta_`; backups in addon-backups. Release: `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha4/` ZIP SHA-256 `292049AE52807720664B23F074BB5A7FD53C8EB226E7CF59DE8CE2A019CF586F`.
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -363,9 +372,9 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-1. User logs in on the WoW Forever client (`_classic_beta_`, WowB.exe), waits ~10s, and sends the Statistics tab text and `/mam diag` (look at `Statistics:` counts, Unreadable sample, Uncategorised). Forever already has the same build installed.
-2. Fix Forever-specific findings. Consider showing bracketed labels and improving group naming.
-3. Then: statistics-driven awards, Characters roster tab, opt-in popups/toasts, Courier export of non-sensitive statistics, then Phase 2 sync with the recorded sharing-on-by-default safeguards.
+1. User opens `/mam` on Forever and Retail and sends screenshots of each tab (Chronicle with entries, Statistics, Settings, Diagnostics) at the default size and after resizing. Fix any visual problems (alignment, clipping, colours, contrast, font size).
+2. Also still wanted: Forever `/mam diag` (statistics counts) - the Forever client has never been observed live.
+3. Then build, in order: statistics-driven awards, Characters roster tab, opt-in popups/toasts (off by default, never in combat), Courier export of non-sensitive statistics, Phase 2 sync with the recorded sharing-on-by-default safeguards.
 
 ## 15. Recent history
 

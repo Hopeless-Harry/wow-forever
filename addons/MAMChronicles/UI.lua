@@ -38,6 +38,7 @@ function UI:UpdateTabStates()
     if button then
       if name==self.activeTab then safeMethod(button,"LockHighlight"); safeMethod(button,"SetEnabled",false)
       else safeMethod(button,"UnlockHighlight"); safeMethod(button,"SetEnabled",true) end
+      if Addon.Theme then Addon.Theme:SetSelected(button,name==self.activeTab) end
     end
   end
 end
@@ -56,7 +57,8 @@ function UI:UpdateNavigation(total)
   total=math.max(0,tonumber(total) or 0)
   local maximum=math.max(0,total-30); local offset=self.timelineOffset or 0
   self.timelineTotal=total
-  safeMethod(self.previousButton,"SetEnabled",offset>0); safeMethod(self.nextButton,"SetEnabled",offset<maximum)
+  if Addon.Theme then Addon.Theme:SetEnabled(self.previousButton,offset>0); Addon.Theme:SetEnabled(self.nextButton,offset<maximum)
+  else safeMethod(self.previousButton,"SetEnabled",offset>0); safeMethod(self.nextButton,"SetEnabled",offset<maximum) end
   if self.slider then
     self.updatingSlider=true
     safeMethod(self.slider,"SetMinMaxValues",0,maximum); safeMethod(self.slider,"SetValue",offset)
@@ -99,11 +101,17 @@ function UI:SelectRange(value)
 end
 
 local function attachTooltip(control,title,instruction)
-  safeMethod(control,"SetScript","OnEnter",function(owner)
+  local function enter(owner)
     if not GameTooltip then return end
     safeMethod(GameTooltip,"SetOwner",owner,"ANCHOR_RIGHT"); safeMethod(GameTooltip,"SetText",title); safeMethod(GameTooltip,"AddLine",instruction); safeMethod(GameTooltip,"Show")
-  end)
-  safeMethod(control,"SetScript","OnLeave",function() if GameTooltip then safeMethod(GameTooltip,"Hide") end end)
+  end
+  local function leave() if GameTooltip then safeMethod(GameTooltip,"Hide") end end
+  -- HookScript keeps the flat-button hover highlight that the theme installed.
+  if control and type(control.HookScript)=="function" then
+    pcall(control.HookScript,control,"OnEnter",enter); pcall(control.HookScript,control,"OnLeave",leave)
+  else
+    safeMethod(control,"SetScript","OnEnter",enter); safeMethod(control,"SetScript","OnLeave",leave)
+  end
 end
 
 function UI:SaveWindowState()
@@ -184,84 +192,349 @@ function UI:SetSetting(key,value)
   return true
 end
 
+local ROW_TOP, FOOTER, SIDE, DETAILS_W, ROW_COUNT = 130, 46, 16, 250, 30
+local ICON = "Interface\\AddOns\\MAMChronicles\\MAMChroniclesIcon"
+
+local function clampNumber(value, low, high) return math.max(low, math.min(high, value)) end
+
+function UI:LayoutRows(availableHeight)
+  local pitch = clampNumber(math.floor((tonumber(availableHeight) or 0) / ROW_COUNT), 13, 20)
+  if self.frame and self.rowButtons then
+    for index, row in ipairs(self.rowButtons) do
+      local offset = -(ROW_TOP + (index - 1) * pitch)
+      safeMethod(row, "ClearAllPoints")
+      safeMethod(row, "SetPoint", "TOPLEFT", self.frame, "TOPLEFT", SIDE, offset)
+      safeMethod(row, "SetPoint", "TOPRIGHT", self.frame, "TOPRIGHT", -(SIDE + DETAILS_W + 24), offset)
+      safeMethod(row, "SetHeight", pitch)
+    end
+  end
+  self.rowPitch = pitch
+  return pitch
+end
+
+function UI:ApplyLayout(width, height)
+  width = tonumber(width) or 780; height = tonumber(height) or 560
+  safeMethod(self.content, "SetWidth", width - SIDE * 2)
+  safeMethod(self.copyBox, "SetSize", width - SIDE * 2, height - 90 - FOOTER)
+  self:LayoutRows(height - ROW_TOP - FOOTER)
+end
+
+function UI:SetDetailsVisible(visible)
+  local method = visible and "Show" or "Hide"
+  safeMethod(self.detailsPanel, method); safeMethod(self.details, method)
+end
+
+function UI:SetToolbarVisible(visible)
+  local method = visible and "Show" or "Hide"
+  safeMethod(self.searchBox, method); safeMethod(self.filterButton, method); safeMethod(self.rangeButton, method)
+  if not visible then safeMethod(self.searchHint, "Hide") elseif (self.search or "") == "" then safeMethod(self.searchHint, "Show") end
+end
+
+function UI:PlaceContent(belowToolbar)
+  safeMethod(self.content, "ClearAllPoints")
+  safeMethod(self.content, "SetPoint", "TOPLEFT", self.frame, "TOPLEFT", SIDE, belowToolbar and -112 or -84)
+end
+
+function UI:ColouriseStatistics(text)
+  local T = Addon.Theme; local groups = {}
+  if Addon.AchievementStats then for _, name in ipairs(Addon.AchievementStats.groupOrder) do groups[name] = true end end
+  local lines = {}
+  for line in (text .. "\n"):gmatch("(.-)\n") do
+    local head, rest = line:match("^(Lifetime statistics)(.*)$")
+    if head then line = T:Colorize(head, T.colors.gold) .. T:Colorize(rest, T.colors.muted)
+    elseif line == "Moms Against Magic Chronicles" or groups[line] then line = T:Colorize(line, T.colors.gold)
+    elseif line:match("^  %+") then line = T:Colorize(line, T.kindColors.world)
+    elseif line:match("^Changes shown") or line:match("^Coverage") or line:match("^Reporting window") then line = T:Colorize(line, T.colors.muted) end
+    table.insert(lines, line)
+  end
+  return table.concat(lines, "\n")
+end
+
+function UI:FillRow(index, event)
+  local T = Addon.Theme; local row = self.rowButtons[index]
+  local kindName, color = T:DescribeType(event.type)
+  local stamp = date and date("%d %b %H:%M", event.occurredAt) or tostring(event.occurredAt)
+  safeMethod(row.timeText, "SetText", stamp)
+  safeMethod(row.kindText, "SetText", kindName); safeMethod(row.kindText, "SetTextColor", color[1], color[2], color[3], 1)
+  safeMethod(row.stripe, "SetColorTexture", color[1], color[2], color[3], 1)
+  safeMethod(self.rowPool[index], "SetText", tostring(label(event)))
+  row.event = event
+  safeMethod(row.selected, self.selectedEvent == event and "Show" or "Hide")
+  safeMethod(self.rowPool[index], "Show"); safeMethod(row, "Show")
+end
+
+local function createRow(self, frame, index)
+  local T = Addon.Theme; local C = T.colors
+  local row = CreateFrame("Button", nil, frame)
+  local zebra = row:CreateTexture(nil, "BACKGROUND")
+  safeMethod(zebra, "SetAllPoints", row); safeMethod(zebra, "SetColorTexture", 1, 1, 1, index % 2 == 0 and C.stripe[4] or 0)
+  row.hover = row:CreateTexture(nil, "BACKGROUND"); safeMethod(row.hover, "SetAllPoints", row); safeMethod(row.hover, "SetColorTexture", C.hover[1], C.hover[2], C.hover[3], 0.7); safeMethod(row.hover, "Hide")
+  row.selected = row:CreateTexture(nil, "BACKGROUND"); safeMethod(row.selected, "SetAllPoints", row); safeMethod(row.selected, "SetColorTexture", C.gold[1], C.gold[2], C.gold[3], 0.14); safeMethod(row.selected, "Hide")
+  row.stripe = row:CreateTexture(nil, "ARTWORK")
+  safeMethod(row.stripe, "SetPoint", "TOPLEFT", row, "TOPLEFT", 0, -1); safeMethod(row.stripe, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 0, 1); safeMethod(row.stripe, "SetWidth", 3)
+  safeMethod(row.stripe, "SetColorTexture", C.muted[1], C.muted[2], C.muted[3], 1)
+  row.timeText = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  safeMethod(row.timeText, "SetPoint", "LEFT", row, "LEFT", 10, 0); safeMethod(row.timeText, "SetWidth", 84); safeMethod(row.timeText, "SetJustifyH", "LEFT"); safeMethod(row.timeText, "SetTextColor", C.muted[1], C.muted[2], C.muted[3], 1)
+  row.kindText = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  safeMethod(row.kindText, "SetPoint", "LEFT", row.timeText, "RIGHT", 4, 0); safeMethod(row.kindText, "SetWidth", 82); safeMethod(row.kindText, "SetJustifyH", "LEFT")
+  local text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  safeMethod(text, "SetPoint", "LEFT", row.kindText, "RIGHT", 4, 0); safeMethod(text, "SetPoint", "RIGHT", row, "RIGHT", -6, 0); safeMethod(text, "SetJustifyH", "LEFT"); safeMethod(text, "SetWordWrap", false)
+  safeMethod(text, "SetTextColor", C.text[1], C.text[2], C.text[3], 1)
+  self.rowPool[index] = text
+  safeMethod(row, "SetScript", "OnEnter", function(r) safeMethod(r.hover, "Show") end)
+  safeMethod(row, "SetScript", "OnLeave", function(r) safeMethod(r.hover, "Hide") end)
+  safeMethod(row, "SetScript", "OnClick", function(clicked)
+    if not clicked.event then return end
+    UI.selectedEvent = clicked.event
+    for _, other in ipairs(UI.rowButtons) do safeMethod(other.selected, other.event == clicked.event and "Show" or "Hide") end
+    safeMethod(UI.details, "SetText", UI:FormatEventDetails(clicked.event))
+  end)
+  safeMethod(row, "Hide")
+  return row
+end
+
 function UI:Create()
   if self.frame then return self.frame end
-  local frame=CreateFrame("Frame","MAMChroniclesFrame",UIParent,"BackdropTemplate")
-  self.frame=frame; self:RestoreWindowState(); safeMethod(frame,"SetMovable",true); safeMethod(frame,"EnableMouse",true); safeMethod(frame,"RegisterForDrag","LeftButton"); safeMethod(frame,"SetClampedToScreen",true); safeMethod(frame,"SetResizable",true); if frame.SetResizeBounds then safeMethod(frame,"SetResizeBounds",620,440) else safeMethod(frame,"SetMinResize",620,440) end
-  safeMethod(frame,"SetBackdrop",{bgFile="Interface\\DialogFrame\\UI-DialogBox-Background",edgeFile="Interface\\DialogFrame\\UI-DialogBox-Border",tile=true,tileSize=32,edgeSize=32,insets={left=11,right=12,top=12,bottom=11}})
-  safeMethod(frame,"SetScript","OnDragStart",function(f) safeMethod(f,"StartMoving") end); safeMethod(frame,"SetScript","OnDragStop",function(f) safeMethod(f,"StopMovingOrSizing"); UI:SaveWindowState() end)
-  if type(UISpecialFrames)=="table" then local found=false; for _,name in ipairs(UISpecialFrames) do if name=="MAMChroniclesFrame" then found=true; break end end; if not found then table.insert(UISpecialFrames,"MAMChroniclesFrame") end end
-  local title=frame:CreateFontString(nil,"OVERLAY","GameFontNormalLarge"); safeMethod(title,"SetPoint","TOP",0,-18); safeMethod(title,"SetText","Moms Against Magic Chronicles")
-  self.title=title
-  local close=CreateFrame("Button",nil,frame,"UIPanelCloseButton"); safeMethod(close,"SetPoint","TOPRIGHT",-7,-7)
-  local resize=CreateFrame("Button",nil,frame); safeMethod(resize,"SetSize",18,18); safeMethod(resize,"SetPoint","BOTTOMRIGHT",-8,8)
-  safeMethod(resize,"SetNormalTexture","Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up"); safeMethod(resize,"SetPushedTexture","Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down"); safeMethod(resize,"SetHighlightTexture","Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
-  safeMethod(resize,"SetScript","OnMouseDown",function(_,button) if button=="LeftButton" then safeMethod(frame,"StartSizing","BOTTOMRIGHT") end end); safeMethod(resize,"SetScript","OnMouseUp",function() safeMethod(frame,"StopMovingOrSizing"); UI:SaveWindowState() end); self.resizeHandle=resize
-  self.tabButtons={}
-  for index,name in ipairs(self.tabs) do
-    local button=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(button,"SetSize",120,24); safeMethod(button,"SetPoint","TOPLEFT",20+(index-1)*125,-48); safeMethod(button,"SetText",name)
-    safeMethod(button,"SetScript","OnClick",function() UI:SetActiveTab(name) end); self.tabButtons[index]=button
+  local T = Addon.Theme; local C = T.colors
+  local frame = CreateFrame("Frame", "MAMChroniclesFrame", UIParent, "BackdropTemplate")
+  self.frame = frame; self:RestoreWindowState()
+  safeMethod(frame, "SetMovable", true); safeMethod(frame, "EnableMouse", true); safeMethod(frame, "RegisterForDrag", "LeftButton"); safeMethod(frame, "SetClampedToScreen", true); safeMethod(frame, "SetResizable", true)
+  if frame.SetResizeBounds then safeMethod(frame, "SetResizeBounds", 620, 440) else safeMethod(frame, "SetMinResize", 620, 440) end
+  safeMethod(frame, "SetFrameStrata", "HIGH")
+  T:Panel(frame, C.bg, C.border)
+  safeMethod(frame, "SetScript", "OnDragStart", function(f) safeMethod(f, "StartMoving") end)
+  safeMethod(frame, "SetScript", "OnDragStop", function(f) safeMethod(f, "StopMovingOrSizing"); UI:SaveWindowState() end)
+  if type(UISpecialFrames) == "table" then
+    local found = false
+    for _, name in ipairs(UISpecialFrames) do if name == "MAMChroniclesFrame" then found = true; break end end
+    if not found then table.insert(UISpecialFrames, "MAMChroniclesFrame") end
   end
-  local search=CreateFrame("EditBox",nil,frame,"InputBoxTemplate"); safeMethod(search,"SetSize",230,28); safeMethod(search,"SetPoint","TOPLEFT",24,-82); safeMethod(search,"SetAutoFocus",false)
-  safeMethod(search,"SetScript","OnTextChanged",function(box) if box.GetText then UI.search=box:GetText() or ""; UI.timelineOffset=0; UI:Refresh() end end); self.searchBox=search; attachTooltip(search,"Search","Type words to find matching Chronicle entries.")
-  local filter=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(filter,"SetSize",120,24); safeMethod(filter,"SetPoint","LEFT",search,"RIGHT",12,0); safeMethod(filter,"SetText","Filter: All")
-  safeMethod(filter,"SetScript","OnClick",function(button) UI:OpenFilterMenu(button) end); self.filterButton=filter; attachTooltip(filter,"Filter","Choose which kind of entry to show.")
-  local range=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(range,"SetSize",120,24); safeMethod(range,"SetPoint","LEFT",filter,"RIGHT",12,0); safeMethod(range,"SetText","Range: All")
-  safeMethod(range,"SetScript","OnClick",function(button) UI:OpenRangeMenu(button) end); self.rangeButton=range; attachTooltip(range,"Date range","Choose how far back to look.")
-  self.content=frame:CreateFontString(nil,"OVERLAY","GameFontHighlight"); safeMethod(self.content,"SetPoint","TOPLEFT",24,-120); safeMethod(self.content,"SetWidth",730); safeMethod(self.content,"SetJustifyH","LEFT")
-  for index=1,30 do local row=frame:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall"); safeMethod(row,"SetPoint","TOPLEFT",30,-115-index*14); safeMethod(row,"SetWidth",710); safeMethod(row,"SetJustifyH","LEFT"); self.rowPool[index]=row end
-  local previous=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(previous,"SetSize",90,22); safeMethod(previous,"SetPoint","BOTTOMLEFT",28,24); safeMethod(previous,"SetText","Previous"); safeMethod(previous,"SetScript","OnClick",function() UI:SetTimelineOffset((UI.timelineOffset or 0)-30,UI.timelineTotal); UI:Refresh() end); self.previousButton=previous; attachTooltip(previous,"Previous page","Show newer entries.")
-  local nextPage=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(nextPage,"SetSize",90,22); safeMethod(nextPage,"SetPoint","LEFT",previous,"RIGHT",8,0); safeMethod(nextPage,"SetText","Next"); safeMethod(nextPage,"SetScript","OnClick",function() UI:SetTimelineOffset((UI.timelineOffset or 0)+30,UI.timelineTotal); UI:Refresh() end); self.nextButton=nextPage; attachTooltip(nextPage,"Next page","Show older entries.")
-  local scroll=CreateFrame("ScrollFrame",nil,frame); safeMethod(scroll,"SetPoint","TOPLEFT",24,-112); safeMethod(scroll,"SetPoint","BOTTOMRIGHT",-24,58); safeMethod(scroll,"EnableMouseWheel",true); safeMethod(scroll,"SetScript","OnMouseWheel",function(_,delta) UI:SetTimelineOffset((UI.timelineOffset or 0)-(delta*5),UI.timelineTotal); UI:Refresh() end); self.scrollFrame=scroll
-  local slider=CreateFrame("Slider",nil,frame); safeMethod(slider,"SetOrientation","VERTICAL"); safeMethod(slider,"SetSize",16,300); safeMethod(slider,"SetPoint","TOPRIGHT",-10,-120); safeMethod(slider,"SetMinMaxValues",0,0); safeMethod(slider,"SetValueStep",1); safeMethod(slider,"SetObeyStepOnDrag",true)
-  safeMethod(slider,"SetThumbTexture","Interface\\Buttons\\UI-ScrollBar-Knob"); safeMethod(slider,"SetBackdrop",{bgFile="Interface\\Buttons\\UI-SliderBar-Background",tile=true,tileSize=8})
-  safeMethod(slider,"SetScript","OnValueChanged",function(_,value) if UI.updatingSlider then return end; UI:SetTimelineOffset(value,UI.timelineTotal); UI:Refresh() end); self.slider=slider; attachTooltip(slider,"Timeline position","Drag or use the mouse wheel to scroll.")
-  local menu=CreateFrame("Frame",nil,frame,"BackdropTemplate"); safeMethod(menu,"SetFrameStrata","DIALOG"); safeMethod(menu,"SetBackdrop",{bgFile="Interface\\DialogFrame\\UI-DialogBox-Background",edgeFile="Interface\\Tooltips\\UI-Tooltip-Border",tile=true,tileSize=16,edgeSize=12,insets={left=3,right=3,top=3,bottom=3}}); safeMethod(menu,"Hide")
-  self.menu=menu; self.menuButtons={}
-  for index=1,math.max(#self.filters,#self.dateRanges) do local b=CreateFrame("Button",nil,menu,"UIPanelButtonTemplate"); safeMethod(b,"SetSize",120,20); safeMethod(b,"SetPoint","TOPLEFT",5,-4-(index-1)*22); safeMethod(b,"Hide"); self.menuButtons[index]=b end
-  local copy=CreateFrame("EditBox",nil,frame,"InputBoxTemplate"); safeMethod(copy,"SetMultiLine",true); safeMethod(copy,"SetAutoFocus",false); safeMethod(copy,"SetSize",720,360); safeMethod(copy,"SetPoint","TOPLEFT",26,-140); safeMethod(copy,"Hide"); self.copyBox=copy
-  self.details=frame:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall"); safeMethod(self.details,"SetPoint","TOPRIGHT",-28,-138); safeMethod(self.details,"SetWidth",260); safeMethod(self.details,"SetJustifyH","LEFT"); safeMethod(self.details,"SetText","Select an entry to inspect its details.")
-  self.rowButtons={}
-  for index=1,30 do local button=CreateFrame("Button",nil,frame); safeMethod(button,"SetPoint","TOPLEFT",26,-115-index*14); safeMethod(button,"SetSize",430,14); safeMethod(button,"SetScript","OnClick",function(clicked) UI.selectedEvent=clicked.event; safeMethod(UI.details,"SetText",UI:FormatEventDetails(clicked.event)) end); self.rowButtons[index]=button end
-  self.settingControls={}
-  local settingDefs={{"enabled","Record Chronicle"},{"recordQuestAccepts","Record quest accepts"},{"recordCoordinates","Attach coordinates to events"},{"showMinimapButton","Show minimap button"},{"recordStatistics","Collect achievement statistics"},{"recordGoldStatistics","Include gold statistics (stays on this computer)"}}
-  for index,definition in ipairs(settingDefs) do
-    local key,text=definition[1],definition[2]; local check=CreateFrame("CheckButton",nil,frame,"UICheckButtonTemplate"); safeMethod(check,"SetPoint","TOPLEFT",index>3 and 360 or 28,-145-((index-1)%3)*30); safeMethod(check,"SetChecked",Addon.db.settings[key]); local caption=check:CreateFontString(nil,"OVERLAY","GameFontHighlight"); safeMethod(caption,"SetPoint","LEFT",check,"RIGHT",4,0); safeMethod(caption,"SetText",text)
-    safeMethod(check,"SetScript","OnClick",function(button) local checked=button.GetChecked and button:GetChecked() or not Addon.db.settings[key]; UI:SetSetting(key,checked); UI:Refresh() end); self.settingControls[#self.settingControls+1]=check; self.settingControls[#self.settingControls+1]=caption
+
+  -- title bar
+  local bar = CreateFrame("Frame", nil, frame)
+  safeMethod(bar, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 1, -1); safeMethod(bar, "SetPoint", "TOPRIGHT", frame, "TOPRIGHT", -1, -1); safeMethod(bar, "SetHeight", 34)
+  T:Fill(bar, "BACKGROUND", C.panel)
+  local icon = bar:CreateTexture(nil, "ARTWORK")
+  safeMethod(icon, "SetTexture", ICON); safeMethod(icon, "SetSize", 22, 22); safeMethod(icon, "SetPoint", "LEFT", bar, "LEFT", 12, 0)
+  self.titleBarIcon = icon
+  local title = bar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  safeMethod(title, "SetPoint", "LEFT", icon, "RIGHT", 8, 0); safeMethod(title, "SetText", "Moms Against Magic Chronicles"); safeMethod(title, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1)
+  self.title = title
+  local close = T:Button(bar, "x", 28, 22)
+  safeMethod(close, "SetPoint", "RIGHT", bar, "RIGHT", -6, 0)
+  safeMethod(close, "SetScript", "OnClick", function() UI:Hide() end)
+  self.closeButton = close
+
+  -- tabs
+  self.tabButtons = {}
+  for index, name in ipairs(self.tabs) do
+    local tab = T:Tab(frame, name, 112, 28)
+    safeMethod(tab, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 12 + (index - 1) * 114, -38)
+    safeMethod(tab, "SetScript", "OnClick", function() UI:SetActiveTab(name) end)
+    self.tabButtons[index] = tab
   end
-  local quality=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(quality,"SetSize",210,24); safeMethod(quality,"SetPoint","TOPLEFT",30,-250); safeMethod(quality,"SetText",Addon.db.settings.notableQuality==5 and "Loot: Legendary only" or "Loot: Epic and above"); safeMethod(quality,"SetScript","OnClick",function(button) local nextValue=Addon.db.settings.notableQuality==4 and 5 or 4; UI:SetSetting("notableQuality",nextValue); safeMethod(button,"SetText",nextValue==5 and "Loot: Legendary only" or "Loot: Epic and above") end); self.qualityButton=quality; self.settingControls[#self.settingControls+1]=quality
-  local history=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(history,"SetSize",210,24); safeMethod(history,"SetPoint","TOPLEFT",30,-282); safeMethod(history,"SetText","History: "..tostring(Addon.db.settings.maxEvents)); safeMethod(history,"SetScript","OnClick",function(button) local current=Addon.db.settings.maxEvents; local nextValue=current>=10000 and 1000 or (current>=5000 and 10000 or 5000); UI:SetSetting("maxEvents",nextValue); safeMethod(button,"SetText","History: "..tostring(nextValue)); Addon.Database:Compact() end); self.historyButton=history; self.settingControls[#self.settingControls+1]=history
-  local actions={{"Reset Window",-314,"ResetWindow"},{"Reset Minimap Button",-346,"ResetMinimap"},{"Erase Chronicle Data...",-378,"RequestEraseHistory"}}
-  for _,action in ipairs(actions) do
-    local button=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(button,"SetSize",210,24); safeMethod(button,"SetPoint","TOPLEFT",30,action[2]); safeMethod(button,"SetText",action[1])
-    safeMethod(button,"SetScript","OnClick",function() if Addon.SettingsPanel then Addon.SettingsPanel[action[3]](Addon.SettingsPanel) end end); self.settingControls[#self.settingControls+1]=button
-    if action[3]=="RequestEraseHistory" then self.eraseButton=button; attachTooltip(button,"Erase Chronicle Data","Permanently deletes recorded history. Settings are kept.")
-    elseif action[3]=="ResetWindow" then attachTooltip(button,"Reset Window","Restore the window size and position.")
-    else attachTooltip(button,"Reset Minimap Button","Put the minimap button back in its default place.") end
+  local tabLine = frame:CreateTexture(nil, "BORDER")
+  safeMethod(tabLine, "SetColorTexture", C.border[1], C.border[2], C.border[3], 1)
+  safeMethod(tabLine, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 1, -68); safeMethod(tabLine, "SetPoint", "TOPRIGHT", frame, "TOPRIGHT", -1, -68); safeMethod(tabLine, "SetHeight", 1)
+
+  -- toolbar
+  local search = CreateFrame("EditBox", nil, frame, "BackdropTemplate")
+  safeMethod(search, "SetSize", 220, 26); safeMethod(search, "SetPoint", "TOPLEFT", frame, "TOPLEFT", SIDE, -78); safeMethod(search, "SetAutoFocus", false)
+  T:Input(search)
+  local hint = search:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+  safeMethod(hint, "SetPoint", "LEFT", search, "LEFT", 9, 0); safeMethod(hint, "SetText", "Search the Chronicle...")
+  self.searchHint = hint
+  safeMethod(search, "SetScript", "OnTextChanged", function(box)
+    if box.GetText then UI.search = box:GetText() or ""; UI.timelineOffset = 0; safeMethod(UI.searchHint, UI.search == "" and "Show" or "Hide"); UI:Refresh() end
+  end)
+  self.searchBox = search; attachTooltip(search, "Search", "Type words to find matching Chronicle entries.")
+  local filter = T:Button(frame, "Filter: All", 130, 26)
+  safeMethod(filter, "SetPoint", "LEFT", search, "RIGHT", 8, 0)
+  safeMethod(filter, "SetScript", "OnClick", function(button) UI:OpenFilterMenu(button) end)
+  self.filterButton = filter; attachTooltip(filter, "Filter", "Choose which kind of entry to show.")
+  local range = T:Button(frame, "Range: All", 130, 26)
+  safeMethod(range, "SetPoint", "LEFT", filter, "RIGHT", 8, 0)
+  safeMethod(range, "SetScript", "OnClick", function(button) UI:OpenRangeMenu(button) end)
+  self.rangeButton = range; attachTooltip(range, "Date range", "Choose how far back to look.")
+
+  -- body text (empty states, statistics)
+  self.content = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  safeMethod(self.content, "SetPoint", "TOPLEFT", frame, "TOPLEFT", SIDE, -112); safeMethod(self.content, "SetJustifyH", "LEFT"); safeMethod(self.content, "SetJustifyV", "TOP")
+  safeMethod(self.content, "SetTextColor", C.text[1], C.text[2], C.text[3], 1); safeMethod(self.content, "SetSpacing", 3)
+
+  -- footer
+  local footerLine = frame:CreateTexture(nil, "BORDER")
+  safeMethod(footerLine, "SetColorTexture", C.border[1], C.border[2], C.border[3], 1)
+  safeMethod(footerLine, "SetPoint", "BOTTOMLEFT", frame, "BOTTOMLEFT", 1, FOOTER - 2); safeMethod(footerLine, "SetPoint", "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -1, FOOTER - 2); safeMethod(footerLine, "SetHeight", 1)
+  local previous = T:Button(frame, "Previous", 84, 24)
+  safeMethod(previous, "SetPoint", "BOTTOMLEFT", frame, "BOTTOMLEFT", SIDE, 11)
+  safeMethod(previous, "SetScript", "OnClick", function() UI:SetTimelineOffset((UI.timelineOffset or 0) - 30, UI.timelineTotal); UI:Refresh() end)
+  self.previousButton = previous; attachTooltip(previous, "Previous page", "Show newer entries.")
+  local nextPage = T:Button(frame, "Next", 84, 24)
+  safeMethod(nextPage, "SetPoint", "LEFT", previous, "RIGHT", 8, 0)
+  safeMethod(nextPage, "SetScript", "OnClick", function() UI:SetTimelineOffset((UI.timelineOffset or 0) + 30, UI.timelineTotal); UI:Refresh() end)
+  self.nextButton = nextPage; attachTooltip(nextPage, "Next page", "Show older entries.")
+  self.pageLabel = frame:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+  safeMethod(self.pageLabel, "SetPoint", "LEFT", nextPage, "RIGHT", 14, 0)
+  local versionText = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  safeMethod(versionText, "SetPoint", "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -34, 16); safeMethod(versionText, "SetText", "v" .. tostring(Addon.version))
+  self.versionText = versionText
+  local resize = CreateFrame("Button", nil, frame)
+  safeMethod(resize, "SetSize", 16, 16); safeMethod(resize, "SetPoint", "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -6, 6)
+  safeMethod(resize, "SetNormalTexture", "Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up"); safeMethod(resize, "SetPushedTexture", "Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down"); safeMethod(resize, "SetHighlightTexture", "Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+  safeMethod(resize, "SetScript", "OnMouseDown", function(_, button) if button == "LeftButton" then safeMethod(frame, "StartSizing", "BOTTOMRIGHT") end end)
+  safeMethod(resize, "SetScript", "OnMouseUp", function() safeMethod(frame, "StopMovingOrSizing"); UI:SaveWindowState() end)
+  self.resizeHandle = resize
+
+  -- timeline region: wheel catcher, scrollbar, rows, details panel
+  local function onWheel(_, delta)
+    if UI.activeTab ~= "Chronicle" then return end
+    UI:SetTimelineOffset((UI.timelineOffset or 0) - (delta * 5), UI.timelineTotal); UI:Refresh()
   end
-  for _,control in ipairs(self.settingControls) do safeMethod(control,"Hide") end
-  safeMethod(frame,"Hide"); return frame
+  local scroll = CreateFrame("ScrollFrame", nil, frame)
+  safeMethod(scroll, "SetPoint", "TOPLEFT", frame, "TOPLEFT", SIDE, -ROW_TOP); safeMethod(scroll, "SetPoint", "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -(SIDE + DETAILS_W + 24), FOOTER)
+  safeMethod(scroll, "EnableMouseWheel", true); safeMethod(scroll, "SetScript", "OnMouseWheel", onWheel); self.scrollFrame = scroll
+  safeMethod(frame, "EnableMouseWheel", true); safeMethod(frame, "SetScript", "OnMouseWheel", onWheel)
+  local slider = CreateFrame("Slider", nil, frame, "BackdropTemplate")
+  safeMethod(slider, "SetOrientation", "VERTICAL"); safeMethod(slider, "SetWidth", 10)
+  safeMethod(slider, "SetPoint", "TOPRIGHT", frame, "TOPRIGHT", -(SIDE + DETAILS_W + 10), -ROW_TOP); safeMethod(slider, "SetPoint", "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -(SIDE + DETAILS_W + 10), FOOTER)
+  safeMethod(slider, "SetMinMaxValues", 0, 0); safeMethod(slider, "SetValueStep", 1); safeMethod(slider, "SetObeyStepOnDrag", true)
+  T:Scrollbar(slider)
+  safeMethod(slider, "SetScript", "OnValueChanged", function(_, value) if UI.updatingSlider then return end; UI:SetTimelineOffset(value, UI.timelineTotal); UI:Refresh() end)
+  self.slider = slider; attachTooltip(slider, "Timeline position", "Drag or use the mouse wheel to scroll.")
+  local panel = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+  safeMethod(panel, "SetWidth", DETAILS_W)
+  safeMethod(panel, "SetPoint", "TOPRIGHT", frame, "TOPRIGHT", -SIDE, -ROW_TOP); safeMethod(panel, "SetPoint", "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -SIDE, FOOTER)
+  T:Panel(panel, C.panel, C.border)
+  self.detailsPanel = panel
+  self.details = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  safeMethod(self.details, "SetPoint", "TOPLEFT", panel, "TOPLEFT", 10, -10); safeMethod(self.details, "SetPoint", "BOTTOMRIGHT", panel, "BOTTOMRIGHT", -10, 10)
+  safeMethod(self.details, "SetJustifyH", "LEFT"); safeMethod(self.details, "SetJustifyV", "TOP"); safeMethod(self.details, "SetTextColor", C.text[1], C.text[2], C.text[3], 1)
+  safeMethod(self.details, "SetText", "Select an entry to inspect its details.")
+  self.rowButtons = {}
+  for index = 1, ROW_COUNT do
+    local row = createRow(self, frame, index)
+    safeMethod(row, "EnableMouseWheel", true); safeMethod(row, "SetScript", "OnMouseWheel", onWheel)
+    self.rowButtons[index] = row
+  end
+
+  -- filter / range menu
+  local menu = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+  safeMethod(menu, "SetFrameStrata", "DIALOG"); T:Panel(menu, C.raised, C.border); safeMethod(menu, "Hide")
+  self.menu = menu; self.menuButtons = {}
+  for index = 1, math.max(#self.filters, #self.dateRanges) do
+    local b = T:Button(menu, "", 122, 20)
+    safeMethod(b, "SetPoint", "TOPLEFT", menu, "TOPLEFT", 4, -4 - (index - 1) * 22); safeMethod(b, "Hide")
+    self.menuButtons[index] = b
+  end
+
+  -- export / diagnostics text box
+  local copy = CreateFrame("EditBox", nil, frame, "BackdropTemplate")
+  safeMethod(copy, "SetMultiLine", true); safeMethod(copy, "SetAutoFocus", false)
+  safeMethod(copy, "SetPoint", "TOPLEFT", frame, "TOPLEFT", SIDE, -84); T:Input(copy); safeMethod(copy, "SetTextInsets", 10, 10, 8, 8); safeMethod(copy, "Hide")
+  self.copyBox = copy
+
+  -- settings tab
+  self.settingControls = {}
+  local function heading(text, x, y)
+    local fs = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    safeMethod(fs, "SetPoint", "TOPLEFT", frame, "TOPLEFT", x, y); safeMethod(fs, "SetText", text); safeMethod(fs, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1)
+    self.settingControls[#self.settingControls + 1] = fs
+  end
+  heading("Recording", SIDE + 8, -90); heading("Launcher and statistics", 360, -90)
+  local settingDefs = {
+    { "enabled", "Record Chronicle", SIDE + 8, -118 }, { "recordQuestAccepts", "Record quest accepts", SIDE + 8, -146 }, { "recordCoordinates", "Attach coordinates to events", SIDE + 8, -174 },
+    { "showMinimapButton", "Show minimap button", 360, -118 }, { "recordStatistics", "Collect achievement statistics", 360, -146 }, { "recordGoldStatistics", "Include gold statistics (local only)", 360, -174 },
+  }
+  for _, definition in ipairs(settingDefs) do
+    local key, text = definition[1], definition[2]
+    local check, caption = T:Check(frame, text)
+    safeMethod(check, "SetPoint", "TOPLEFT", frame, "TOPLEFT", definition[3], definition[4]); safeMethod(check, "SetChecked", Addon.db.settings[key])
+    safeMethod(check, "SetScript", "OnClick", function(button)
+      local checked = button.GetChecked and button:GetChecked() or not Addon.db.settings[key]
+      UI:SetSetting(key, checked); UI:Refresh()
+    end)
+    self.settingControls[#self.settingControls + 1] = check; self.settingControls[#self.settingControls + 1] = caption
+  end
+  local function qualityText(value) return value == 5 and "Loot: Legendary only" or "Loot: Epic and above" end
+  local quality = T:Button(frame, qualityText(Addon.db.settings.notableQuality), 220, 26)
+  safeMethod(quality, "SetPoint", "TOPLEFT", frame, "TOPLEFT", SIDE + 8, -226)
+  safeMethod(quality, "SetScript", "OnClick", function(button)
+    local nextValue = Addon.db.settings.notableQuality == 4 and 5 or 4
+    UI:SetSetting("notableQuality", nextValue); safeMethod(button, "SetText", qualityText(nextValue))
+  end)
+  self.qualityButton = quality; self.settingControls[#self.settingControls + 1] = quality
+  local history = T:Button(frame, "History: " .. tostring(Addon.db.settings.maxEvents), 220, 26)
+  safeMethod(history, "SetPoint", "TOPLEFT", frame, "TOPLEFT", SIDE + 8, -258)
+  safeMethod(history, "SetScript", "OnClick", function(button)
+    local current = Addon.db.settings.maxEvents
+    local nextValue = current >= 10000 and 1000 or (current >= 5000 and 10000 or 5000)
+    UI:SetSetting("maxEvents", nextValue); safeMethod(button, "SetText", "History: " .. tostring(nextValue)); Addon.Database:Compact()
+  end)
+  self.historyButton = history; self.settingControls[#self.settingControls + 1] = history
+  local actions = {
+    { "Reset Window", -226, "ResetWindow", "Reset Window", "Restore the window size and position." },
+    { "Reset Minimap Button", -258, "ResetMinimap", "Reset Minimap Button", "Put the minimap button back in its default place." },
+    { "Erase Chronicle Data...", -290, "RequestEraseHistory", "Erase Chronicle Data", "Permanently deletes recorded history. Settings are kept." },
+  }
+  for _, action in ipairs(actions) do
+    local button = T:Button(frame, action[1], 220, 26)
+    safeMethod(button, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 360, action[2])
+    safeMethod(button, "SetScript", "OnClick", function() if Addon.SettingsPanel then Addon.SettingsPanel[action[3]](Addon.SettingsPanel) end end)
+    self.settingControls[#self.settingControls + 1] = button
+    attachTooltip(button, action[4], action[5])
+    if action[3] == "RequestEraseHistory" then
+      self.eraseButton = button
+      if button.label then safeMethod(button.label, "SetTextColor", C.danger[1], C.danger[2], C.danger[3], 1) end
+    end
+  end
+  for _, control in ipairs(self.settingControls) do safeMethod(control, "Hide") end
+
+  safeMethod(frame, "SetScript", "OnSizeChanged", function(_, width, height) UI:ApplyLayout(width, height) end)
+  self:ApplyLayout(frame.GetWidth and frame:GetWidth() or 780, frame.GetHeight and frame:GetHeight() or 560)
+  safeMethod(frame, "Hide"); return frame
+end
+
+function UI:HideAllViews()
+  for _, row in ipairs(self.rowPool) do safeMethod(row, "Hide") end
+  for _, button in ipairs(self.rowButtons) do button.event = nil; safeMethod(button, "Hide") end
+  for _, control in ipairs(self.settingControls) do safeMethod(control, "Hide") end
+  safeMethod(self.previousButton, "Hide"); safeMethod(self.nextButton, "Hide"); safeMethod(self.scrollFrame, "Hide"); safeMethod(self.slider, "Hide"); safeMethod(self.pageLabel, "Hide")
+  self:SetDetailsVisible(false); safeMethod(self.copyBox, "Hide"); safeMethod(self.content, "SetText", "")
 end
 
 function UI:Refresh()
-  self:Create(); for _,row in ipairs(self.rowPool) do safeMethod(row,"Hide") end; for _,button in ipairs(self.rowButtons) do button.event=nil; safeMethod(button,"Hide") end; for _,control in ipairs(self.settingControls) do safeMethod(control,"Hide") end; safeMethod(self.previousButton,"Hide"); safeMethod(self.nextButton,"Hide"); safeMethod(self.scrollFrame,"Hide"); safeMethod(self.slider,"Hide"); safeMethod(self.details,"Hide"); safeMethod(self.copyBox,"Hide"); safeMethod(self.content,"SetText",""); self:UpdateTabStates()
-  if self.activeTab=="Chronicle" then
-    safeMethod(self.previousButton,"Show"); safeMethod(self.nextButton,"Show"); safeMethod(self.scrollFrame,"Show"); safeMethod(self.slider,"Show"); safeMethod(self.details,"Show")
-    local events,total=self:GetVisibleTimeline(); if total==0 then local unfiltered=self.activeFilter=="All" and self.activeRange=="All" and (self.search or "")==""; safeMethod(self.content,"SetText",unfiltered and "No Chronicle entries yet. Play for a while, or use /mam remember to add a memory." or "No entries match this filter, range, or search. Try widening them.") else safeMethod(self.content,"SetText","Showing "..tostring(self.timelineOffset+1).."-"..tostring(self.timelineOffset+#events).." of "..tostring(total)) end
-    for index=1,#events do local event=events[index]; local stamp=date and date("%d %b %H:%M",event.occurredAt) or tostring(event.occurredAt); safeMethod(self.rowPool[index],"SetWidth",420); safeMethod(self.rowPool[index],"SetText",stamp.."  "..event.type.." — "..tostring(label(event))); safeMethod(self.rowPool[index],"Show"); self.rowButtons[index].event=event; safeMethod(self.rowButtons[index],"Show") end
-  elseif self.activeTab=="Statistics" then
-    local fromTime,toTime=self:GetCurrentMonthRange(); local stats=Addon.Statistics:Build(fromTime,toTime); safeMethod(self.content,"SetText",Addon.Export:BuildHumanSummary(stats.fromTime,stats.toTime)..(Addon.AchievementStats and "\n\n"..Addon.AchievementStats:BuildText(Addon.characterKey) or ""))
-  elseif self.activeTab=="Settings" then
-    safeMethod(self.content,"SetText","Privacy and recording controls"); for _,control in ipairs(self.settingControls) do safeMethod(control,"Show") end
-  else self.copyText=Addon.Export:BuildDiagnosticReport(); safeMethod(self.copyBox,"SetText",self.copyText); safeMethod(self.copyBox,"Show") end
+  self:Create(); self:HideAllViews(); self:UpdateTabStates()
+  local chronicle = self.activeTab == "Chronicle"
+  self:SetToolbarVisible(chronicle); if not chronicle then self:CloseMenu() end
+  self:PlaceContent(chronicle)
+  if chronicle then
+    safeMethod(self.previousButton, "Show"); safeMethod(self.nextButton, "Show"); safeMethod(self.scrollFrame, "Show"); safeMethod(self.slider, "Show"); self:SetDetailsVisible(true); safeMethod(self.pageLabel, "Show")
+    local events, total = self:GetVisibleTimeline()
+    if total == 0 then
+      local unfiltered = self.activeFilter == "All" and self.activeRange == "All" and (self.search or "") == ""
+      safeMethod(self.content, "SetText", unfiltered and "No Chronicle entries yet. Play for a while, or use /mam remember to add a memory." or "No entries match this filter, range, or search. Try widening them.")
+      safeMethod(self.pageLabel, "SetText", "")
+    else
+      safeMethod(self.pageLabel, "SetText", tostring(self.timelineOffset + 1) .. "-" .. tostring(self.timelineOffset + #events) .. " of " .. tostring(total))
+    end
+    for index = 1, #events do self:FillRow(index, events[index]) end
+  elseif self.activeTab == "Statistics" then
+    local fromTime, toTime = self:GetCurrentMonthRange(); local stats = Addon.Statistics:Build(fromTime, toTime)
+    local text = Addon.Export:BuildHumanSummary(stats.fromTime, stats.toTime) .. (Addon.AchievementStats and "\n\n" .. Addon.AchievementStats:BuildText(Addon.characterKey) or "")
+    safeMethod(self.content, "SetText", self:ColouriseStatistics(text))
+  elseif self.activeTab == "Settings" then
+    for _, control in ipairs(self.settingControls) do safeMethod(control, "Show") end
+  else
+    self.copyText = Addon.Export:BuildDiagnosticReport(); safeMethod(self.copyBox, "SetText", self.copyText); safeMethod(self.copyBox, "Show")
+  end
 end
 
 function UI:Show() self:Create(); self:Refresh(); safeMethod(self.frame,"Show") end
 function UI:Hide() if self.frame then safeMethod(self.frame,"Hide") end end
 function UI:ShowCopy(text)
-  self:Create(); for _,row in ipairs(self.rowPool) do safeMethod(row,"Hide") end; for _,button in ipairs(self.rowButtons) do button.event=nil; safeMethod(button,"Hide") end; for _,control in ipairs(self.settingControls) do safeMethod(control,"Hide") end
-  safeMethod(self.previousButton,"Hide"); safeMethod(self.nextButton,"Hide"); safeMethod(self.scrollFrame,"Hide"); safeMethod(self.slider,"Hide"); self:CloseMenu(); safeMethod(self.details,"Hide"); safeMethod(self.content,"SetText","")
-  self.copyText=text or ""; safeMethod(self.copyBox,"SetText",self.copyText); safeMethod(self.copyBox,"Show"); safeMethod(self.copyBox,"SetFocus"); safeMethod(self.copyBox,"HighlightText"); safeMethod(self.frame,"Show")
+  self:Create(); self:HideAllViews(); self:CloseMenu(); self:SetToolbarVisible(false); self:PlaceContent(false)
+  self.copyText = text or ""; safeMethod(self.copyBox, "SetText", self.copyText); safeMethod(self.copyBox, "Show"); safeMethod(self.copyBox, "SetFocus"); safeMethod(self.copyBox, "HighlightText"); safeMethod(self.frame, "Show")
 end
 
 function UI:HandleSlash(command)

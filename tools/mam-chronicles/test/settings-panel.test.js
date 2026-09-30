@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHarness } from './harness.js';
 
-const files=['Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','Export.lua','UI.lua','Launcher.lua','SettingsPanel.lua'];
+const files=['Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','Export.lua','Theme.lua','UI.lua','Launcher.lua','SettingsPanel.lua'];
 function setup(prelude='',options={}){const h=createHarness(options);h.load(files.slice(0,1));h.run(prelude);h.load(files.slice(1));h.run('MAMChronicles:Boot()');return h;}
 const modern='__registered=0; __added=0; __opened=nil; Settings={RegisterCanvasLayoutCategory=function(panel,name) __panelName=name return {ID=7,GetID=function(self) return self.ID end} end,RegisterAddOnCategory=function(category) __added=__added+1 end,OpenToCategory=function(id) __opened=id end}';
 const popups='StaticPopupDialogs={}; YES="Yes"; NO="No"; __popup=nil; StaticPopup_Show=function(name) __popup=name return {} end';

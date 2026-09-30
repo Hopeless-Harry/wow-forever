@@ -63,6 +63,16 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] Note the size of `WTF\Account\<account>\SavedVariables\MAMChronicles.lua` before and after: __________
 - [ ] Switching "Collect achievement statistics" off stops new readings.
 
+## New look (alpha4)
+
+- [ ] Window has a flat dark style with the icon and gold title; tabs show an accent underline on the active tab.
+- [ ] Timeline rows show a coloured stripe, a time column, and a coloured type label (Death red, Quest gold, Discovery green, Entered/Left blue, Loot purple, Memory teal); hovering a row highlights it and clicking shows details on the right.
+- [ ] Enlarging the window makes rows taller (up to 20px); shrinking to the minimum keeps everything readable and inside the window.
+- [ ] Every button highlights on hover, including ones with tooltips, and tooltips still appear.
+- [ ] Settings tab: checkboxes have a clear checked state, the gold statistics caption fits at minimum width, Erase shows in red.
+- [ ] Statistics tab: headings are gold, changes are green, headline values are readable.
+- [ ] Note anything that looks misaligned, clipped, too dark, too small, or ugly (screenshot please): __________
+
 ## Stability
 
 - [ ] No Lua errors during the test.

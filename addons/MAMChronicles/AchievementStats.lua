@@ -256,7 +256,7 @@ function AchievementStats:BuildText(key)
       table.sort(list, function(a, b) if a.value ~= b.value then return a.value > b.value end return a.name < b.name end)
       local parts = {}
       for index = 1, math.min(3, #list) do parts[index] = list[index].name .. " " .. formatStat(list[index].value, list[index].kind) end
-      if #parts > 0 then table.insert(lines, "  " .. table.concat(parts, "  |  ")) end
+      if #parts > 0 then table.insert(lines, "  " .. table.concat(parts, "  \194\183  ")) end
       for _, change in ipairs(changes[group] or {}) do
         table.insert(lines, "  +" .. tostring(change.delta) .. " " .. change.name .. " (now " .. tostring(change.value) .. ")")
       end
