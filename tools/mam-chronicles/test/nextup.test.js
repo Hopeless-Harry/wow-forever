@@ -9,7 +9,7 @@ test('Next up is the fifth filter',()=>{
   const h=setup(); assert.equal(h.get('MAMChronicles.UI.medalFilters[5]'),'Next up'); assert.equal(h.get('#MAMChronicles.UI.medalFilterButtons'),5);
 });
 test('Next up lists one unearned medal per family',()=>{
-  const h=setup(); h.run('local UI=MAMChronicles.UI; UI:SetMedalFilter("Next up"); __n=#UI.medalList; local seen,dup,earned={},0,0; for _,m in ipairs(UI.medalList) do if seen[m.def.family] then dup=dup+1 end seen[m.def.family]=true; if m.earned then earned=earned+1 end end; __dup=dup; __earned=earned; local all=0; local fam={}; for _,m in ipairs(MAMChronicles.Medals:GetProgress()) do if not m.earned and not fam[m.def.family] then fam[m.def.family]=true; all=all+1 end end; __expect=all');
+  const h=setup(); h.run('local UI=MAMChronicles.UI; UI:SetMedalFilter("Next up"); __n=#UI.medalList; local seen,dup,earned={},0,0; for _,m in ipairs(UI.medalList) do if seen[m.def.family] then dup=dup+1 end seen[m.def.family]=true; if m.earned then earned=earned+1 end end; __dup=dup; __earned=earned; local all=0; local fam={}; for _,m in ipairs(MAMChronicles.Medals:GetProgress()) do if not m.earned and not m.def.verified and not fam[m.def.family] then fam[m.def.family]=true; all=all+1 end end; __expect=all');
   assert.equal(h.get('__dup'),0); assert.equal(h.get('__earned'),0); assert.equal(h.get('__n'),h.get('__expect')); assert.ok(h.get('__n')>30);
 });
 test('earning a tier moves the family on to its next tier',()=>{

@@ -501,7 +501,7 @@ function Medals:Evaluate(reason)
   local hadFamily = {}
   for _, known in ipairs(definitions) do if row.earned[known.id] then hadFamily[known.family] = true end end
   for _, def in ipairs(definitions) do
-    if not row.earned[def.id] and self:IsAvailable(def) and def.value(ctx) >= def.target then
+    if not def.verified and not row.earned[def.id] and self:IsAvailable(def) and def.value(ctx) >= def.target then
       row.earned[def.id] = { at = Addon:Now(), points = def.points, retro = baseline or nil }
       row.total = row.total + def.points; points = points + def.points
       table.insert(awarded, def)
@@ -582,6 +582,10 @@ assignCategory("pattern", "late early marathon relog streak weekend learning cle
 Medals.namedMedals = {
   { id = "hopeless_spit", name = "Hopeless Case", emote = "SPIT", target = "Hopeless", verb = "Spit at", targets = { 1, 10, 50 }, title = "Hopeless Mom" },
 }
+-- Verified: things the addon cannot observe (for example Discord posts). The Guild Master awards them by hand.
+Medals.verifiedMedals = {
+  { id = "selfie_squad", name = "Selfie Squad", tier = "silver", description = "Post 10 selfies in the Moms Discord.", title = "Selfie Mom" },
+}
 do
   local function distinct(token) return tagged("targets", function(ctx) return ctx.distinctTargets(token) end) end
   local function named(token, name) return tagged("targets", function(ctx) return ctx.targetCount(token, name) end) end
@@ -592,9 +596,14 @@ do
   for _, entry in ipairs(Medals.namedMedals) do
     series(entry.id, entry.name, entry.verb .. " " .. entry.target .. " {n} times.", entry.targets, #entry.targets > 3 and btsp or bts, named(entry.emote, entry.target))
   end
+  for _, entry in ipairs(Medals.verifiedMedals) do
+    register({ id = entry.id, family = entry.id, name = entry.name, tier = entry.tier, target = 1, description = entry.description,
+      value = tagged("verified", function() return 0 end), verified = true })
+  end
 end
 assignCategory("guild", "wave_people hug_people kiss_people cheer_people")
 for _, entry in ipairs(Medals.namedMedals) do Medals.familyCategory[entry.id] = "guild" end
+for _, entry in ipairs(Medals.verifiedMedals) do Medals.familyCategory[entry.id] = "guild" end
 
 for _, def in ipairs(definitions) do
   def.category = def.client == "forever" and "forever" or (def.family:find("^season_") and "seasonal") or Medals.familyCategory[def.family] or "progress"
@@ -647,6 +656,7 @@ for family, title in pairs({
 }) do Medals.titles[family] = title end
 for family, title in pairs({ wave_people = "Welcome Wagon Mom", hug_people = "Group Hug Mom", kiss_people = "Smooch Squad Mom", cheer_people = "Pep Rally Mom" }) do Medals.titles[family] = title end
 for _, entry in ipairs(Medals.namedMedals) do Medals.titles[entry.id] = entry.title or (entry.name .. " Mom") end
+for _, entry in ipairs(Medals.verifiedMedals) do Medals.titles[entry.id] = entry.title or (entry.name .. " Mom") end
 
 Medals.cosmetics = {
   { id = "style_gold", kind = "toastStyle", name = "Default toast colours", cost = 0 },
@@ -995,7 +1005,7 @@ function Medals:SetPinned(id, pinned)
     return true
   end
   local def = definitionsById[id]
-  if not def or not self:IsAvailable(def) then return false end
+  if not def or def.verified or not self:IsAvailable(def) then return false end
   local row = Addon.db.medals and Addon.db.medals[Addon.characterKey]
   if row and row.earned[id] then return false end
   if index then return true end
@@ -1043,4 +1053,54 @@ function Medals:GetProgress(key)
     end
   end
   return list
+end
+
+-- ---------------------------------------------------------------- guild-verified awards
+-- Granted by the Guild Master's award message (or a local test grant), never by tracking.
+function Medals:ListVerifiedIds()
+  local ids = {}
+  for _, def in ipairs(definitions) do if def.verified then ids[#ids + 1] = def.id end end
+  return table.concat(ids, ", ")
+end
+
+function Medals:GrantVerified(id, opts)
+  local def = definitionsById[id]
+  local database, key = Addon.db, Addon.characterKey
+  if not (def and def.verified and database and key) then return false, "unknown" end
+  local row = database.medals and database.medals[key]
+  if not row then return false, "not ready" end
+  if row.earned[id] then return false, "already" end
+  local test = opts and opts.test == true
+  row.earned[id] = { at = Addon:Now(), points = test and 0 or def.points, verified = true, test = test or nil }
+  self.newIds[id] = true
+  if test then
+    if Addon.Toast then Addon:Guard("Verified", Addon.Toast.Show, Addon.Toast, { kind = "medal", title = "[TEST] " .. def.name, text = def.description, points = 0, action = "Medals" }) end
+    return true
+  end
+  row.total = (tonumber(row.total) or 0) + def.points
+  if Addon.EventStore then Addon.EventStore:Append("medal.earned", { medalId = def.id, medalName = def.name, points = def.points }) end
+  notify(def, { retro = false, reason = "award" })
+  return true
+end
+
+function Medals:RevokeVerified(id)
+  local def = definitionsById[id]
+  local row = Addon.db and Addon.db.medals and Addon.db.medals[Addon.characterKey]
+  if not (def and def.verified and row) then return false, "unknown" end
+  local earned = row.earned[id]
+  if not earned then return false, "not earned" end
+  if not earned.test then row.total = math.max(0, (tonumber(row.total) or 0) - (tonumber(earned.points) or def.points)) end
+  row.earned[id] = nil
+  return true
+end
+
+function Medals:ClearTestGrants()
+  local row = Addon.db and Addon.db.medals and Addon.db.medals[Addon.characterKey]
+  local removed = 0
+  if not row then return 0 end
+  for _, def in ipairs(definitions) do
+    local earned = row.earned[def.id]
+    if def.verified and earned and earned.test then row.earned[def.id] = nil; removed = removed + 1 end
+  end
+  return removed
 end

@@ -757,12 +757,16 @@ end
 
 function UI:ToggleGoal(row, button)
   local entry = row and row.entry
-  if button ~= "LeftButton" or not entry or entry.earned then return end
+  if button ~= "LeftButton" or not entry then return end
+  if entry.def.verified then self:AwardFromRow(entry); return end
+  if entry.earned then return end
   local id = entry.def.id
   if Addon.Medals:IsPinned(id) then Addon.Medals:SetPinned(id, false)
   elseif not Addon.Medals:SetPinned(id, true) then Addon:Print("You can pin 3 goals. Unpin one first.") end
   self:RefreshMedals()
 end
+
+function UI:AwardFromRow(entry) end
 
 function UI:ShowMedalTooltip(row)
   local entry = row and row.entry
@@ -775,8 +779,12 @@ function UI:ShowMedalTooltip(row)
     local when = entry.earned.retro and "before tracking began" or (date and date("%d %b %Y", entry.earned.at) or tostring(entry.earned.at))
     safeMethod(GameTooltip, "AddLine", "Earned " .. when .. " (+" .. tostring(def.points) .. " Mom Money)", 0.9, 0.8, 0.3, true)
   else
-    safeMethod(GameTooltip, "AddLine", "Progress: " .. tostring(math.floor(math.min(entry.current, entry.target))) .. " / " .. tostring(entry.target), 0.9, 0.8, 0.3, true)
-    safeMethod(GameTooltip, "AddLine", Addon.Medals:IsPinned(def.id) and "Click to unpin this goal." or "Click to pin as a goal.", 0.6, 0.8, 1, true)
+    if def.verified then
+      safeMethod(GameTooltip, "AddLine", "See Guild Lead to unlock / award points!", 0.9, 0.8, 0.3, true)
+    else
+      safeMethod(GameTooltip, "AddLine", "Progress: " .. tostring(math.floor(math.min(entry.current, entry.target))) .. " / " .. tostring(entry.target), 0.9, 0.8, 0.3, true)
+      safeMethod(GameTooltip, "AddLine", Addon.Medals:IsPinned(def.id) and "Click to unpin this goal." or "Click to pin as a goal.", 0.6, 0.8, 1, true)
+    end
   end
   safeMethod(GameTooltip, "Show")
 end
@@ -790,6 +798,8 @@ function UI:BindMedalRow(row, entry, position)
   safeMethod(row, "ClearAllPoints"); safeMethod(row, "SetPoint", "TOPLEFT", self.medalsArea.child, "TOPLEFT", 0, offset); safeMethod(row, "SetPoint", "TOPRIGHT", self.medalsArea.child, "TOPRIGHT", 0, offset)
   safeMethod(row.name, "SetText", def.name); safeMethod(row.desc, "SetText", def.description)
   safeMethod(row.points, "SetText", "+" .. tostring(def.points))
+  local lockedVerified = def.verified and not entry.earned
+  if lockedVerified then safeMethod(row.points, "SetText", "Guild Lead") end
   safeMethod(row.newTag, entry.isNew and "Show" or "Hide")
   safeMethod(row.goalTag, (not entry.earned and Addon.Medals:IsPinned(def.id)) and "Show" or "Hide")
   local earned = entry.earned ~= nil
@@ -816,6 +826,9 @@ function UI:BindMedalRow(row, entry, position)
     local stamp = entry.earned.retro and "Earned before tracking began" or ("Earned " .. (date and date("%d %b %Y", entry.earned.at) or tostring(entry.earned.at)))
     safeMethod(row.progress, "SetText", stamp)
     paint(tierColour[1], tierColour[2], tierColour[3], 1)
+  elseif lockedVerified then
+    safeMethod(row.progress, "SetText", "See Guild Lead to unlock / award points!")
+    paint(C.accent[1], C.accent[2], C.accent[3], 0)
   else
     local current = math.floor(math.min(entry.current, entry.target))
     safeMethod(row.progress, "SetText", tostring(current) .. " / " .. tostring(entry.target))
@@ -911,7 +924,7 @@ function UI:RefreshMedals()
     entry.index = index; entry.isNew = entry.earned ~= nil and Addon.Medals.newIds[entry.def.id] == true
     -- definitions are listed in tier order, so the first unearned one of a family is its next tier
     entry.isNextUp = false
-    if not entry.earned and not familySeen[entry.def.family] then entry.isNextUp = true; familySeen[entry.def.family] = true end
+    if not entry.earned and not entry.def.verified and not familySeen[entry.def.family] then entry.isNextUp = true; familySeen[entry.def.family] = true end
     local text = string.lower(entry.def.name .. " " .. entry.def.description)
     if (self.medalCategory == "all" or entry.def.category == self.medalCategory) and (needle == "" or string.find(text, needle, 1, true)) then
       searched[#searched + 1] = entry

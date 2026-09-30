@@ -134,3 +134,60 @@ test('variety and named medals sit in the guild category and explain how they ar
   assert.match(h.get('MAMChronicles.Medals:GetDefinition("wave_people_1").tracking'),/guildmates/);
   assert.match(h.get('MAMChronicles.Medals:GetDefinition("hopeless_spit_1").description'),/Spit at Hopeless/);
 });
+
+const earnedRow=(id)=>`MAMChroniclesDB.medals["${key}"].earned.${id}`;
+
+test('a verified medal exists, is never earned by play and lists as locked',()=>{
+  const h=setup();
+  assert.equal(h.get('MAMChronicles.Medals:GetDefinition("selfie_squad").verified'),true);
+  h.run('MAMChronicles.Medals:Evaluate("t")');
+  assert.equal(h.get(earnedRow('selfie_squad')),null);
+  h.run('MAMChronicles.UI:Show(); MAMChronicles.UI:SetActiveTab("Medals"); MAMChronicles.UI:SetMedalFilter("Locked"); MAMChronicles.UI:SetMedalSearch("selfie squad"); __row=MAMChronicles.UI.medalRows[1]');
+  assert.match(h.get('__row.progress.text'),/See Guild Lead to unlock \/ award points!/);
+  assert.equal(h.get('__row.points.text'),'Guild Lead');
+});
+
+test('a verified medal cannot be pinned as a goal',()=>{
+  const h=setup();
+  assert.equal(h.get('MAMChronicles.Medals:SetPinned("selfie_squad",true)'),false);
+});
+
+test('a real grant pays Mom Money once, a test grant pays nothing',()=>{
+  const h=setup();
+  h.run('__before=MAMChronicles.Medals:GetEarnedMoney()');
+  assert.equal(h.get('MAMChronicles.Medals:GrantVerified("selfie_squad")'),true);
+  assert.equal(h.get('MAMChronicles.Medals:GetEarnedMoney()'),h.get('__before')+25);
+  assert.equal(h.get('MAMChronicles.Medals:GrantVerified("selfie_squad")'),false);
+  assert.equal(h.get('MAMChronicles.Medals:GetEarnedMoney()'),h.get('__before')+25);
+  const t=setup();
+  t.run('__before=MAMChronicles.Medals:GetEarnedMoney()');
+  assert.equal(t.get('MAMChronicles.Medals:GrantVerified("selfie_squad",{test=true})'),true);
+  assert.equal(t.get(earnedRow('selfie_squad')+'.test'),true);
+  assert.equal(t.get('MAMChronicles.Medals:GetEarnedMoney()'),t.get('__before'));
+});
+
+test('only verified medals can be granted and unknown ones are refused',()=>{
+  const h=setup();
+  assert.equal(h.get('select(1,MAMChronicles.Medals:GrantVerified("wine_1"))'),false);
+  assert.equal(h.get('select(2,MAMChronicles.Medals:GrantVerified("nope"))'),'unknown');
+  assert.equal(h.get(earnedRow('wine_1')),null);
+});
+
+test('revoke removes a verified award and its Mom Money, and clearing removes only test grants',()=>{
+  const h=setup();
+  h.run('__before=MAMChronicles.Medals:GetEarnedMoney(); MAMChronicles.Medals:GrantVerified("selfie_squad")');
+  assert.equal(h.get('MAMChronicles.Medals:RevokeVerified("selfie_squad")'),true);
+  assert.equal(h.get(earnedRow('selfie_squad')),null);
+  assert.equal(h.get('MAMChronicles.Medals:GetEarnedMoney()'),h.get('__before'));
+  assert.equal(h.get('select(2,MAMChronicles.Medals:RevokeVerified("selfie_squad"))'),'not earned');
+  h.run('MAMChronicles.Medals:GrantVerified("selfie_squad",{test=true}); __n=MAMChronicles.Medals:ClearTestGrants()');
+  assert.equal(h.get('__n'),1); assert.equal(h.get(earnedRow('selfie_squad')),null);
+});
+
+test('a real grant toasts and announces to the guild, a test grant stays quiet',()=>{
+  const h=setup();
+  h.run('MAMChronicles.Medals:GrantVerified("selfie_squad")');
+  assert.equal(h.get('__sent[1][2]'),'M1|selfie_squad|25|1');
+  const t=setup(); t.run('MAMChronicles.Medals:GrantVerified("selfie_squad",{test=true})');
+  assert.equal(t.get('#__sent'),0);
+});
