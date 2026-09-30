@@ -1,0 +1,39 @@
+MOMS AGAINST MAGIC CHRONICLES
+Version {{VERSION}}
+
+SEND THIS FILE
+  MAMChronicles-{{VERSION}}.zip
+
+READ FIRST
+  USER-MANUAL.md explains every screen, command, recorded event, privacy rule,
+  and troubleshooting step. MOM-MEDALS-CATALOGUE.md lists every medal.
+
+INSTALL
+1. Fully close World of Warcraft.
+2. Open the ZIP.
+3. Copy the MAMChronicles folder into the AddOns folder of your client:
+   World of Warcraft\_retail_\Interface\AddOns\
+   World of Warcraft\_classic_beta_\Interface\AddOns\   (WoW Forever)
+4. Start WoW and enable "Moms Against Magic Chronicles" on the AddOns screen.
+5. Log in and type: /mam
+
+QUICK TEST
+1. Type: /mam toast   (shows a test toast)
+2. Type: /mam remember tester check
+3. Type: /reload
+4. Open /mam and confirm the memory is still present.
+5. Work through TESTER-CHECKLIST.md where practical.
+
+IF SOMETHING BREAKS
+1. Type: /mam diag
+2. Copy the report or take a screenshot.
+3. Include exactly what you did immediately before the problem.
+
+IMPORTANT
+- This is an alpha build. Back up the WTF folder before extended testing.
+- Retail testing does not prove WoW Forever compatibility.
+- Do not send SavedVariables files publicly; they contain your gameplay history.
+- Guild announcements of new medals are on by default; turn them off in Settings > Alerts.
+
+SHA-256
+{{SHA256}}

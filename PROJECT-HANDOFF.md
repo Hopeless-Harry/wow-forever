@@ -7,6 +7,8 @@
 
 This is the first file a new agent should read. Keep it current whenever the version, design, verification status, release location, major decision, or next action changes.
 
+**Standing build rule from the user (30 September 2026): after EVERY change, update the user's installed build on BOTH WoW clients AND the CurseForge package.** Run `pwsh -NoProfile -File scripts/publish-build.ps1` from the repository root. It runs all suites, packages the ZIP into `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-<version>/` together with the tester notes, manual, checklist, medal catalogue and the `curseforge/` material, verifies the ZIP against source, and installs to `_retail_` and `_classic_beta_`. A client whose game process is running is skipped with a message; ask the user to close the game and run it again. Bump the TOC/`Core.lua`/package version for feature changes, keep `addons/MAMChronicles/CHANGELOG.md` current (it ships in the package and feeds CurseForge), and record the new SHA-256 here. Uploading to CurseForge itself stays the owner's action.
+
 **Standing continuity rule from the user:** update this handoff as work progresses, including during a partially completed milestone. If the active agent stops or runs out of usage, another agent must be able to identify the last completed check, the current work in progress, and the exact next action from this file alone.
 
 ## 1. Project vision
@@ -419,6 +421,7 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
+0. **Retail is still on the previous build if Wow.exe was running when last published.** The installed Forever client is on the latest build. Close WoW and run `scripts/publish-build.ps1` to bring both clients and the release package current.
 1. User runs alpha9 on the WoW Forever client first: send `/mam diag` (look at `Medals:` and `Camp spells seen:`) and screenshots of the Medals tab. Confirm live: The Great Outdoors gives Happy Camper; lighting a campfire and placing an object moves Firestarter / Camp Decorator; entering the new dungeons, raids, Darkspear Islands and new zones moves their medals; Plot Twist for a new race-class combo; which statistic-based medals appear.
 2. Fix whatever the live check disproves (exact spell names, instance names, quest name, Statistics availability on Forever).
 3. User decides: the licence text, CurseForge project name/category, and then uploads `docs/release/curseforge` material with the ZIP following `UPLOAD-CHECKLIST.md`.
