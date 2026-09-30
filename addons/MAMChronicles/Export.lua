@@ -54,7 +54,7 @@ function Export:BuildDiagnosticReport()
   table.insert(lines,"SavedVariables: events "..tostring(#Addon.db.events)..", medals "..tostring(Export:CountEarnedMedals())..", feed "..tostring(#(Addon.db.guildFeed or {})))
   table.insert(lines,"Unavailable collectors: "..(#unavailable>0 and table.concat(unavailable,", ") or "none"))
   if status and errors>0 then for index=math.max(1,errors-2),errors do local item=status.errors[index]; table.insert(lines,"Recent collector error: "..tostring(item.event or "unknown").." ("..tostring(item.message or "handler failed")..")") end end
-  if Addon.AchievementStats then local st=Addon.AchievementStats.status; table.insert(lines,"Statistics: "..(st and (st.state..(st.state=="ok" and ", "..tostring(st.statCount or 0).." read, "..tostring(st.unparsed or 0).." unreadable" or (st.reason and " ("..st.reason..")" or ""))) or "not scanned yet")) end
+  if Addon.AchievementStats then local st=Addon.AchievementStats.status; table.insert(lines,"Statistics: "..(st and (st.state..(st.state=="ok" and ", "..tostring(st.statCount or 0).." read, "..tostring(st.unparsed or 0).." unreadable"..(st.scanMs and ", scan "..st.scanMs.." ms" or "") or (st.reason and " ("..st.reason..")" or ""))) or "not scanned yet")) end
   if Addon.Comms then local cs=Addon.Comms.status; table.insert(lines,"Guild sharing: "..tostring(cs.state)..", sent "..tostring(cs.sent)..", received "..tostring(cs.received)..", dropped "..tostring(cs.dropped)) end
   if Addon.Medals then
     local raceToken = select(2, Addon:SafeCall(UnitRace, "player"))

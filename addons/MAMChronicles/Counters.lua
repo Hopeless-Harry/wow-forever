@@ -55,9 +55,11 @@ function Counters:Add(name, amount)
   local database = Addon.db
   if not (database and Addon.characterKey) then return end
   database.counters = type(database.counters) == "table" and database.counters or {}
+  amount = amount == nil and 1 or tonumber(amount)
+  if not (amount and amount == amount and amount > 0 and amount < math.huge) then return end
   local row = database.counters[Addon.characterKey] or {}
   database.counters[Addon.characterKey] = row
-  row[name] = (row[name] or 0) + (amount or 1)
+  row[name] = math.min(1000000000, (row[name] or 0) + amount)
   if not Addon.Medals then return end
   if C_Timer and C_Timer.After then
     if self.evaluatePending then return end

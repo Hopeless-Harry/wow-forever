@@ -156,6 +156,87 @@ local function rootTitleFor(map, id)
   return title
 end
 
+local SCAN_BUDGET_MS = 6
+
+local function clockMs()
+  if type(debugprofilestop) ~= "function" then return nil end
+  local value = safe(debugprofilestop)
+  return finite(value) and value or nil
+end
+
+local function scanCategory(self, state, id)
+  local total = safe(GetCategoryNumAchievements, id, true)
+  local root = rootTitleFor(state.map, id)
+  for index = 1, (finite(total) and total or 0) do
+    local statId, name = safe(GetAchievementInfo, id, index)
+    if statId then
+      local text = safe(GetStatistic, statId)
+      local number, kind, label = self:ParseValue(text)
+      if not number and type(text) == "string" and text:match("%S") and text ~= "--" then
+        state.unparsed = state.unparsed + 1
+        if #state.samples < 8 then table.insert(state.samples, { name = tostring(name or statId), raw = text:sub(1, 40) }) end
+      end
+      if number then
+        local group = self:Classify(root, name, kind)
+        if group == "Other" then state.otherRoots[root or "unknown"] = (state.otherRoots[root or "unknown"] or 0) + 1 end
+        if group ~= GOLD or state.includeGold then
+          state.values[statId] = number; state.count = state.count + 1
+          if label then state.labels[statId] = label:sub(1, 40) end
+          state.catalog[statId] = { name = tostring(name or statId), group = group, kind = kind }
+        end
+      end
+    end
+  end
+end
+
+local function finishScan(self, state)
+  local database = db()
+  local now = Addon:Now()
+  local row = tableOr(database.statistics[state.key]); row.months = tableOr(row.months)
+  row.baseline = row.baseline or { takenAt = now, values = copyValues(state.values) }
+  row.latest = { takenAt = now, values = state.values, labels = state.labels }
+  local month = monthKey(now)
+  if not row.months[month] then row.months[month] = { takenAt = now, values = copyValues(state.values) } end
+  local keys = {}
+  for name in pairs(row.months) do table.insert(keys, name) end
+  table.sort(keys, function(a, b) return a > b end)
+  for index = MONTHS_KEPT + 1, #keys do row.months[keys[index]] = nil end
+  database.statistics[state.key] = row
+  self.scanning = false
+  self:SetStatus("ok", nil, state.count, state.unparsed)
+  self.status.unparsedSamples, self.status.otherRoots = state.samples, state.otherRoots
+  if state.elapsed then self.status.scanMs = math.max(1, math.floor(state.elapsed + 0.5)) end
+  return true
+end
+
+-- Reads categories until the time budget for this frame is used, then continues next frame (when timers exist).
+local function runScan(self, state)
+  local canSplit = type(C_Timer) == "table" and type(C_Timer.After) == "function" and clockMs() ~= nil
+  local sliceStart = clockMs()
+  while state.position <= #state.categories do
+    scanCategory(self, state, state.categories[state.position])
+    state.position = state.position + 1
+    if canSplit and state.position <= #state.categories then
+      local spent = clockMs() - sliceStart
+      if spent >= SCAN_BUDGET_MS then
+        state.elapsed = (state.elapsed or 0) + spent
+        self.scanning = true
+        self:SetStatus("pending", "scanning")
+        C_Timer.After(0, function()
+          if InCombatLockdown and InCombatLockdown() then
+            C_Timer.After(RETRY_DELAY, function() runScan(AchievementStats, state) end)
+          else
+            runScan(AchievementStats, state)
+          end
+        end)
+        return false
+      end
+    end
+  end
+  if sliceStart then state.elapsed = (state.elapsed or 0) + (clockMs() - sliceStart) end
+  return finishScan(self, state)
+end
+
 function AchievementStats:Scan()
   local database = db()
   if not (database and database.settings) then return false end
@@ -163,6 +244,7 @@ function AchievementStats:Scan()
   if database.settings.recordStatistics == false then self:SetStatus("disabled"); return false end
   if not apisAvailable() then self:SetStatus("unavailable", "statistics APIs missing on this client"); return false end
   if InCombatLockdown and InCombatLockdown() then self:SetStatus("pending", "in combat"); self:ScheduleRetry(); return false end
+  if self.scanning then return false end
   local categories = safe(GetStatisticsCategoryList)
   if type(categories) ~= "table" then self:SetStatus("unavailable", "no statistic categories"); return false end
   local key = characterKey(); if not key then self:SetStatus("unavailable", "unknown character"); return false end
@@ -172,48 +254,11 @@ function AchievementStats:Scan()
     local title, parent = safe(GetCategoryInfo, id)
     map[id] = { title = title, parent = parent }
   end
-  local includeGold = database.settings.recordGoldStatistics == true
-  local values, catalog, count, unparsed = {}, database.statisticCatalog, 0, 0
-  local samples, otherRoots, labels = {}, {}, {}
-  for _, id in ipairs(categories) do
-    local total = safe(GetCategoryNumAchievements, id, true)
-    local root = rootTitleFor(map, id)
-    for index = 1, (finite(total) and total or 0) do
-      local statId, name = safe(GetAchievementInfo, id, index)
-      if statId then
-        local text = safe(GetStatistic, statId)
-        local number, kind, label = self:ParseValue(text)
-        if not number and type(text) == "string" and text:match("%S") and text ~= "--" then
-          unparsed = unparsed + 1
-          if #samples < 8 then table.insert(samples, { name = tostring(name or statId), raw = text:sub(1, 40) }) end
-        end
-        if number then
-          local group = self:Classify(root, name, kind)
-          if group == "Other" then otherRoots[root or "unknown"] = (otherRoots[root or "unknown"] or 0) + 1 end
-          if group ~= GOLD or includeGold then
-            values[statId] = number; count = count + 1
-            if label then labels[statId] = label:sub(1, 40) end
-            catalog[statId] = { name = tostring(name or statId), group = group, kind = kind }
-          end
-        end
-      end
-    end
-  end
-
-  local now = Addon:Now()
-  local row = tableOr(database.statistics[key]); row.months = tableOr(row.months)
-  row.baseline = row.baseline or { takenAt = now, values = copyValues(values) }
-  row.latest = { takenAt = now, values = values, labels = labels }
-  local month = monthKey(now)
-  if not row.months[month] then row.months[month] = { takenAt = now, values = copyValues(values) } end
-  local keys = {}
-  for name in pairs(row.months) do table.insert(keys, name) end
-  table.sort(keys, function(a, b) return a > b end)
-  for index = MONTHS_KEPT + 1, #keys do row.months[keys[index]] = nil end
-  database.statistics[key] = row
-  self:SetStatus("ok", nil, count, unparsed)
-  self.status.unparsedSamples, self.status.otherRoots = samples, otherRoots
-  return true
+  local state = {
+    key = key, categories = categories, map = map, position = 1, includeGold = database.settings.recordGoldStatistics == true,
+    values = {}, catalog = database.statisticCatalog, count = 0, unparsed = 0, samples = {}, otherRoots = {}, labels = {},
+  }
+  return runScan(self, state)
 end
 
 function AchievementStats:PurgeGold()

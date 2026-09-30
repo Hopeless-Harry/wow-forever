@@ -2,6 +2,7 @@ local Addon = MAMChronicles
 Addon.Database = Addon.Database or {}
 local Database = Addon.Database
 
+local SESSIONS_MAX = 500
 local function now() return Addon:Now() end
 local function tableOr(value) return type(value) == "table" and value or {} end
 local function copyTable(value)
@@ -121,7 +122,8 @@ end
 function Database:BeginSession()
   if self.currentSession then return self.currentSession end
   local session = { id = Addon.characterKey .. ":" .. tostring(now()) .. ":" .. tostring(#self.db.sessions + 1), characterKey = Addon.characterKey, startedAt = now() }
-  table.insert(self.db.sessions, session); self.currentSession = session; Addon.sessionId = session.id; return session
+  table.insert(self.db.sessions, session); while #self.db.sessions > SESSIONS_MAX do table.remove(self.db.sessions, 1) end
+  self.currentSession = session; Addon.sessionId = session.id; return session
 end
 
 function Database:EndSession()

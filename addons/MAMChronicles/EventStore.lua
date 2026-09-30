@@ -36,11 +36,11 @@ local function payloadText(payload)
 end
 
 function Store:Initialise()
-  self.db=Addon.db; self.sequenceSecond=nil; self.sequence=0; self.recentSemantic={}
+  self.db=Addon.db; self.sequenceSecond=nil; self.sequence=0; self.recentSemantic={}; self.semanticCount=0
   local now=Addon:Now()
   for index=#self.db.events,math.max(1,#self.db.events-100),-1 do
     local event=self.db.events[index]
-    if event and event.observedAt and now-event.observedAt<=5 then local key=self:BuildSemanticKey(event.type,event.payload or {},event.characterKey); if key then self.recentSemantic[key]=event.observedAt end end
+    if event and event.observedAt and now-event.observedAt<=5 then local key=self:BuildSemanticKey(event.type,event.payload or {},event.characterKey); if key then if not self.recentSemantic[key] then self.semanticCount=self.semanticCount+1 end; self.recentSemantic[key]=event.observedAt end end
     if event and event.occurredAt==now and type(event.id)=="string" then local sequence=tonumber(string.match(event.id,":(%d+)$")); if sequence and sequence>self.sequence then self.sequence=sequence; self.sequenceSecond=now end end
   end
 end
@@ -74,7 +74,12 @@ function Store:Append(eventType,payload,options)
   if semantic and self.recentSemantic[semantic] and observedAt-self.recentSemantic[semantic]<=5 then return nil,"duplicate signal" end
   local _,build=Addon:SafeCall(GetBuildInfo)
   local event={id=id,schemaVersion=1,type=eventType,occurredAt=occurredAt,observedAt=observedAt,characterKey=Addon.characterKey,sessionId=Addon.sessionId,provenance="self",clientBuild=build,addonVersion=Addon.version,payload=clean,pinned=options.pinned==true}
-  table.insert(self.db.events,event); self.db.eventIds[id]=true; if semantic then self.recentSemantic[semantic]=observedAt end
+  table.insert(self.db.events,event); self.db.eventIds[id]=true; if semantic then
+    if not self.recentSemantic[semantic] then self.semanticCount=(self.semanticCount or 0)+1 end
+    self.recentSemantic[semantic]=observedAt
+    -- Only the last few seconds matter for duplicate filtering, so the table is simply restarted when it gets big.
+    if self.semanticCount>300 then self.recentSemantic={[semantic]=observedAt}; self.semanticCount=1 end
+  end
   self.db.meta.updatedAt=observedAt
   if #self.db.events>(tonumber(self.db.settings.maxEvents) or 10000) then Addon.Database:Compact() end
   if eventType~="medal.earned" and Addon.Medals then Addon:SafeCall(Addon.Medals.OnEvent,Addon.Medals,event) end

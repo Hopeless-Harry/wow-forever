@@ -182,3 +182,67 @@ test('Forever shows level 60 as the cap in the medal header wording and no Retai
   const h=foreverSetup(); h.run('MAMChronicles.AchievementStats:Scan(); MAMChronicles.Medals:Evaluate("t"); __bad=0; for _,m in ipairs(MAMChronicles.Medals:GetProgress()) do if m.def.client=="retail" or (m.def.minCap and m.def.minCap>60) then __bad=__bad+1 end end');
   assert.equal(h.get('__bad'),0); assert.equal(h.get('MAMChronicles.Medals:LevelCap()'),60);
 });
+
+// ---- robustness ----
+const statApi=`
+__cats={[2]={"Deaths",-1},[3]={"Quests",-1},[5]={"Dungeons & Raids",-1},[6]={"Social",-1}}
+__stats={[2]={{101,"Total deaths"},{102,"Falls"}},[3]={{201,"Quests completed"}},[5]={{501,"Total 5-player dungeons entered"}},[6]={{601,"Total waves"}}}
+__vals={[101]="12",[102]="3",[201]="1,234",[501]="30",[601]="5"}
+function GetStatisticsCategoryList() return {2,3,5,6} end
+function GetCategoryInfo(id) return __cats[id][1],__cats[id][2] end
+function GetCategoryNumAchievements(id) return #(__stats[id] or {}),0,0 end
+function GetAchievementInfo(id,index) local s=__stats[id][index] return s[1],s[2] end
+function GetStatistic(id) return __vals[id],false end`;
+function statHarness(timerCode=''){const h=createHarness();h.load(['Core.lua']);h.run(statApi+"\n"+timerCode);h.load(dashFiles.slice(1));h.run('MAMChronicles:Boot()');return h;}
+
+test('the statistics scan is split across frames when it is slow and timers exist',()=>{
+  const h=statHarness('__timers={}; C_Timer={After=function(d,fn) table.insert(__timers,fn) end}; __clock=0; function debugprofilestop() __clock=__clock+10 return __clock end');
+  h.run('MAMChronicles.AchievementStats:Scan(); __first=MAMChronicles.AchievementStats.status.state; __queued=#__timers');
+  assert.equal(h.get('__first'),'pending'); assert.ok(h.get('__queued')>=1);
+  h.run('__n=0; while #__timers>0 and __n<100 do __n=__n+1; table.remove(__timers,1)() end');
+  assert.equal(h.get('MAMChronicles.AchievementStats.status.state'),'ok'); assert.equal(h.get('MAMChronicles.AchievementStats.status.statCount'),5);
+  assert.ok(h.get('__n')>1); assert.ok(h.get('MAMChronicles.AchievementStats.status.scanMs')>0);
+});
+test('the statistics scan stays synchronous and identical without timers',()=>{
+  const h=statHarness(); h.run('MAMChronicles.AchievementStats:Scan()');
+  assert.equal(h.get('MAMChronicles.AchievementStats.status.state'),'ok'); assert.equal(h.get('MAMChronicles.AchievementStats.status.statCount'),5);
+});
+test('a fast statistics scan finishes in one go even when timers exist',()=>{
+  const h=statHarness('__timers={}; C_Timer={After=function(d,fn) table.insert(__timers,fn) end}; function debugprofilestop() return 0 end');
+  h.run('MAMChronicles.AchievementStats:Scan()'); assert.equal(h.get('MAMChronicles.AchievementStats.status.state'),'ok');
+});
+test('diagnostics report how long the statistics scan took',()=>{
+  const h=statHarness('__timers={}; C_Timer={After=function(d,fn) table.insert(__timers,fn) end}; __clock=0; function debugprofilestop() __clock=__clock+10 return __clock end');
+  h.run('MAMChronicles.AchievementStats:Scan(); while #__timers>0 do table.remove(__timers,1)() end; __d=MAMChronicles.Export:BuildDiagnosticReport()');
+  assert.match(h.get('__d'),/Statistics: ok, 5 read, 0 unreadable, scan \d+ ms/);
+});
+test('the session list is bounded',()=>{
+  const h=dashSetup(); h.run('for i=1,650 do MAMChronicles.Database.currentSession=nil; MAMChronicles.Database:BeginSession() end');
+  assert.ok(h.get('#MAMChroniclesDB.sessions')<=500);
+});
+test('the short-term duplicate filter does not grow without bound',()=>{
+  const h=dashSetup(); h.run('for i=1,1500 do MAMChronicles.EventStore:Append("quest.completed",{questID=i},{occurredAt=1790704800+i}) end; local n=0; for _ in pairs(MAMChronicles.EventStore.recentSemantic) do n=n+1 end; __n=n');
+  assert.ok(h.get('__n')<=400,`recentSemantic size ${h.get('__n')}`);
+});
+test('counters ignore junk amounts and stop at a sane ceiling',()=>{
+  const h=dashSetup(); h.run('local C=MAMChronicles.Counters; C:Add("jumps",-5); C:Add("jumps",0/0); C:Add("jumps","x"); C:Add("jumps",5e12); __v=MAMChroniclesDB.counters[MAMChronicles.characterKey].jumps');
+  assert.ok(h.get('__v')<=1e9); assert.ok(h.get('__v')>=1);
+});
+test('optional APIs may all be missing without a single handler error',()=>{
+  const h=createHarness(); h.load(dashFiles);
+  h.run('Settings=nil; C_Timer=nil; C_Spell=nil; hooksecurefunc=nil; C_ChatInfo=nil; AddonCompartmentFrame=nil; StaticPopupDialogs=nil; GameTooltip=nil; InCombatLockdown=nil; MAMChronicles:Boot()');
+  for (const e of ['PLAYER_LOGIN','PLAYER_ENTERING_WORLD','ZONE_CHANGED_NEW_AREA','PLAYER_LEVEL_UP','PLAYER_DEAD','PLAYER_ALIVE','QUEST_TURNED_IN','CHAT_MSG_LOOT','SKILL_LINES_CHANGED','PLAYER_REGEN_ENABLED','UNIT_SPELLCAST_SUCCEEDED','CHAT_MSG_ADDON','PLAYER_LOGOUT']) h.fire(e,20);
+  h.run('local UI=MAMChronicles.UI; for _,t in ipairs(UI.tabs) do UI:SetActiveTab(t) end; for _,c in ipairs({"","stats","diag","export","toast","help","remember x","bogus"}) do SlashCmdList.MAMCHRONICLES(c) end; MAMChronicles.Toast:SendTest()');
+  assert.equal(h.get('MAMChronicles.errorStats.count'),0,h.get('MAMChronicles.errorStats.last'));
+});
+test('a minimal old SavedVariables file boots cleanly and gains every new table',()=>{
+  const h=dashSetup({schemaVersion:1}); h.run('MAMChronicles.UI:Show(); for _,t in ipairs(MAMChronicles.UI.tabs) do MAMChronicles.UI:SetActiveTab(t) end');
+  assert.equal(h.get('type(MAMChroniclesDB.guildFeed)'),'table'); assert.equal(h.get('type(MAMChroniclesDB.medalTallies)'),'table'); assert.equal(h.get('MAMChronicles.errorStats.count'),0);
+});
+test('a very large saved history boots, compacts on the next event and stays searchable',()=>{
+  const events=[]; for(let i=1;i<=25000;i++)events.push({id:`c:quest.completed:${1700000000+i}:1`,schemaVersion:1,type:'quest.completed',occurredAt:1700000000+i,observedAt:1700000000+i,characterKey:'c',payload:{questID:i}});
+  const h=dashSetup({schemaVersion:1,meta:{},settings:{},events});
+  assert.equal(h.get('#MAMChroniclesDB.events'),25000);
+  h.run('MAMChronicles.EventStore:Append("memory.manual",{text="after"},{occurredAt=1790704801}); __n=#MAMChroniclesDB.events; MAMChronicles.UI:Show(); MAMChronicles.UI:SetActiveTab("Chronicle"); __rows=#MAMChronicles.UI.rowPool');
+  assert.ok(h.get('__n')<=10001); assert.equal(h.get('__rows'),30);
+});
