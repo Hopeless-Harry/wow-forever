@@ -69,7 +69,7 @@ tools/mam-chronicles/test/
 - Consumes: existing `Database:Fresh()`, `Database:Open(saved)`, and the live `self.db` table.
 - Produces: `settings.showMinimapButton`; `settings.ui`; `settings.welcomeVersion`; `Database:ResetUIState()`; `Database:ClearHistory()`.
 
-- [ ] **Step 1: Write failing database tests**
+- [x] **Step 1: Write failing database tests**
 
 Append focused tests equivalent to:
 
@@ -104,7 +104,7 @@ test('history reset preserves preferences and live database identity',()=>{
 });
 ```
 
-- [ ] **Step 2: Run the focused tests and verify RED**
+- [x] **Step 2: Run the focused tests and verify RED**
 
 Run:
 
@@ -114,7 +114,7 @@ npm test --prefix tools/mam-chronicles -- --test-name-pattern="nested UI|malform
 
 Expected: FAIL because nested defaults, `NormaliseSettings`, and `ClearHistory` do not exist.
 
-- [ ] **Step 3: Implement the minimal database behaviour**
+- [x] **Step 3: Implement the minimal database behaviour**
 
 Add defaults and functions with these exact public shapes:
 
@@ -141,7 +141,7 @@ end
 
 Use a finite-number helper, the allowed anchors `CENTER`, `TOP`, `BOTTOM`, `LEFT`, `RIGHT`, `TOPLEFT`, `TOPRIGHT`, `BOTTOMLEFT`, `BOTTOMRIGHT`, the four known tabs, dimensions `620–1600 × 440–1200`, and angle normalisation `((angle % 360) + 360) % 360`.
 
-- [ ] **Step 4: Run focused and full addon tests**
+- [x] **Step 4: Run focused and full addon tests**
 
 Run:
 
@@ -152,7 +152,7 @@ npm test --prefix tools/mam-chronicles
 
 Expected: all tests PASS.
 
-- [ ] **Step 5: Update continuity record and commit**
+- [x] **Step 5: Update continuity record and commit**
 
 Mark Task 1 complete in `PROJECT-HANDOFF.md`, record the exact test count, and set Task 2 as the next action.
 

@@ -4,6 +4,19 @@ local Database = Addon.Database
 
 local function now() return Addon:Now() end
 local function tableOr(value) return type(value) == "table" and value or {} end
+local function copyTable(value)
+  local result = {}
+  for key, item in pairs(value or {}) do result[key] = type(item) == "table" and copyTable(item) or item end
+  return result
+end
+local function finite(value) return type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge end
+local function clamp(value, minimum, maximum) return math.max(minimum, math.min(maximum, value)) end
+local uiDefaults = { point="CENTER", x=0, y=0, width=780, height=560, activeTab="Chronicle", minimapAngle=225 }
+local validPoints = { CENTER=true, TOP=true, BOTTOM=true, LEFT=true, RIGHT=true, TOPLEFT=true, TOPRIGHT=true, BOTTOMLEFT=true, BOTTOMRIGHT=true }
+local validTabs = { Chronicle=true, Statistics=true, Settings=true, Diagnostics=true }
+local function freshSettings()
+  return { enabled=true, recordCoordinates=true, recordQuestAccepts=true, notableQuality=4, maxEvents=10000, showMinimapButton=true, ui=copyTable(uiDefaults) }
+end
 local function monthKey(timestamp)
   local dateFn=date or (os and os.date); return dateFn and dateFn("%Y-%m",timestamp) or "unknown"
 end
@@ -13,7 +26,7 @@ function Database:Fresh(reason)
   local db = {
     schemaVersion = 1,
     meta = { createdAt = timestamp, updatedAt = timestamp, loadCount = 0, addonVersion = Addon.version, clientBuild = select(2, Addon:SafeCall(GetBuildInfo)) },
-    settings = { enabled = true, recordCoordinates = true, recordQuestAccepts = true, notableQuality = 4, maxEvents = 10000 },
+    settings = freshSettings(),
     characters = {}, sessions = {}, events = {}, eventIds = {}, questCompletion = {}, professionSnapshots = {}, aggregates = {}, diagnostics = {},
   }
   if reason then db.diagnostics.recovery = { recoveredAt = timestamp, reason = reason } end
@@ -39,19 +52,49 @@ function Database:Open(saved)
   end
   local db = reason and self:Fresh(reason) or (type(saved) == "table" and saved or self:Fresh())
   db.meta = tableOr(db.meta); db.settings = tableOr(db.settings)
-  local defaults = self:Fresh().settings
-  for key, value in pairs(defaults) do if db.settings[key] == nil then db.settings[key] = value end end
   for _, key in ipairs({"characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics"}) do db[key] = tableOr(db[key]) end
   db.eventIds={}; for _,event in ipairs(db.events) do db.eventIds[event.id]=true end
-  db.schemaVersion = 1
+  db.schemaVersion = 1; self.db = db; self:NormaliseSettings()
   db.meta.createdAt = db.meta.createdAt or now(); db.meta.updatedAt = now(); db.meta.loadCount = (tonumber(db.meta.loadCount) or 0) + 1
   db.meta.addonVersion = Addon.version; db.meta.clientBuild = select(2, Addon:SafeCall(GetBuildInfo))
-  self.db = db
   return db
 end
 
 function Database:GetSettings() return self.db.settings end
 function Database:GetCharacter() return self.db.characters[Addon.characterKey] end
+
+function Database:NormaliseSettings()
+  local settings = tableOr(self.db and self.db.settings)
+  local defaults = freshSettings()
+  for key, value in pairs(defaults) do if key ~= "ui" and settings[key] == nil then settings[key] = value end end
+  if type(settings.showMinimapButton) ~= "boolean" then settings.showMinimapButton = true end
+  if settings.welcomeVersion ~= nil and type(settings.welcomeVersion) ~= "string" then settings.welcomeVersion = nil end
+  local saved = tableOr(settings.ui); local ui = copyTable(uiDefaults)
+  if validPoints[saved.point] then ui.point = saved.point end
+  if finite(saved.x) then ui.x = clamp(saved.x, -10000, 10000) end
+  if finite(saved.y) then ui.y = clamp(saved.y, -10000, 10000) end
+  if finite(saved.width) then ui.width = clamp(saved.width, 620, 1600) end
+  if finite(saved.height) then ui.height = clamp(saved.height, 440, 1200) end
+  if validTabs[saved.activeTab] then ui.activeTab = saved.activeTab end
+  if finite(saved.minimapAngle) then ui.minimapAngle = ((saved.minimapAngle % 360) + 360) % 360 end
+  settings.ui = ui; self.db.settings = settings
+  return settings
+end
+
+function Database:ResetUIState()
+  self.db.settings.ui = copyTable(uiDefaults)
+  return self.db.settings.ui
+end
+
+function Database:ClearHistory()
+  local character = Addon.character
+  self.db.characters, self.db.sessions, self.db.events, self.db.eventIds = {}, {}, {}, {}
+  self.db.questCompletion, self.db.professionSnapshots, self.db.aggregates = {}, {}, {}
+  self.currentSession = nil; Addon.sessionId = nil
+  if Addon.characterKey and character then self:RegisterCharacter(Addon.characterKey, character); self:BeginSession() end
+  self.db.meta.updatedAt = now()
+  return true
+end
 
 function Database:RegisterCharacter(key, character)
   local current = self.db.characters[key] or { firstSeenAt = now() }
