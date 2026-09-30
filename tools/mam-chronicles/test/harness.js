@@ -81,8 +81,9 @@ export function createHarness({ globals = {}, savedVariables } = {}) {
       function f:RegisterForDrag() end function f:RegisterForClicks() end function f:SetClampedToScreen() end function f:SetResizable() end function f:SetMinResize() end
       function f:SetBackdrop() end function f:SetBackdropColor() end function f:SetBackdropBorderColor() end function f:SetFrameStrata() end
       function f:SetText(value) self.text=value end function f:SetNormalFontObject() end function f:SetWidth(value) self.width=value end function f:SetHeight(value) self.height=value end
+      function f:SetMinMaxValues(lo,hi) self.minValue=lo self.maxValue=hi end function f:GetValue() return self.value end function f:SetValue(v) self.value=v if self.scripts.OnValueChanged then self.scripts.OnValueChanged(self,v) end end
       function f:SetEnabled(value) self.enabled=value end function f:LockHighlight() self.highlighted=true end function f:UnlockHighlight() self.highlighted=false end
-      function f:CreateFontString() return {SetPoint=function()end,SetText=function()end,SetWidth=function()end,SetJustifyH=function()end,Show=function()end,Hide=function()end} end
+      function f:CreateFontString() return {SetPoint=function()end,SetText=function(self,v)self.text=v end,SetWidth=function()end,SetJustifyH=function()end,Show=function()end,Hide=function()end} end
       function f:CreateTexture() return {SetAllPoints=function()end,SetColorTexture=function()end,SetPoint=function()end,SetSize=function()end,SetTexture=function(self,value)self.texture=value end,SetTexCoord=function()end} end
       __mamLastFrame=f return f
     end`, 'frame-stub');

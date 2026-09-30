@@ -451,7 +451,7 @@ git commit -m "feat: integrate Chronicles with Blizzard settings"
 - Consumes: `UI:SetActiveTab`, timeline query/page model, shared settings actions.
 - Produces: `UI:OpenFilterMenu(anchor)`; `UI:OpenRangeMenu(anchor)`; `UI:SetTimelineOffset(offset)`; `UI:UpdateNavigation(total)`; selected-tab and tooltip state.
 
-- [ ] **Step 1: Write failing interaction tests**
+- [x] **Step 1: Write failing interaction tests**
 
 Add separate tests proving:
 
@@ -465,7 +465,7 @@ test('polished UI retains exactly thirty reusable timeline rows',()=>{/* assert 
 test('controls expose concise tooltip titles and instructions',()=>{/* invoke OnEnter and inspect GameTooltip lines */});
 ```
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run:
 
@@ -475,7 +475,7 @@ npm test --prefix tools/mam-chronicles -- --test-name-pattern="active tab|filter
 
 Expected: FAIL because the explicit menu/navigation APIs and visual state do not exist.
 
-- [ ] **Step 3: Implement exact-choice menus and navigation**
+- [x] **Step 3: Implement exact-choice menus and navigation**
 
 Use a small internal anchored menu made of reusable buttons so both clients work even without `MenuUtil`. Each menu closes after a choice and resets timeline offset to zero. Public setters accept only values already present in `UI.filters` and `UI.dateRanges`.
 
@@ -493,11 +493,11 @@ end
 
 Use a vertical `Slider` for timeline position, keep mouse-wheel increments at five records, and disable Previous/Next at boundaries. Do not create timeline rows dynamically.
 
-- [ ] **Step 4: Implement selected states, tooltips, and visual cleanup**
+- [x] **Step 4: Implement selected states, tooltips, and visual cleanup**
 
 Use `LockHighlight`/`UnlockHighlight` plus enabled state for selected tabs. Add concise tooltip helper text for search, filter, range, export, reset, minimap, and destructive controls. Use dark neutral panels, gold headers, restrained red accents, native readable font objects, and clear empty/no-match/unknown text. Preserve selectable export behaviour.
 
-- [ ] **Step 5: Run focused and full tests**
+- [x] **Step 5: Run focused and full tests**
 
 Run:
 
@@ -508,7 +508,7 @@ npm test --prefix tools/mam-chronicles
 
 Expected: all tests PASS; row pool remains 30; no copy-selection regression.
 
-- [ ] **Step 6: Update handoff and commit**
+- [x] **Step 6: Update handoff and commit**
 
 ```powershell
 git add addons/MAMChronicles/UI.lua tools/mam-chronicles/test/ui.test.js tools/mam-chronicles/test/harness.js PROJECT-HANDOFF.md

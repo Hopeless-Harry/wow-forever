@@ -32,6 +32,80 @@ function UI:SetActiveTab(name)
   return true
 end
 
+function UI:UpdateTabStates()
+  for index,name in ipairs(self.tabs) do
+    local button=self.tabButtons and self.tabButtons[index]
+    if button then
+      if name==self.activeTab then safeMethod(button,"LockHighlight"); safeMethod(button,"SetEnabled",false)
+      else safeMethod(button,"UnlockHighlight"); safeMethod(button,"SetEnabled",true) end
+    end
+  end
+end
+
+function UI:SetTimelineOffset(offset,total)
+  total=math.max(0,tonumber(total) or 0)
+  local maximum=math.max(0,total-30)
+  local value=tonumber(offset) or 0
+  if not finite(value) then value=0 end
+  self.timelineOffset=math.max(0,math.min(maximum,math.floor(value)))
+  self:UpdateNavigation(total)
+  return self.timelineOffset
+end
+
+function UI:UpdateNavigation(total)
+  total=math.max(0,tonumber(total) or 0)
+  local maximum=math.max(0,total-30); local offset=self.timelineOffset or 0
+  self.timelineTotal=total
+  safeMethod(self.previousButton,"SetEnabled",offset>0); safeMethod(self.nextButton,"SetEnabled",offset<maximum)
+  if self.slider then
+    self.updatingSlider=true
+    safeMethod(self.slider,"SetMinMaxValues",0,maximum); safeMethod(self.slider,"SetValue",offset)
+    self.updatingSlider=false
+  end
+end
+
+function UI:CloseMenu() if self.menu then safeMethod(self.menu,"Hide") end end
+
+function UI:OpenMenu(anchor,options,current,onSelect)
+  self:Create()
+  if self.menu.shown and self.menuOptions==options then self:CloseMenu(); return end
+  self.menuOptions=options
+  for index,button in ipairs(self.menuButtons) do
+    local value=options[index]
+    if value then
+      button.value=value; safeMethod(button,"SetText",(value==current and "> " or "")..value)
+      button.text=value; safeMethod(button,"SetScript","OnClick",function() onSelect(value) end); safeMethod(button,"Show")
+    else button.value=nil; safeMethod(button,"Hide") end
+  end
+  safeMethod(self.menu,"ClearAllPoints"); safeMethod(self.menu,"SetPoint","TOPLEFT",anchor or self.frame,"BOTTOMLEFT",0,-2)
+  safeMethod(self.menu,"SetSize",130,#options*22+8); safeMethod(self.menu,"Show")
+end
+
+function UI:OpenFilterMenu(anchor) self:OpenMenu(anchor,self.filters,self.activeFilter,function(value) UI:SelectFilter(value) end) end
+function UI:OpenRangeMenu(anchor) self:OpenMenu(anchor,self.dateRanges,self.activeRange,function(value) UI:SelectRange(value) end) end
+
+local function contains(list,value) for _,item in ipairs(list) do if item==value then return true end end return false end
+
+function UI:SelectFilter(value)
+  if not contains(self.filters,value) then return false end
+  self.activeFilter=value; self.timelineOffset=0; safeMethod(self.filterButton,"SetText","Filter: "..value); self.filterButton.text="Filter: "..value
+  self:CloseMenu(); self:Refresh(); return true
+end
+
+function UI:SelectRange(value)
+  if not contains(self.dateRanges,value) then return false end
+  self.activeRange=value; self.timelineOffset=0; safeMethod(self.rangeButton,"SetText","Range: "..value); self.rangeButton.text="Range: "..value
+  self:CloseMenu(); self:Refresh(); return true
+end
+
+local function attachTooltip(control,title,instruction)
+  safeMethod(control,"SetScript","OnEnter",function(owner)
+    if not GameTooltip then return end
+    safeMethod(GameTooltip,"SetOwner",owner,"ANCHOR_RIGHT"); safeMethod(GameTooltip,"SetText",title); safeMethod(GameTooltip,"AddLine",instruction); safeMethod(GameTooltip,"Show")
+  end)
+  safeMethod(control,"SetScript","OnLeave",function() if GameTooltip then safeMethod(GameTooltip,"Hide") end end)
+end
+
 function UI:SaveWindowState()
   if not self.frame or not Addon.db or not Addon.db.settings then return false end
   local ok,point,_,_,x,y=pcall(self.frame.GetPoint,self.frame,1)
@@ -94,7 +168,7 @@ function UI:BuildTimeline(options)
 end
 
 function UI:GetVisibleTimeline()
-  local events=self:BuildTimeline(); local maxOffset=#events>0 and math.floor((#events-1)/30)*30 or 0; local offset=math.max(0,math.min(tonumber(self.timelineOffset) or 0,maxOffset)); self.timelineOffset=offset
+  local events=self:BuildTimeline(); local offset=self:SetTimelineOffset(self.timelineOffset,#events)
   local result={}; for index=offset+1,math.min(offset+30,#events) do table.insert(result,events[index]) end return result,#events
 end
 
@@ -127,16 +201,22 @@ function UI:Create()
     safeMethod(button,"SetScript","OnClick",function() UI:SetActiveTab(name) end); self.tabButtons[index]=button
   end
   local search=CreateFrame("EditBox",nil,frame,"InputBoxTemplate"); safeMethod(search,"SetSize",230,28); safeMethod(search,"SetPoint","TOPLEFT",24,-82); safeMethod(search,"SetAutoFocus",false)
-  safeMethod(search,"SetScript","OnTextChanged",function(box) if box.GetText then UI.search=box:GetText() or ""; UI.timelineOffset=0; UI:Refresh() end end); self.searchBox=search
+  safeMethod(search,"SetScript","OnTextChanged",function(box) if box.GetText then UI.search=box:GetText() or ""; UI.timelineOffset=0; UI:Refresh() end end); self.searchBox=search; attachTooltip(search,"Search","Type words to find matching Chronicle entries.")
   local filter=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(filter,"SetSize",120,24); safeMethod(filter,"SetPoint","LEFT",search,"RIGHT",12,0); safeMethod(filter,"SetText","Filter: All")
-  safeMethod(filter,"SetScript","OnClick",function(button) local nextIndex=1; for i,v in ipairs(UI.filters) do if v==UI.activeFilter then nextIndex=i%#UI.filters+1 end end; UI.activeFilter=UI.filters[nextIndex]; UI.timelineOffset=0; safeMethod(button,"SetText","Filter: "..UI.activeFilter); UI:Refresh() end); self.filterButton=filter
+  safeMethod(filter,"SetScript","OnClick",function(button) UI:OpenFilterMenu(button) end); self.filterButton=filter; attachTooltip(filter,"Filter","Choose which kind of entry to show.")
   local range=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(range,"SetSize",120,24); safeMethod(range,"SetPoint","LEFT",filter,"RIGHT",12,0); safeMethod(range,"SetText","Range: All")
-  safeMethod(range,"SetScript","OnClick",function(button) local nextIndex=1; for i,v in ipairs(UI.dateRanges) do if v==UI.activeRange then nextIndex=i%#UI.dateRanges+1 end end; UI.activeRange=UI.dateRanges[nextIndex]; UI.timelineOffset=0; safeMethod(button,"SetText","Range: "..UI.activeRange); UI:Refresh() end); self.rangeButton=range
+  safeMethod(range,"SetScript","OnClick",function(button) UI:OpenRangeMenu(button) end); self.rangeButton=range; attachTooltip(range,"Date range","Choose how far back to look.")
   self.content=frame:CreateFontString(nil,"OVERLAY","GameFontHighlight"); safeMethod(self.content,"SetPoint","TOPLEFT",24,-120); safeMethod(self.content,"SetWidth",730); safeMethod(self.content,"SetJustifyH","LEFT")
   for index=1,30 do local row=frame:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall"); safeMethod(row,"SetPoint","TOPLEFT",30,-115-index*14); safeMethod(row,"SetWidth",710); safeMethod(row,"SetJustifyH","LEFT"); self.rowPool[index]=row end
-  local previous=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(previous,"SetSize",90,22); safeMethod(previous,"SetPoint","BOTTOMLEFT",28,24); safeMethod(previous,"SetText","Previous"); safeMethod(previous,"SetScript","OnClick",function() UI.timelineOffset=math.max(0,(UI.timelineOffset or 0)-30); UI:Refresh() end); self.previousButton=previous
-  local nextPage=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(nextPage,"SetSize",90,22); safeMethod(nextPage,"SetPoint","LEFT",previous,"RIGHT",8,0); safeMethod(nextPage,"SetText","Next"); safeMethod(nextPage,"SetScript","OnClick",function() UI.timelineOffset=(UI.timelineOffset or 0)+30; UI:Refresh() end); self.nextButton=nextPage
-  local scroll=CreateFrame("ScrollFrame",nil,frame); safeMethod(scroll,"SetPoint","TOPLEFT",24,-112); safeMethod(scroll,"SetPoint","BOTTOMRIGHT",-24,58); safeMethod(scroll,"EnableMouseWheel",true); safeMethod(scroll,"SetScript","OnMouseWheel",function(_,delta) UI.timelineOffset=math.max(0,(UI.timelineOffset or 0)-(delta*5)); UI:Refresh() end); self.scrollFrame=scroll
+  local previous=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(previous,"SetSize",90,22); safeMethod(previous,"SetPoint","BOTTOMLEFT",28,24); safeMethod(previous,"SetText","Previous"); safeMethod(previous,"SetScript","OnClick",function() UI:SetTimelineOffset((UI.timelineOffset or 0)-30,UI.timelineTotal); UI:Refresh() end); self.previousButton=previous; attachTooltip(previous,"Previous page","Show newer entries.")
+  local nextPage=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(nextPage,"SetSize",90,22); safeMethod(nextPage,"SetPoint","LEFT",previous,"RIGHT",8,0); safeMethod(nextPage,"SetText","Next"); safeMethod(nextPage,"SetScript","OnClick",function() UI:SetTimelineOffset((UI.timelineOffset or 0)+30,UI.timelineTotal); UI:Refresh() end); self.nextButton=nextPage; attachTooltip(nextPage,"Next page","Show older entries.")
+  local scroll=CreateFrame("ScrollFrame",nil,frame); safeMethod(scroll,"SetPoint","TOPLEFT",24,-112); safeMethod(scroll,"SetPoint","BOTTOMRIGHT",-24,58); safeMethod(scroll,"EnableMouseWheel",true); safeMethod(scroll,"SetScript","OnMouseWheel",function(_,delta) UI:SetTimelineOffset((UI.timelineOffset or 0)-(delta*5),UI.timelineTotal); UI:Refresh() end); self.scrollFrame=scroll
+  local slider=CreateFrame("Slider",nil,frame); safeMethod(slider,"SetOrientation","VERTICAL"); safeMethod(slider,"SetSize",16,300); safeMethod(slider,"SetPoint","TOPRIGHT",-10,-120); safeMethod(slider,"SetMinMaxValues",0,0); safeMethod(slider,"SetValueStep",1); safeMethod(slider,"SetObeyStepOnDrag",true)
+  safeMethod(slider,"SetThumbTexture","Interface\\Buttons\\UI-ScrollBar-Knob"); safeMethod(slider,"SetBackdrop",{bgFile="Interface\\Buttons\\UI-SliderBar-Background",tile=true,tileSize=8})
+  safeMethod(slider,"SetScript","OnValueChanged",function(_,value) if UI.updatingSlider then return end; UI:SetTimelineOffset(value,UI.timelineTotal); UI:Refresh() end); self.slider=slider; attachTooltip(slider,"Timeline position","Drag or use the mouse wheel to scroll.")
+  local menu=CreateFrame("Frame",nil,frame,"BackdropTemplate"); safeMethod(menu,"SetFrameStrata","DIALOG"); safeMethod(menu,"SetBackdrop",{bgFile="Interface\\DialogFrame\\UI-DialogBox-Background",edgeFile="Interface\\Tooltips\\UI-Tooltip-Border",tile=true,tileSize=16,edgeSize=12,insets={left=3,right=3,top=3,bottom=3}}); safeMethod(menu,"Hide")
+  self.menu=menu; self.menuButtons={}
+  for index=1,math.max(#self.filters,#self.dateRanges) do local b=CreateFrame("Button",nil,menu,"UIPanelButtonTemplate"); safeMethod(b,"SetSize",120,20); safeMethod(b,"SetPoint","TOPLEFT",5,-4-(index-1)*22); safeMethod(b,"Hide"); self.menuButtons[index]=b end
   local copy=CreateFrame("EditBox",nil,frame,"InputBoxTemplate"); safeMethod(copy,"SetMultiLine",true); safeMethod(copy,"SetAutoFocus",false); safeMethod(copy,"SetSize",720,360); safeMethod(copy,"SetPoint","TOPLEFT",26,-140); safeMethod(copy,"Hide"); self.copyBox=copy
   self.details=frame:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall"); safeMethod(self.details,"SetPoint","TOPRIGHT",-28,-138); safeMethod(self.details,"SetWidth",260); safeMethod(self.details,"SetJustifyH","LEFT"); safeMethod(self.details,"SetText","Select an entry to inspect its details.")
   self.rowButtons={}
@@ -153,16 +233,19 @@ function UI:Create()
   for _,action in ipairs(actions) do
     local button=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(button,"SetSize",210,24); safeMethod(button,"SetPoint","TOPLEFT",30,action[2]); safeMethod(button,"SetText",action[1])
     safeMethod(button,"SetScript","OnClick",function() if Addon.SettingsPanel then Addon.SettingsPanel[action[3]](Addon.SettingsPanel) end end); self.settingControls[#self.settingControls+1]=button
+    if action[3]=="RequestEraseHistory" then self.eraseButton=button; attachTooltip(button,"Erase Chronicle Data","Permanently deletes recorded history. Settings are kept.")
+    elseif action[3]=="ResetWindow" then attachTooltip(button,"Reset Window","Restore the window size and position.")
+    else attachTooltip(button,"Reset Minimap Button","Put the minimap button back in its default place.") end
   end
   for _,control in ipairs(self.settingControls) do safeMethod(control,"Hide") end
   safeMethod(frame,"Hide"); return frame
 end
 
 function UI:Refresh()
-  self:Create(); for _,row in ipairs(self.rowPool) do safeMethod(row,"Hide") end; for _,button in ipairs(self.rowButtons) do button.event=nil; safeMethod(button,"Hide") end; for _,control in ipairs(self.settingControls) do safeMethod(control,"Hide") end; safeMethod(self.previousButton,"Hide"); safeMethod(self.nextButton,"Hide"); safeMethod(self.scrollFrame,"Hide"); safeMethod(self.details,"Hide"); safeMethod(self.copyBox,"Hide"); safeMethod(self.content,"SetText","")
+  self:Create(); for _,row in ipairs(self.rowPool) do safeMethod(row,"Hide") end; for _,button in ipairs(self.rowButtons) do button.event=nil; safeMethod(button,"Hide") end; for _,control in ipairs(self.settingControls) do safeMethod(control,"Hide") end; safeMethod(self.previousButton,"Hide"); safeMethod(self.nextButton,"Hide"); safeMethod(self.scrollFrame,"Hide"); safeMethod(self.slider,"Hide"); safeMethod(self.details,"Hide"); safeMethod(self.copyBox,"Hide"); safeMethod(self.content,"SetText",""); self:UpdateTabStates()
   if self.activeTab=="Chronicle" then
-    safeMethod(self.previousButton,"Show"); safeMethod(self.nextButton,"Show"); safeMethod(self.scrollFrame,"Show"); safeMethod(self.details,"Show")
-    local events,total=self:GetVisibleTimeline(); if total==0 then safeMethod(self.content,"SetText","No Chronicle entries match this view yet.") else safeMethod(self.content,"SetText","Showing "..tostring(self.timelineOffset+1).."-"..tostring(self.timelineOffset+#events).." of "..tostring(total)) end
+    safeMethod(self.previousButton,"Show"); safeMethod(self.nextButton,"Show"); safeMethod(self.scrollFrame,"Show"); safeMethod(self.slider,"Show"); safeMethod(self.details,"Show")
+    local events,total=self:GetVisibleTimeline(); if total==0 then local unfiltered=self.activeFilter=="All" and self.activeRange=="All" and (self.search or "")==""; safeMethod(self.content,"SetText",unfiltered and "No Chronicle entries yet. Play for a while, or use /mam remember to add a memory." or "No entries match this filter, range, or search. Try widening them.") else safeMethod(self.content,"SetText","Showing "..tostring(self.timelineOffset+1).."-"..tostring(self.timelineOffset+#events).." of "..tostring(total)) end
     for index=1,#events do local event=events[index]; local stamp=date and date("%d %b %H:%M",event.occurredAt) or tostring(event.occurredAt); safeMethod(self.rowPool[index],"SetWidth",420); safeMethod(self.rowPool[index],"SetText",stamp.."  "..event.type.." — "..tostring(label(event))); safeMethod(self.rowPool[index],"Show"); self.rowButtons[index].event=event; safeMethod(self.rowButtons[index],"Show") end
   elseif self.activeTab=="Statistics" then
     local fromTime,toTime=self:GetCurrentMonthRange(); local stats=Addon.Statistics:Build(fromTime,toTime); safeMethod(self.content,"SetText",Addon.Export:BuildHumanSummary(stats.fromTime,stats.toTime))
@@ -175,7 +258,7 @@ function UI:Show() self:Create(); self:Refresh(); safeMethod(self.frame,"Show") 
 function UI:Hide() if self.frame then safeMethod(self.frame,"Hide") end end
 function UI:ShowCopy(text)
   self:Create(); for _,row in ipairs(self.rowPool) do safeMethod(row,"Hide") end; for _,button in ipairs(self.rowButtons) do button.event=nil; safeMethod(button,"Hide") end; for _,control in ipairs(self.settingControls) do safeMethod(control,"Hide") end
-  safeMethod(self.previousButton,"Hide"); safeMethod(self.nextButton,"Hide"); safeMethod(self.scrollFrame,"Hide"); safeMethod(self.details,"Hide"); safeMethod(self.content,"SetText","")
+  safeMethod(self.previousButton,"Hide"); safeMethod(self.nextButton,"Hide"); safeMethod(self.scrollFrame,"Hide"); safeMethod(self.slider,"Hide"); self:CloseMenu(); safeMethod(self.details,"Hide"); safeMethod(self.content,"SetText","")
   self.copyText=text or ""; safeMethod(self.copyBox,"SetText",self.copyText); safeMethod(self.copyBox,"Show"); safeMethod(self.copyBox,"SetFocus"); safeMethod(self.copyBox,"HighlightText"); safeMethod(self.frame,"Show")
 end
 

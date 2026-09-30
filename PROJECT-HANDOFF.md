@@ -2,7 +2,7 @@
 
 **Last updated:** 30 September 2026  
 **Current addon version:** `0.2.0-alpha1`  
-**Current status:** In progress. Proper-addon polish Tasks 1–4 of 7 are complete (Chronicles 87/87). Live acceptance of the production addon is still required.
+**Current status:** In progress. Proper-addon polish Tasks 1–5 of 7 are complete (Chronicles 95/95). Live acceptance of the production addon is still required.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
 This is the first file a new agent should read. Keep it current whenever the version, design, verification status, release location, major decision, or next action changes.
@@ -223,7 +223,7 @@ The user said to proceed on 30 September 2026. Unless corrected, this is being t
 
 The approved design is recorded in `docs/superpowers/specs/2026-09-30-mam-chronicles-proper-addon-polish-design.md`. It uses a native, dependency-free implementation with two focused new modules (`Launcher.lua` and `SettingsPanel.lua`) plus an original icon.
 
-The executable plan is `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`. It has seven test-driven tasks. **Progress: 4/7 tasks complete.**
+The executable plan is `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`. It has seven test-driven tasks. **Progress: 5/7 tasks complete.**
 
 Completed polish checkpoint:
 
@@ -252,7 +252,15 @@ Completed Task 4 checkpoint (settings/welcome/erase):
 - `UI.lua`: Settings tab gains minimap checkbox plus Reset Window / Reset Minimap Button / Erase buttons.
 - TOC loads `SettingsPanel.lua` last; package allowlist updated.
 - Chronicles suite **87/87** (80 + 7 settings-panel tests; RED run confirmed 9 expected failures first).
-- Progress: **4/7 tasks complete**.
+- Progress after Task 4: 4/7.
+
+Completed Task 5 checkpoint (navigation/controls polish):
+
+- `UI.lua`: selected tab shows `LockHighlight` + disabled state; filter/range are now anchored exact-choice menus (`OpenFilterMenu/OpenRangeMenu`, `SelectFilter/SelectRange` reject unknown values); `SetTimelineOffset(offset,total)` clamps to `total-30`; `UpdateNavigation` disables Previous/Next at boundaries; vertical `Slider` and mouse wheel (5 records) share one offset; tooltips on search, filter, range, paging, slider, reset and erase controls; distinct empty ("no entries yet") vs no-match messages. Row pool stays fixed at 30.
+- Decision: the older page-aligned clamp (offset 30 of 38 showed 8 rows) was replaced by the plan's `total-30` clamp (last window always shows 30 rows). The old test `timeline paging reaches entries beyond the fixed row pool` was updated to the new contract.
+- Harness: Slider methods, FontString text capture.
+- Suites: Chronicles **95/95**, Diagnostics **35/35**, Guild dashboard **39/39**.
+- Progress: **5/7 tasks complete**.
 
 ## 10. Later roadmap
 
@@ -313,7 +321,7 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-Start Task 5 (tabs, menus, scrolling, tooltips, empty states, original icon) of `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`: read the task, write failing tests first, verify RED, implement.
+Start Task 6 (original icon, final TOC metadata, changelog, licence, manual/checklist updates) of `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`: read the task, write failing tests first, verify RED, implement.
 
 ## 15. Recent history
 
