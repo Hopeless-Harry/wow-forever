@@ -16,6 +16,11 @@ local tileDefinitions = {
   { label = "Delves completed", patterns = { "delves completed" } },
 }
 
+local startText = "Type /mam (or click the minimap button) to open this window.\n"
+  .. "Medals tab: Mom Medals you earn, worth Mom Money. Settings tab: themes, alerts and what is recorded.\n"
+  .. "Shared with your guild: only a medal's id, its points and the addon version when you earn one. Never chat, gold or locations.\n"
+  .. "To opt out: Settings > Alerts > untick \"Announce my Mom Medals to the guild\"."
+
 local function safeMethod(object, method, ...)
   if object and type(object[method]) == "function" then return pcall(object[method], object, ...) end
 end
@@ -60,6 +65,8 @@ function Dashboard:Build()
     table.insert(model.recent, { kind = kind, color = color, text = UI.EventLabel(event), time = stamp, event = event })
   end
 
+  model.gettingStarted = not Addon.db.settings.gettingStartedDismissed
+  model.whatsNew = Addon:GetWhatsNew()
   model.medals = Addon.Medals and Addon.Medals:GetSummary() or { total = 0, count = 0, possible = 0 }
   local status = AS and AS.status
   model.status = {
@@ -92,6 +99,20 @@ function Dashboard:Create(parent, ui)
   safeMethod(self.greeting, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 2, -2); safeMethod(self.greeting, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1)
   self.subtitle = frame:CreateFontString(nil, "OVERLAY", "GameFontDisable")
   safeMethod(self.subtitle, "SetPoint", "TOPLEFT", self.greeting, "BOTTOMLEFT", 0, -4)
+
+  self.startCard = createCard(frame, "Getting started")
+  self.startBody = self.startCard:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  safeMethod(self.startBody, "SetPoint", "TOPLEFT", self.startCard, "TOPLEFT", 12, -32); safeMethod(self.startBody, "SetJustifyH", "LEFT"); safeMethod(self.startBody, "SetJustifyV", "TOP"); safeMethod(self.startBody, "SetSpacing", 3)
+  safeMethod(self.startBody, "SetText", startText)
+  self.startDismiss = T:Button(self.startCard, "Got it", 70, 20)
+  safeMethod(self.startDismiss, "SetPoint", "TOPRIGHT", self.startCard, "TOPRIGHT", -8, -7)
+  safeMethod(self.startDismiss, "SetScript", "OnClick", function() Addon.db.settings.gettingStartedDismissed = true; self:Refresh() end)
+  safeMethod(self.startCard, "Hide")
+  self.newsLine = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+  safeMethod(self.newsLine, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 2, -48); safeMethod(self.newsLine, "SetJustifyH", "LEFT"); safeMethod(self.newsLine, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1); safeMethod(self.newsLine, "Hide")
+  self.newsDismiss = T:Button(frame, "x", 20, 18)
+  safeMethod(self.newsDismiss, "SetScript", "OnClick", function() Addon:DismissWhatsNew(); self:Refresh() end)
+  safeMethod(self.newsDismiss, "Hide")
 
   self.tileFrames = {}
   for index in ipairs(tileDefinitions) do
@@ -149,21 +170,36 @@ end
 
 function Dashboard:Layout(width, height)
   if not self.frame then return 1 end
+  self.lastWidth, self.lastHeight = width, height
   width = math.max(300, tonumber(width) or 700); height = math.max(200, tonumber(height) or 400)
   local columns = width >= 700 and 2 or 1
   local perRow = width >= 700 and 3 or 2
   local tileWidth = (width - GAP * (perRow - 1)) / perRow
   local tileHeight = 58
+  for _, tile in ipairs(self.tileFrames) do safeMethod(tile, "SetSize", tileWidth, tileHeight) end
+  local top = 48
+  local startHeight = columns == 2 and 112 or 150
+  safeMethod(self.startCard, "ClearAllPoints")
+  if self.showStart then
+    safeMethod(self.startCard, "SetPoint", "TOPLEFT", self.frame, "TOPLEFT", 0, -top); safeMethod(self.startCard, "SetSize", width, startHeight)
+    safeMethod(self.startBody, "SetWidth", width - 24); top = top + startHeight + GAP
+  end
+  if self.showNews then
+    safeMethod(self.newsLine, "ClearAllPoints"); safeMethod(self.newsLine, "SetPoint", "TOPLEFT", self.frame, "TOPLEFT", 2, -(top + 2))
+    safeMethod(self.newsLine, "SetWidth", width - 34)
+    safeMethod(self.newsDismiss, "ClearAllPoints"); safeMethod(self.newsDismiss, "SetPoint", "TOPRIGHT", self.frame, "TOPRIGHT", 0, -top)
+    top = top + 24
+  end
   for index, tile in ipairs(self.tileFrames) do
     local row, column = math.floor((index - 1) / perRow), (index - 1) % perRow
-    safeMethod(tile, "SetSize", tileWidth, tileHeight); safeMethod(tile, "ClearAllPoints")
-    safeMethod(tile, "SetPoint", "TOPLEFT", self.frame, "TOPLEFT", column * (tileWidth + GAP), -(48 + row * (tileHeight + GAP)))
+    safeMethod(tile, "ClearAllPoints")
+    safeMethod(tile, "SetPoint", "TOPLEFT", self.frame, "TOPLEFT", column * (tileWidth + GAP), -(top + row * (tileHeight + GAP)))
   end
-  local tilesBottom = 48 + math.ceil(#self.tileFrames / perRow) * (tileHeight + GAP)
+  local tilesBottom = top + math.ceil(#self.tileFrames / perRow) * (tileHeight + GAP)
   local memoryHeight = 28
   safeMethod(self.memoryBox, "ClearAllPoints"); safeMethod(self.memoryBox, "SetPoint", "BOTTOMLEFT", self.frame, "BOTTOMLEFT", 0, 0); safeMethod(self.memoryBox, "SetWidth", math.max(120, width - 100 - GAP))
   safeMethod(self.memoryButton, "ClearAllPoints"); safeMethod(self.memoryButton, "SetPoint", "BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", 0, 0)
-  local cardsHeight = math.max(120, height - tilesBottom - memoryHeight - GAP)
+  local cardsHeight = math.max(70, height - tilesBottom - memoryHeight - GAP)
   local monthWidth, recentWidth, monthHeight, recentHeight
   safeMethod(self.monthCard, "ClearAllPoints"); safeMethod(self.recentCard, "ClearAllPoints")
   if columns == 2 then
@@ -187,6 +223,14 @@ function Dashboard:Refresh()
   if not self.frame then return end
   local T = Addon.Theme; local C = T.colors
   local model = self:Build()
+  local showStart, showNews = model.gettingStarted and true or false, model.whatsNew ~= nil
+  safeMethod(self.startCard, showStart and "Show" or "Hide")
+  if model.whatsNew then safeMethod(self.newsLine, "SetText", escapeText(model.whatsNew)) end
+  safeMethod(self.newsLine, showNews and "Show" or "Hide"); safeMethod(self.newsDismiss, showNews and "Show" or "Hide")
+  if showStart ~= self.showStart or showNews ~= self.showNews then
+    self.showStart, self.showNews = showStart, showNews
+    self:Layout(self.lastWidth, self.lastHeight)
+  end
   safeMethod(self.greeting, "SetText", "Welcome back, " .. tostring(model.character.name))
   local parts = {}
   if model.character.realm then table.insert(parts, tostring(model.character.realm)) end

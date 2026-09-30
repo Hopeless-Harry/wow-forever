@@ -51,3 +51,46 @@ test('/mam diag also shows the copy button',()=>{
   const h=uiSetup(); h.slash('diag');
   assert.equal(h.get('MAMChronicles.UI.copyDiagButton.shown'),true);
 });
+
+// ---- first-run experience ----
+const dashFiles=['Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Counters.lua','Export.lua','Theme.lua','Toast.lua','Comms.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua'];
+function dashSetup(saved){const h=createHarness({savedVariables:saved});h.load(dashFiles);h.run('MAMChronicles:Boot()');return h;}
+
+test('getting started flag defaults to show and is normalised',()=>{
+  let h=dashSetup(); assert.equal(h.get('MAMChroniclesDB.settings.gettingStartedDismissed'),false);
+  h=dashSetup({schemaVersion:1,settings:{gettingStartedDismissed:'yes'}}); assert.equal(h.get('MAMChroniclesDB.settings.gettingStartedDismissed'),false);
+  h=dashSetup({schemaVersion:1,settings:{gettingStartedDismissed:true}}); assert.equal(h.get('MAMChroniclesDB.settings.gettingStartedDismissed'),true);
+});
+test('whats new appears once after an update and is remembered when dismissed',()=>{
+  let h=dashSetup(); assert.equal(h.get('MAMChronicles:GetWhatsNew()'),null);
+  const old={schemaVersion:1,meta:{addonVersion:'0.2.0-alpha8'},settings:{}};
+  h=dashSetup(old); assert.match(h.get('MAMChronicles:GetWhatsNew()'),/What's new in 0\.2\.0/);
+  h.run('__a=MAMChronicles:GetWhatsNew(); MAMChronicles:DismissWhatsNew()'); assert.equal(h.get('MAMChronicles:GetWhatsNew()'),null);
+  // simulate /reload with the saved table: still dismissed
+  h.run('MAMChronicles.booted=false; MAMChronicles:Boot()'); assert.equal(h.get('MAMChronicles:GetWhatsNew()'),null);
+});
+test('whats new survives a reload until dismissed',()=>{
+  const h=dashSetup({schemaVersion:1,meta:{addonVersion:'0.2.0-alpha8'},settings:{}});
+  h.run('MAMChronicles.booted=false; MAMChronicles:Boot()'); assert.ok(h.get('MAMChronicles:GetWhatsNew()'));
+});
+test('chat welcome is short and points at /mam',()=>{
+  const h=createHarness(); h.load(dashFiles); h.run('MAMChronicles:Boot()');
+  const msg=h.calls.printed.find(m=>/Welcome/.test(m)); assert.ok(msg); assert.match(msg,/\/mam/); assert.ok(msg.length<140,`welcome too long: ${msg.length}`);
+});
+test('Home shows a dismissible Getting started card and remembers dismissal',()=>{
+  const h=dashSetup(); h.run('local UI=MAMChronicles.UI; UI:Show(); __m=MAMChronicles.Dashboard:Build()');
+  assert.equal(h.get('__m.gettingStarted'),true);
+  assert.equal(h.get('MAMChronicles.Dashboard.startCard.shown'),true);
+  assert.match(h.get('MAMChronicles.Dashboard.startBody.text'),/\/mam/); assert.match(h.get('MAMChronicles.Dashboard.startBody.text'),/Medals/); assert.match(h.get('MAMChronicles.Dashboard.startBody.text'),/guild/i); assert.match(h.get('MAMChronicles.Dashboard.startBody.text'),/Settings/);
+  h.run('local D=MAMChronicles.Dashboard; D.startDismiss.scripts.OnClick(D.startDismiss)');
+  assert.equal(h.get('MAMChroniclesDB.settings.gettingStartedDismissed'),true);
+  assert.equal(h.get('MAMChronicles.Dashboard.startCard.shown'),false);
+});
+test('Home shows a whats new line after an update',()=>{
+  const h=dashSetup({schemaVersion:1,meta:{addonVersion:'0.2.0-alpha8'},settings:{gettingStartedDismissed:true}});
+  h.run('MAMChronicles.UI:Show()');
+  assert.equal(h.get('MAMChronicles.Dashboard.newsLine.shown'),true);
+  assert.match(h.get('MAMChronicles.Dashboard.newsLine.text'),/What's new/);
+  h.run('local D=MAMChronicles.Dashboard; D.newsDismiss.scripts.OnClick(D.newsDismiss)');
+  assert.equal(h.get('MAMChronicles.Dashboard.newsLine.shown'),false);
+});

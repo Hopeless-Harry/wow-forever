@@ -14,7 +14,7 @@ local function clamp(value, minimum, maximum) return math.max(minimum, math.min(
 local uiDefaults = { point="CENTER", x=0, y=0, width=780, height=560, activeTab="Home", minimapAngle=225 }
 local validPoints = { CENTER=true, TOP=true, BOTTOM=true, LEFT=true, RIGHT=true, TOPLEFT=true, TOPRIGHT=true, BOTTOMLEFT=true, BOTTOMRIGHT=true }
 local validThemes = { midnight=true, parchment=true, crimson=true, slate=true }
-local booleanDefaults = { toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true }
+local booleanDefaults = { toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, gettingStartedDismissed=false }
 local validTabs = { Home=true, Chronicle=true, Medals=true, Statistics=true, Settings=true, Diagnostics=true }
 local function freshSettings()
   return { enabled=true, recordCoordinates=true, recordQuestAccepts=true, notableQuality=4, maxEvents=10000, showMinimapButton=true, recordStatistics=true, recordGoldStatistics=false,
@@ -59,6 +59,8 @@ function Database:Open(saved)
   db.eventIds={}; for _,event in ipairs(db.events) do db.eventIds[event.id]=true end
   db.schemaVersion = 1; self.db = db; self:NormaliseSettings()
   db.meta.createdAt = db.meta.createdAt or now(); db.meta.updatedAt = now(); db.meta.loadCount = (tonumber(db.meta.loadCount) or 0) + 1
+  local previousVersion = db.meta.addonVersion
+  if type(previousVersion) == "string" and previousVersion ~= Addon.version then db.settings.whatsNewVersion = Addon.version end
   db.meta.addonVersion = Addon.version; db.meta.clientBuild = select(2, Addon:SafeCall(GetBuildInfo))
   return db
 end
@@ -77,6 +79,8 @@ function Database:NormaliseSettings()
   if not finite(settings.windowAlpha) then settings.windowAlpha = 1 else settings.windowAlpha = clamp(settings.windowAlpha, 0.3, 1) end
   if not validThemes[settings.theme] then settings.theme = "midnight" end
   if settings.welcomeVersion ~= nil and type(settings.welcomeVersion) ~= "string" then settings.welcomeVersion = nil end
+  if type(settings.whatsNewVersion) ~= "string" then settings.whatsNewVersion = nil end
+  if type(settings.whatsNewSeen) ~= "string" then settings.whatsNewSeen = nil end
   local saved = tableOr(settings.ui); local ui = copyTable(uiDefaults)
   if validPoints[saved.point] then ui.point = saved.point end
   if finite(saved.x) then ui.x = clamp(saved.x, -10000, 10000) end

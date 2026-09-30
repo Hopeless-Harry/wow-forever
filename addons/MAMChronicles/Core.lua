@@ -63,12 +63,25 @@ function Addon:Print(message)
   end
 end
 
-local WELCOME_VERSION = "personal-chronicle-v2"
+local WELCOME_VERSION = "personal-chronicle-v3"
+
+-- One line shown on Home after an update; keep it in step with CHANGELOG.md.
+Addon.whatsNewText = "a Getting started card, Copy diagnostics, Medals filters and search, tougher data handling."
+
+function Addon:GetWhatsNew()
+  local settings = self.db and self.db.settings
+  if not settings or settings.whatsNewVersion ~= self.version or settings.whatsNewSeen == self.version then return nil end
+  return "What's new in " .. self.version .. ": " .. self.whatsNewText
+end
+
+function Addon:DismissWhatsNew()
+  if self.db and self.db.settings then self.db.settings.whatsNewSeen = self.version end
+end
 
 function Addon:ShowWelcome()
   local settings = self.db and self.db.settings
   if not settings or settings.welcomeVersion == WELCOME_VERSION then return end
-  self:Print("Welcome! Type /mam to open your Chronicle. Your history stays on this computer. Only Mom Medals you earn are announced to your guild; turn that off in Settings > Alerts.")
+  self:Print("Welcome! Type /mam to begin. Medals you earn are shared with your guild; opt out in Settings.")
   settings.welcomeVersion = WELCOME_VERSION
 end
 
