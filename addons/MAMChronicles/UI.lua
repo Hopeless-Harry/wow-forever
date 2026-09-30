@@ -630,6 +630,34 @@ local MEDAL_LIST_TOP = 124
 UI.medalFilters = { "All", "Earned", "In progress", "Locked", "Next up" }
 UI.medalFilter = "Next up"
 UI.medalSearch = ""
+UI.medalCategory = "all"
+
+function UI:SetMedalCategory(key)
+  if key ~= "all" and not (Addon.Medals and Addon.Medals.categoriesByKey[key]) then return false end
+  self.medalCategory = key
+  if self.medalsArea then self.medalsArea:SetOffset(0); self:RefreshMedals() end
+  return true
+end
+
+function UI:DescribeCategory(key)
+  for _, category in ipairs(Addon.Medals:GetCategories()) do
+    if category.key == key then return category.label .. ": " .. tostring(category.earned) .. " of " .. tostring(category.total) .. " medals earned" end
+  end
+  return "All categories"
+end
+
+function UI:CategoryLabel()
+  local category = Addon.Medals.categoriesByKey[self.medalCategory]
+  return category and category.label or "All"
+end
+
+function UI:CycleMedalCategory()
+  local keys = { "all" }
+  for _, category in ipairs(Addon.Medals:GetCategories()) do keys[#keys + 1] = category.key end
+  local current = 1
+  for index, key in ipairs(keys) do if key == self.medalCategory then current = index end end
+  self:SetMedalCategory(keys[current % #keys + 1])
+end
 
 function UI:SetMedalFilter(value)
   local valid = false
@@ -773,6 +801,11 @@ function UI:BuildMedalsPage(frame)
   -- search and filters
   local search = CreateFrame("EditBox", nil, child, "BackdropTemplate")
   safeMethod(search, "SetSize", 190, 26); safeMethod(search, "SetPoint", "TOPLEFT", child, "TOPLEFT", 4, -54); safeMethod(search, "SetAutoFocus", false)
+  local categoryButton = T:Button(child, "Category: All", 190, 26)
+  safeMethod(categoryButton, "SetPoint", "LEFT", search, "RIGHT", 6, 0)
+  safeMethod(categoryButton, "SetScript", "OnClick", function() UI:CycleMedalCategory() end)
+  attachTooltip(categoryButton, "Medal category", "Click to cycle through the medal categories.")
+  self.medalCategoryButton = categoryButton
   T:Input(search)
   local hint = Addon.Theme:Text(search, "GameFontDisable")
   safeMethod(hint, "SetPoint", "LEFT", search, "LEFT", 9, 0); safeMethod(hint, "SetText", "Search medals...")
@@ -819,7 +852,7 @@ function UI:RefreshMedals()
     entry.isNextUp = false
     if not entry.earned and not familySeen[entry.def.family] then entry.isNextUp = true; familySeen[entry.def.family] = true end
     local text = string.lower(entry.def.name .. " " .. entry.def.description)
-    if needle == "" or string.find(text, needle, 1, true) then
+    if (self.medalCategory == "all" or entry.def.category == self.medalCategory) and (needle == "" or string.find(text, needle, 1, true)) then
       searched[#searched + 1] = entry
       counts.All = counts.All + 1; local state = medalState(entry); counts[state] = counts[state] + 1
       if entry.isNextUp then counts["Next up"] = counts["Next up"] + 1 end
@@ -840,12 +873,13 @@ function UI:RefreshMedals()
   local summary = Addon.Medals:GetSummary(Addon.characterKey)
   local available = Addon.Medals:GetMomMoney()
   safeMethod(self.medalHeader, "SetText", "Mom Money " .. tostring(available) .. (available ~= summary.total and (" (" .. tostring(summary.total) .. " earned)") or ""))
-  safeMethod(self.medalSub, "SetText", tostring(summary.count) .. " of " .. tostring(summary.possible) .. " Mom Medals earned  \194\183  " .. Addon.Medals:GetTitle() .. ((self.medalFilter ~= "All" or needle ~= "") and ("  \194\183  showing " .. tostring(#order)) or ""))
+  safeMethod(self.medalSub, "SetText", tostring(summary.count) .. " of " .. tostring(summary.possible) .. " Mom Medals earned  \194\183  " .. Addon.Medals:GetTitle() .. "  \194\183  " .. tostring(Addon.Medals:GetTitleCounts().earned) .. " of " .. tostring(Addon.Medals:GetTitleCounts().total) .. " titles" .. ((self.medalFilter ~= "All" or needle ~= "" or self.medalCategory ~= "all") and ("  \194\183  showing " .. tostring(#order)) or ""))
   for index, name in ipairs(self.medalFilters) do
     local b = self.medalFilterButtons[index]
     safeMethod(b, "SetText", name .. " (" .. tostring(counts[name]) .. ")")
     safeMethod(b, name == self.medalFilter and "LockHighlight" or "UnlockHighlight"); T:SetSelected(b, name == self.medalFilter)
   end
+  safeMethod(self.medalCategoryButton, "SetText", "Category: " .. self:CategoryLabel())
   safeMethod(self.medalEmpty, #order == 0 and "Show" or "Hide")
   local base = MEDAL_LIST_TOP + math.max(#order, 1) * MEDAL_PITCH + 16
   self:LayoutMedalRows(true)

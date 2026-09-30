@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0-alpha17
+
+- **Medal categories:** every medal is now in one of Progress, Kitchen & Bar, Mom Habits, Emotes, Play Pattern or WoW Forever. A **Category** button on the Medals tab cycles through them and works together with the filters, Next up and search. Empty categories (for example WoW Forever on Retail) are skipped.
+- **A title for every medal family:** all 96 families now have their own Mom title (Stare Mom, Facepalm Mom, Camp Decorator Mom and so on). The Medals tab shows how many titles you have earned.
+- **New title toast:** the first medal you earn in a family unlocks its title and shows a "New title" toast. Titles from your starting history are not announced.
+
 ## 0.2.0-alpha16
 
 - The Medals tab now opens on **Next up** (one medal per family, the next tier to aim for). Click All to see every medal.

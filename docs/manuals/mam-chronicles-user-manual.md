@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles — User Manual
 
-- **Version:** `0.2.0-alpha16`
+- **Version:** `0.2.0-alpha17`
 - **Primary test target:** WoW Forever (interface 16001, level cap 60)
 - **Secondary test target:** World of Warcraft Retail 12.1
 - **Live evidence:** Retail has been observed live for the window and statistics. Forever, guild sharing between two real players, and most detection (campfires, emotes, consumables, vendor, group, ready checks, fall deaths) are not yet proven live.
@@ -59,6 +59,7 @@ The window has six tabs: **Home** (opens by default), **Chronicle**, **Medals**,
 
 - The **Medals** tab lists every medal, earned ones first, with a progress bar and count for the rest, and your Mom Money total at the top.
 - Use the **All / Earned / In progress / Locked / Next up** buttons (each shows its count) and the **search box** to narrow the list. The Medals tab **opens on Next up**; click **All** for the full list. **Next up** shows one medal per family: the next tier you have not earned, which turns the long list into a short to-do list. Search matches a medal's name or description.
+- The **Category** button cycles through Progress, Kitchen & Bar, Mom Habits, Emotes, Play Pattern and WoW Forever (categories with nothing for your client are skipped). It combines with the filters and search, and its tooltip text shows how many medals you have earned in it.
 - Hover a medal for a tooltip: what it asks for, **how it is tracked** (game statistics, addon counters that store only numbers, or your Chronicle) and your progress.
 - **Click an unearned medal to pin it as a goal** (up to three, marked GOAL). Goals and their progress appear on Home, and a goal drops off when you earn it. Click again to unpin. Each goal gives one **Nearly there** toast when you reach 90 percent of its target (targets of 5 or more).
 - Medals you earn during the current session carry a **NEW** marker. Medals the client cannot support (for example Retail-only medals on Forever) are hidden, and the counts and Mom Money total only include medals that are listed.
@@ -81,7 +82,7 @@ A small counter module watches what you do and stores **only whole numbers per c
 
 ### Mom titles and the Mom Money shop
 
-Your **Mom title** comes from the medal family you have earned the most Mom Money in: Wine Mom, Pint Mom, Trampoline Mom, Night Owl Mom, Quest Mom and so on, or **Rookie Mom** at the start. It shows under the greeting on Home, on the Medals tab and in recaps. In **Settings > Mom Money shop** the **Title** button cycles through every title you have earned (Auto picks the best).
+Every medal family has its own title (about 96 in all), and the Medals tab shows how many you have earned. The first medal you earn in a family unlocks its title with a **New title** toast. Your **Mom title** comes from the medal family you have earned the most Mom Money in: Wine Mom, Pint Mom, Trampoline Mom, Night Owl Mom, Quest Mom and so on, or **Rookie Mom** at the start. It shows under the greeting on Home, on the Medals tab and in recaps. In **Settings > Mom Money shop** the **Title** button cycles through every title you have earned (Auto picks the best).
 
 The same section is a small shop. **Mom Money** you have earned can be spent on cosmetics: toast colours (Rose 50, Teal 75, Violet 100, Sunset 150) and title flourishes (the Great 100, Supreme 250, of Legend 500). Click an item to buy it (it equips automatically), click again to equip or unequip later. The Medals tab shows what is left and what you earned, for example `Mom Money 890 (990 earned)`. Purchases are cosmetic and local: only medal ids, points and the addon version are ever sent to the guild. Erasing your Chronicle resets spending but keeps what you bought.
 

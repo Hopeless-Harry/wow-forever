@@ -435,6 +435,8 @@ function Medals:Evaluate(reason)
   self.evaluating = true
   local ctx = self:BuildContext()
   local awarded, points = {}, 0
+  local hadFamily = {}
+  for _, known in ipairs(definitions) do if row.earned[known.id] then hadFamily[known.family] = true end end
   for _, def in ipairs(definitions) do
     if not row.earned[def.id] and self:IsAvailable(def) and def.value(ctx) >= def.target then
       row.earned[def.id] = { at = Addon:Now(), points = def.points, retro = baseline or nil }
@@ -451,6 +453,15 @@ function Medals:Evaluate(reason)
       self.newIds[def.id] = true
       Addon.EventStore:Append("medal.earned", { medalId = def.id, medalName = def.name, points = def.points })
       notify(def, { retro = false, reason = reason })
+    end
+    -- The first medal of a family also unlocks its title.
+    local announced = {}
+    for _, def in ipairs(awarded) do
+      local title = self.titles and self.titles[def.family]
+      if title and not hadFamily[def.family] and not announced[def.family] and Addon.Toast then
+        announced[def.family] = true
+        Addon:Guard("Titles", Addon.Toast.Show, Addon.Toast, { kind = "info", title = "New title: " .. title, text = "Unlocked by " .. def.name .. ". Pick it in Settings.", action = "Medals" })
+      end
     end
   end
   if not baseline then self:CheckGoalProgress(row) end
@@ -479,6 +490,46 @@ function Medals:OnEvent(event)
   self:Evaluate("event")
 end
 
+-- ---------------------------------------------------------------- categories
+Medals.categories = {
+  { key = "progress", label = "Progress" },
+  { key = "kitchen", label = "Kitchen & Bar" },
+  { key = "habits", label = "Mom Habits" },
+  { key = "emotes", label = "Emotes" },
+  { key = "pattern", label = "Play Pattern" },
+  { key = "forever", label = "WoW Forever" },
+}
+Medals.categoriesByKey = {}
+for _, category in ipairs(Medals.categories) do Medals.categoriesByKey[category.key] = category end
+
+local function assignCategory(key, families)
+  for family in families:gmatch("%S+") do Medals.familyCategory[family] = key end
+end
+Medals.familyCategory = {}
+assignCategory("progress", "fresh_start memory_keeper explorer quest_machine delver dungeon_regular slayer frequent_flyer comeback_kid adventurer shiny_collector achiever")
+assignCategory("kitchen", "wine ale coffee food cheese cookie pie soup fish juice water bandage potion")
+assignCategory("habits", "jumps mounts afk rest shots outfits repairs sales purchases groups left ready hearth summons abandon daily buyer healthstone catmom playdate treasure auction_goblin battlemaster")
+assignCategory("emotes", "sit sleep stare facepalm no thank hugs dances kisses waves cheers")
+assignCategory("pattern", "late early marathon relog streak weekend learning clean raid oops cooking fishing jack mom_of_many long_haul gravity murloc_magnet")
+for _, def in ipairs(definitions) do
+  def.category = def.client == "forever" and "forever" or Medals.familyCategory[def.family] or "progress"
+end
+
+-- Categories that have at least one medal this client can show (or that the player already earned), with progress.
+function Medals:GetCategories()
+  local totals, earned = {}, {}
+  for _, entry in ipairs(self:GetProgress(Addon.characterKey)) do
+    local key = entry.def.category
+    totals[key] = (totals[key] or 0) + 1
+    if entry.earned then earned[key] = (earned[key] or 0) + 1 end
+  end
+  local list = {}
+  for _, category in ipairs(self.categories) do
+    if totals[category.key] then list[#list + 1] = { key = category.key, label = category.label, total = totals[category.key], earned = earned[category.key] or 0 } end
+  end
+  return list
+end
+
 -- ---------------------------------------------------------------- Mom titles and the Mom Money shop
 -- The title comes from the medal family that has earned the most Mom Money. Everything here is cosmetic and local:
 -- nothing in it is ever sent to the guild.
@@ -495,6 +546,20 @@ Medals.titles = {
   gravity = "Gravity Mom", jack = "Jack-of-All-Trades Mom", firestarter = "Campfire Mom", campfire_chef = "Camp Chef Mom",
   hearth = "Homebody Mom", summons = "Carpool Mom", catmom = "Cat Mom", buyer = "Impulse Mom",
 }
+
+-- Titles for every remaining family, so each family has exactly one.
+for family, title in pairs({
+  abandon = "Commitment Mom", daily = "Daily Grind Mom", healthstone = "Healthy Snack Mom",
+  fresh_start = "Fresh Start Mom", memory_keeper = "Memory Keeper Mom", delver = "Delver Mom", frequent_flyer = "Frequent Flyer Mom",
+  comeback_kid = "Comeback Mom", adventurer = "Adventurer Mom", shiny_collector = "Shiny Mom", achiever = "Achiever Mom",
+  playdate = "Playdate Mom", treasure = "Treasure Mom", auction_goblin = "Goblin Mom", battlemaster = "Battle Mom",
+  cooking = "Kitchen Witch Mom", fishing = "Angler Mom", long_haul = "Long Haul Mom", mom_of_many = "Mother of Many",
+  relog = "Five More Minutes Mom", learning = "Learning Mom", murloc_magnet = "Murloc Mom",
+  journey = "Journey Mom", ready_for_core = "Core Mom", old_world = "Old World Mom", beta_mom = "Beta Mom", day_one = "Day One Mom",
+  one_year = "Anniversary Mom", skyborne = "Skyborne Mom", happy_camper = "Happy Camper Mom", journeyman_camper = "Journeyman Camper Mom",
+  expert_camper = "Expert Camper Mom", camp_decorator = "Camp Decorator Mom", well_stocked = "Well Stocked Mom", unexplored_depths = "Depths Mom",
+  summit_seeker = "Summit Mom", into_the_barrow = "Barrow Mom", islander = "Islander Mom", new_horizons = "Horizons Mom", plot_twist = "Plot Twist Mom",
+}) do Medals.titles[family] = title end
 
 Medals.cosmetics = {
   { id = "style_gold", kind = "toastStyle", name = "Default toast colours", cost = 0 },
@@ -565,6 +630,17 @@ function Medals:GetTitle()
   local flourish = cosmetics and self.cosmeticsById[cosmetics.flourish]
   if flourish and flourish.suffix then title = title .. " " .. flourish.suffix end
   return title
+end
+
+function Medals:GetTitleCounts()
+  local families, total = {}, 0
+  for _, def in ipairs(definitions) do
+    if self.titles[def.family] and not families[def.family] and (self:IsAvailable(def) or (characterRow() and characterRow().earned[def.id])) then
+      families[def.family] = true; total = total + 1
+    end
+  end
+  local _, order = earnedPointsByFamily()
+  return { earned = #order, total = total }
 end
 
 function Medals:GetMomMoney()

@@ -165,6 +165,12 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] After a previous session with activity, Home shows a Last session line; logging straight back in within five minutes does not.
 - [ ] `/mam recap week` shows a weekly summary with your title and no character name.
 
+## Categories and titles (alpha17)
+
+- [ ] Medals tab: the Category button cycles through the categories; the list, the filter counts and the search all respect it. WoW Forever appears only on Forever.
+- [ ] The line under Mom Money shows a title count such as `3 of 90 titles`.
+- [ ] Earn the first medal of a new family (for example your first wine): a "New title" toast appears once. Later medals of that family do not repeat it.
+
 ## Stability
 
 - [ ] No Lua errors during the test.
