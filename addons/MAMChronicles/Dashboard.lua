@@ -146,6 +146,10 @@ function Dashboard:Create(parent, ui)
   self.monthBody = Addon.Theme:Text(self.monthCard, "GameFontHighlight")
   safeMethod(self.monthBody, "SetPoint", "TOPLEFT", self.monthCard, "TOPLEFT", 12, -34); safeMethod(self.monthBody, "SetJustifyH", "LEFT"); safeMethod(self.monthBody, "SetJustifyV", "TOP"); safeMethod(self.monthBody, "SetSpacing", 4)
 
+  self.recapButton = T:Button(self.monthCard, "Copy recap", 90, 20)
+  safeMethod(self.recapButton, "SetPoint", "TOPRIGHT", self.monthCard, "TOPRIGHT", -8, -7)
+  safeMethod(self.recapButton, "SetScript", "OnClick", function() if self.ui then self.ui:HandleSlash("recap") end end)
+
   self.recentCard = createCard(frame, "Recent activity")
   local viewAll = T:Button(self.recentCard, "View all", 70, 20)
   safeMethod(viewAll, "SetPoint", "TOPRIGHT", self.recentCard, "TOPRIGHT", -8, -7)

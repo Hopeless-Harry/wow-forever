@@ -43,6 +43,36 @@ function Export:CountEarnedMedals()
   return summary and summary.count or 0
 end
 
+-- A short, shareable summary of the month. It never includes the character name, realm or gold.
+function Export:BuildMonthlyRecap(fromTime,toTime)
+  local stats=Addon.Statistics:Build(fromTime,toTime)
+  local dateFn=date or (os and os.date)
+  local title=dateFn and dateFn("%B %Y",fromTime) or "This month"
+  local lines={"Moms Against Magic Chronicles - "..title.." recap"}
+  local medals=Addon.EventStore:Query({type="medal.earned",fromTime=fromTime,toTime=toTime})
+  table.sort(medals,function(a,b) if a.occurredAt==b.occurredAt then return a.id<b.id end return a.occurredAt<b.occurredAt end)
+  local changes={}
+  if Addon.AchievementStats then
+    for _,change in ipairs(Addon.AchievementStats:GetTopChanges(Addon.characterKey,50)) do
+      if change.group~=Addon.AchievementStats.goldGroup and #changes<3 then table.insert(changes,change.name.." +"..tostring(change.delta)) end
+    end
+  end
+  if stats.eventCount==0 and #medals==0 and #changes==0 then table.insert(lines,"Quiet month: nothing recorded yet."); return table.concat(lines,"\n") end
+  table.insert(lines,tostring(stats.sessionCount).." sessions, "..tostring(stats.eventCount).." events")
+  table.insert(lines,"Deaths "..tostring(stats.totals.deaths).."  Quests "..tostring(stats.totals.questsCompleted).."  Discoveries "..tostring(stats.totals.discoveries).."  Notable loot "..tostring(stats.totals.notableLoot))
+  if #medals>0 then
+    local points,names=0,{}
+    for index,event in ipairs(medals) do points=points+(tonumber(event.payload.points) or 0); if index<=5 then table.insert(names,tostring(event.payload.medalName or event.payload.medalId)) end end
+    local text="Medals earned: "..#medals.." (+"..points.." Mom Money): "..table.concat(names,", ")
+    if #medals>5 then text=text..", and "..(#medals-5).." more" end
+    table.insert(lines,text)
+  end
+  if #changes>0 then table.insert(lines,"Top changes: "..table.concat(changes,", ")) end
+  local summary=Addon.Medals and Addon.Medals:GetSummary()
+  if summary then table.insert(lines,"Mom Money total: "..tostring(summary.total).." ("..tostring(summary.count).." of "..tostring(summary.possible).." medals)") end
+  return table.concat(lines,"\n")
+end
+
 function Export:BuildDiagnosticReport()
   local _,build,_,interface=Addon:SafeCall(GetBuildInfo); local status=Addon.Collectors and Addon.Collectors:GetCollectorStatus() or nil
   local registered,errors=0,0; local unavailable={}

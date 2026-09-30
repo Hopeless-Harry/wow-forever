@@ -3,6 +3,7 @@ local AchievementStats = {}
 Addon.AchievementStats = AchievementStats
 
 local GOLD = "Gold and money"
+AchievementStats.goldGroup = GOLD
 local SCAN_DELAY, RETRY_DELAY, MONTHS_KEPT = 8, 15, 6
 AchievementStats.groupOrder = {
   "Deaths and combat", "Quests", "Exploration and travel", "Dungeons and raids", "Professions and crafting",
