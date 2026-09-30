@@ -13,8 +13,19 @@ local tileDefinitions = {
   { label = "Deaths", patterns = { "total deaths", "deaths" } },
   { label = "Dungeons entered", patterns = { "dungeons entered" } },
   { label = "Flight paths", patterns = { "flight paths" } },
-  { label = "Delves completed", patterns = { "delves completed" } },
+  { label = "Delves completed", patterns = { "delves completed" }, client = "retail" },
+  { label = "Campfires lit", counter = "campfires", client = "forever" },
 }
+
+-- Tiles that do not exist on this client (Delves on Forever, campfires on Retail) are left out.
+local function visibleTiles()
+  local client = Addon.Medals and Addon.Medals:Client() or "retail"
+  local list = {}
+  for _, definition in ipairs(tileDefinitions) do
+    if not definition.client or definition.client == client then list[#list + 1] = definition end
+  end
+  return list
+end
 
 local startText = "Type /mam (or click the minimap button) to open this window.\n"
   .. "Medals tab: Mom Medals you earn, worth Mom Money. Settings tab: themes, alerts and what is recorded.\n"
@@ -41,8 +52,12 @@ function Dashboard:Build()
     for _, change in ipairs(AS:GetTopChanges(Addon.characterKey, 1000)) do changes[change.id] = change.delta end
   end
   local catalog = Addon.db.statisticCatalog or {}
-  for _, definition in ipairs(tileDefinitions) do
-    local id, value = self:FindStatistic(definition.patterns)
+  for _, definition in ipairs(visibleTiles()) do
+    local id, value
+    if definition.counter then
+      local row = Addon.db.counters and Addon.db.counters[Addon.characterKey]
+      value = type(row) == "table" and tonumber(row[definition.counter]) or 0
+    else id, value = self:FindStatistic(definition.patterns) end
     local kind = id and catalog[id] and catalog[id].kind
     local text = DASH
     if value then text = AS and AS.FormatStat and AS.FormatStat(value, kind) or tostring(value) end
@@ -115,7 +130,7 @@ function Dashboard:Create(parent, ui)
   safeMethod(self.newsDismiss, "Hide")
 
   self.tileFrames = {}
-  for index in ipairs(tileDefinitions) do
+  for index in ipairs(visibleTiles()) do
     local tile = CreateFrame("Frame", nil, frame, "BackdropTemplate")
     T:Panel(tile, C.panel, C.border)
     tile.value = tile:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
@@ -249,9 +264,11 @@ function Dashboard:Refresh()
   }
   table.insert(lines, T:Colorize("Mom Money " .. tostring(model.medals.total), C.gold) .. "  \194\183  " .. tostring(model.medals.count) .. " of " .. tostring(model.medals.possible) .. " medals")
   for _, award in ipairs(model.awards) do table.insert(lines, T:Colorize(award.name, C.gold) .. " " .. tostring(award.count)) end
-  local statistics = model.status.statistics == "ok" and (tostring(model.status.statCount) .. " lifetime statistics tracked") or ("Statistics: " .. tostring(model.status.statistics))
+  local statistics = model.status.statistics == "ok" and (tostring(model.status.statCount) .. " lifetime statistics tracked")
+    or (model.status.statistics == "unavailable" and "Statistics: not reported by this client" or ("Statistics: " .. tostring(model.status.statistics)))
   table.insert(lines, T:Colorize(statistics, C.muted))
-  table.insert(lines, T:Colorize("Guild sharing: not available yet", C.muted))
+  local sharing = Addon.Comms and Addon.Comms.status
+  table.insert(lines, T:Colorize("Guild sharing: " .. tostring(sharing and sharing.state or "off"), C.muted))
   safeMethod(self.monthBody, "SetText", table.concat(lines, "\n"))
   local slots = self.recentSlots or 6
   for index, row in ipairs(self.recentRows) do

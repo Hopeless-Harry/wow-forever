@@ -155,3 +155,30 @@ test('summary counts and Mom Money match the listed medals even with stale saved
   h.run('MAMChroniclesDB.medals[MAMChronicles.characterKey].earned["removed_medal"]={at=1,points=100}; local s=MAMChronicles.Medals:GetSummary(); local list=MAMChronicles.Medals:GetProgress(); local c,p=0,0; for _,m in ipairs(list) do if m.earned then c=c+1; p=p+m.earned.points end end; __s=s; __c=c; __p=p; __n=#list');
   assert.equal(h.get('__s.count'),h.get('__c')); assert.equal(h.get('__s.total'),h.get('__p')); assert.equal(h.get('__s.possible'),h.get('__n'));
 });
+
+// ---- Forever-first wording and empty states ----
+import { multi } from './harness.js';
+function foreverSetup(){const h=createHarness({globals:{GetBuildInfo:()=>multi('1.60.1','70124','Sep 2026',16001)}});h.load(dashFiles);h.run('MAMChronicles:Boot()');return h;}
+test('Home tiles have no Retail-only Delves tile on Forever but keep it on Retail',()=>{
+  let h=foreverSetup(); h.run('__m=MAMChronicles.Dashboard:Build(); __labels=""; for _,t in ipairs(__m.tiles) do __labels=__labels..t.label.."|" end');
+  assert.ok(!/Delves/.test(h.get('__labels'))); assert.match(h.get('__labels'),/Campfires lit/); assert.equal(h.get('#__m.tiles'),6);
+  h=dashSetup(); h.run('__m=MAMChronicles.Dashboard:Build(); __labels=""; for _,t in ipairs(__m.tiles) do __labels=__labels..t.label.."|" end');
+  assert.match(h.get('__labels'),/Delves/); assert.ok(!/Campfires/.test(h.get('__labels'))); assert.equal(h.get('#__m.tiles'),6);
+});
+test('the Campfires lit tile reads the campfire counter',()=>{
+  const h=foreverSetup(); h.run('MAMChronicles.Counters:Add("campfires",3); __m=MAMChronicles.Dashboard:Build(); __v=nil; for _,t in ipairs(__m.tiles) do if t.label=="Campfires lit" then __v=t.value end end');
+  assert.equal(h.get('__v'),'3');
+});
+test('Home no longer claims guild sharing is unavailable',()=>{
+  const h=dashSetup(); h.run('MAMChronicles.UI:Show()');
+  const body=h.get('MAMChronicles.Dashboard.monthBody.text'); assert.match(body,/Guild sharing: /); assert.ok(!/not available yet/.test(body));
+});
+test('statistics empty states explain what still works',()=>{
+  const h=dashSetup(); h.run('MAMChronicles.AchievementStats:Scan(); __t=MAMChronicles.AchievementStats:BuildText(MAMChronicles.characterKey)');
+  assert.match(h.get('__t'),/does not expose statistics/); assert.match(h.get('__t'),/other medals|still work/i);
+  h.run('MAMChronicles.UI:Show(); __body=MAMChronicles.Dashboard.monthBody.text'); assert.match(h.get('__body'),/Statistics: not reported by this client/);
+});
+test('Forever shows level 60 as the cap in the medal header wording and no Retail-only medals',()=>{
+  const h=foreverSetup(); h.run('MAMChronicles.AchievementStats:Scan(); MAMChronicles.Medals:Evaluate("t"); __bad=0; for _,m in ipairs(MAMChronicles.Medals:GetProgress()) do if m.def.client=="retail" or (m.def.minCap and m.def.minCap>60) then __bad=__bad+1 end end');
+  assert.equal(h.get('__bad'),0); assert.equal(h.get('MAMChronicles.Medals:LevelCap()'),60);
+});

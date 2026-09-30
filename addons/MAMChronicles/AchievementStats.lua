@@ -253,6 +253,7 @@ function AchievementStats:BuildText(key)
   if not (row and row.latest) then
     local status = self.status or {}
     local why = status.state == "unavailable" and "This client does not expose statistics." or status.state == "disabled" and "Statistic recording is switched off in Settings." or "Statistics are collected shortly after login."
+    if status.state == "unavailable" then why = why .. " Medals that need statistics stay hidden; the other medals still work." end
     return "Lifetime statistics: nothing collected yet. " .. why
   end
   local dateFn = date or (os and os.date)
