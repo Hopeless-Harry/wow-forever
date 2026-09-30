@@ -176,7 +176,7 @@ function Dashboard:Create(parent, ui)
   self.memoryHint = Addon.Theme:Text(box, "GameFontDisable")
   safeMethod(self.memoryHint, "SetPoint", "LEFT", box, "LEFT", 9, 0); safeMethod(self.memoryHint, "SetText", "Remember this moment... (pinned to your Chronicle)")
   safeMethod(box, "SetScript", "OnTextChanged", function(edit) safeMethod(self.memoryHint, (edit.GetText and edit:GetText() or "") == "" and "Show" or "Hide") end)
-  local remember = T:Button(frame, "Remember", 100, 28)
+  local remember = T:Button(frame, "Remember", 100, 28, { red = true })
   self.memoryButton = remember
   local function submit()
     local text = (box.GetText and box:GetText() or ""):gsub("^%s+", ""):gsub("%s+$", "")

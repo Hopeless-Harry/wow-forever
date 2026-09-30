@@ -127,7 +127,12 @@ function Launcher:SetAttention(on)
   if on and T:CanAnimate() then
     if not self.glow and self.button.CreateTexture then
       local glow = self.button:CreateTexture(nil, "OVERLAY")
-      safeMethod(glow, "SetTexture", "Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight"); safeMethod(glow, "SetAllPoints", self.button); safeMethod(glow, "SetBlendMode", "ADD")
+      if T.artTheme then
+        safeMethod(glow, "SetTexture", T.ART .. "Glow"); safeMethod(glow, "SetSize", 64, 64); safeMethod(glow, "SetPoint", "CENTER", self.button, "CENTER", 0, 0)
+      else
+        safeMethod(glow, "SetTexture", "Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight"); safeMethod(glow, "SetAllPoints", self.button)
+      end
+      safeMethod(glow, "SetBlendMode", "ADD")
       self.glow = glow
     end
     if not self.glow then return false end

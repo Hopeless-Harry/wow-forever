@@ -5,6 +5,7 @@ $repositoryRoot=Split-Path -Parent $PSScriptRoot
 $sourceRoot=Join-Path $repositoryRoot 'addons\MAMChronicles'
 if(-not $OutputRoot){$OutputRoot=Join-Path $repositoryRoot 'dist'}
 $allowlist=@('MAMChronicles.toc','Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Counters.lua','Export.lua','Theme.lua','Toast.lua','Comms.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua','MAMChroniclesIcon.tga','LICENSE.txt','CHANGELOG.md','README.md')
+$allowlist+=@('Badge','Bar','ButtonBrown','ButtonRed','Checkbox','Divider','Frame','Glow','Inset','Scroll','Shadow','Tab','Toast')|ForEach-Object{"Art\$_.tga"}
 $manifestPath=Join-Path $sourceRoot 'MAMChronicles.toc'
 if(-not(Test-Path -LiteralPath $manifestPath -PathType Leaf)){throw "Addon manifest is missing: $manifestPath"}
 $manifest=Get-Content -Raw -LiteralPath $manifestPath
@@ -18,7 +19,7 @@ $tempBase=[IO.Path]::GetFullPath([IO.Path]::GetTempPath());$stage=Join-Path $tem
 if(-not $resolved.StartsWith($tempBase,[StringComparison]::OrdinalIgnoreCase)){throw "Unsafe staging path: $resolved"}
 try{
   $addonStage=Join-Path $resolved 'MAMChronicles';New-Item -ItemType Directory -Path $addonStage -Force|Out-Null
-  foreach($name in $allowlist){Copy-Item -LiteralPath (Join-Path $sourceRoot $name) -Destination (Join-Path $addonStage $name)}
+  foreach($name in $allowlist){$dest=Join-Path $addonStage $name;New-Item -ItemType Directory -Path (Split-Path -Parent $dest) -Force|Out-Null;Copy-Item -LiteralPath (Join-Path $sourceRoot $name) -Destination $dest}
   New-Item -ItemType Directory -Path $OutputRoot -Force|Out-Null;$archive=Join-Path ([IO.Path]::GetFullPath($OutputRoot)) "MAMChronicles-$version.zip"
   if(Test-Path -LiteralPath $archive){Remove-Item -LiteralPath $archive -Force}
   Compress-Archive -LiteralPath $addonStage -DestinationPath $archive -CompressionLevel Optimal

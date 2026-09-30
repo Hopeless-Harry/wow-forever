@@ -14,12 +14,12 @@ local function finite(value) return type(value) == "number" and value == value a
 local function clamp(value, minimum, maximum) return math.max(minimum, math.min(maximum, value)) end
 local uiDefaults = { point="CENTER", x=0, y=0, width=780, height=560, activeTab="Home", minimapAngle=225 }
 local validPoints = { CENTER=true, TOP=true, BOTTOM=true, LEFT=true, RIGHT=true, TOPLEFT=true, TOPRIGHT=true, BOTTOMLEFT=true, BOTTOMRIGHT=true }
-local validThemes = { midnight=true, parchment=true, crimson=true, slate=true }
+local validThemes = { modern=true, midnight=true, parchment=true, crimson=true, slate=true }
 local booleanDefaults = { toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, gettingStartedDismissed=false, quietInstances=true, animations=true }
 local validTabs = { Home=true, Chronicle=true, Medals=true, Statistics=true, Characters=true, Settings=true, Diagnostics=true }
 local function freshSettings()
   return { enabled=true, recordCoordinates=true, recordQuestAccepts=true, notableQuality=4, maxEvents=10000, showMinimapButton=true, recordStatistics=true, recordGoldStatistics=false,
-    windowAlpha=1, theme="midnight", toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, pinnedMedals={}, toastSoundChoice="chime", ui=copyTable(uiDefaults) }
+    windowAlpha=1, theme="modern", toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, pinnedMedals={}, toastSoundChoice="chime", ui=copyTable(uiDefaults) }
 end
 local function monthKey(timestamp)
   local dateFn=date or (os and os.date); return dateFn and dateFn("%Y-%m",timestamp) or "unknown"
@@ -81,7 +81,12 @@ function Database:NormaliseSettings()
   if type(settings.recordGoldStatistics) ~= "boolean" then settings.recordGoldStatistics = false end
   for key, default in pairs(booleanDefaults) do if type(settings[key]) ~= "boolean" then settings[key] = default end end
   if not finite(settings.windowAlpha) then settings.windowAlpha = 1 else settings.windowAlpha = clamp(settings.windowAlpha, 0.3, 1) end
-  if not validThemes[settings.theme] then settings.theme = "midnight" end
+  if not validThemes[settings.theme] then settings.theme = "modern" end
+  -- One-time move from the old default (Midnight) to the new art theme; choosing Midnight again afterwards sticks.
+  if not settings.themeMigrated then
+    if settings.theme == "midnight" then settings.theme = "modern" end
+    settings.themeMigrated = true
+  end
   if settings.welcomeVersion ~= nil and type(settings.welcomeVersion) ~= "string" then settings.welcomeVersion = nil end
   -- Cosmetics bought with Mom Money (account wide), and the chosen title.
   local known = Addon.Medals and Addon.Medals.cosmeticsById

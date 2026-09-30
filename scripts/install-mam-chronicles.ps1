@@ -9,6 +9,7 @@ param(
 $ErrorActionPreference='Stop';$repositoryRoot=Split-Path -Parent $PSScriptRoot
 if(-not $SourceRoot){$SourceRoot=Join-Path $repositoryRoot 'addons\MAMChronicles'}
 $allowlist=@('MAMChronicles.toc','Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Counters.lua','Export.lua','Theme.lua','Toast.lua','Comms.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua','MAMChroniclesIcon.tga','LICENSE.txt','CHANGELOG.md','README.md')
+$allowlist+=@('Badge','Bar','ButtonBrown','ButtonRed','Checkbox','Divider','Frame','Glow','Inset','Scroll','Shadow','Tab','Toast')|ForEach-Object{"Art\$_.tga"}
 if(-not(Test-Path -LiteralPath $ClientRoot -PathType Container)){throw "WoW client root does not exist: $ClientRoot"}
 $client=(Resolve-Path -LiteralPath $ClientRoot).Path;if((Split-Path -Leaf $client) -notin @('_retail_','_classic_beta_')){throw "ClientRoot must be a supported _retail_ or _classic_beta_ directory: $client"}
 if(-not(Test-Path -LiteralPath $SourceRoot -PathType Container)){throw "Addon source directory is missing: $SourceRoot"};$source=(Resolve-Path -LiteralPath $SourceRoot).Path
@@ -24,7 +25,7 @@ foreach($candidate in @($target,$stage,$rollback)){if(-not([IO.Path]::GetFullPat
 $backupPath=$null
 if(Test-Path -LiteralPath $target -PathType Container){New-Item -ItemType Directory -Path $backup -Force|Out-Null;$backupPath=Join-Path $backup ("MAMChronicles-"+(Get-Date -Format 'yyyyMMdd-HHmmss-fff')+'.zip');Compress-Archive -LiteralPath $target -DestinationPath $backupPath -CompressionLevel Optimal}
 try{
-  New-Item -ItemType Directory -Path $stage -Force|Out-Null;foreach($name in $allowlist){Copy-Item -LiteralPath (Join-Path $source $name) -Destination (Join-Path $stage $name)}
+  New-Item -ItemType Directory -Path $stage -Force|Out-Null;foreach($name in $allowlist){$dest=Join-Path $stage $name;New-Item -ItemType Directory -Path (Split-Path -Parent $dest) -Force|Out-Null;Copy-Item -LiteralPath (Join-Path $source $name) -Destination $dest}
   if(Test-Path -LiteralPath $target){Move-Item -LiteralPath $target -Destination $rollback}
   & $BeforeActivate
   Move-Item -LiteralPath $stage -Destination $target

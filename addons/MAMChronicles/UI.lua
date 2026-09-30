@@ -418,6 +418,10 @@ end
 function UI:ApplyAppearance()
   if not (self.frame and Addon.Theme and Addon.db) then return end
   local C, alpha = Addon.Theme.colors, Addon.db.settings.windowAlpha or 1
+  if Addon.Theme.artTheme then
+    if self.frame.__slices then self.frame.__slices:SetAlpha(alpha) end
+    return
+  end
   safeMethod(self.bgFill, "SetColorTexture", C.bg[1], C.bg[2], C.bg[3], alpha)
   safeMethod(self.frame, "SetBackdropColor", C.bg[1], C.bg[2], C.bg[3], alpha)
 end
@@ -496,7 +500,14 @@ function UI:BuildSettingsPage(frame)
     y = y - 10
     local fs = Addon.Theme:Text(child, "GameFontNormalLarge")
     safeMethod(fs, "SetPoint", "TOPLEFT", child, "TOPLEFT", 4, y); safeMethod(fs, "SetText", text); safeMethod(fs, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1)
-    add(fs); y = y - 30
+    add(fs)
+    if T.artTheme then
+      local divider = child:CreateTexture(nil, "ARTWORK")
+      safeMethod(divider, "SetTexture", T.ART .. "Divider")
+      safeMethod(divider, "SetPoint", "TOPLEFT", child, "TOPLEFT", 0, y - 24); safeMethod(divider, "SetPoint", "TOPRIGHT", child, "TOPRIGHT", -4, y - 24); safeMethod(divider, "SetHeight", 10)
+      add(divider)
+    end
+    y = y - 30
   end
   local function label(text)
     local fs = Addon.Theme:Text(child, "GameFontHighlight")
@@ -702,8 +713,14 @@ local function createMedalRow(ui, index)
   T:Panel(row, C.panel, C.border); safeMethod(row, "SetHeight", MEDAL_ROW_HEIGHT); safeMethod(row, "EnableMouse", true)
   row.stripe = row:CreateTexture(nil, "ARTWORK")
   safeMethod(row.stripe, "SetPoint", "TOPLEFT", row, "TOPLEFT", 0, 0); safeMethod(row.stripe, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 0, 0); safeMethod(row.stripe, "SetWidth", 4)
+  local art = T.artTheme
+  if art then
+    safeMethod(row.stripe, "Hide")
+    row.badge = row:CreateTexture(nil, "ARTWORK")
+    safeMethod(row.badge, "SetTexture", T.ART .. "Badge"); safeMethod(row.badge, "SetSize", 36, 36); safeMethod(row.badge, "SetPoint", "LEFT", row, "LEFT", 10, 0)
+  end
   row.name = Addon.Theme:Text(row, "GameFontNormal")
-  safeMethod(row.name, "SetPoint", "TOPLEFT", row, "TOPLEFT", 14, -7); safeMethod(row.name, "SetJustifyH", "LEFT")
+  safeMethod(row.name, "SetPoint", "TOPLEFT", row, "TOPLEFT", art and 54 or 14, -7); safeMethod(row.name, "SetJustifyH", "LEFT")
   row.newTag = Addon.Theme:Text(row, "GameFontNormalSmall")
   safeMethod(row.newTag, "SetPoint", "LEFT", row.name, "RIGHT", 8, 0); safeMethod(row.newTag, "SetText", "NEW"); safeMethod(row.newTag, "SetTextColor", T.kindColors.world[1], T.kindColors.world[2], T.kindColors.world[3], 1); safeMethod(row.newTag, "Hide")
   row.goalTag = Addon.Theme:Text(row, "GameFontNormalSmall")
@@ -714,14 +731,23 @@ local function createMedalRow(ui, index)
   safeMethod(row.points, "SetPoint", "TOPRIGHT", row, "TOPRIGHT", -12, -7)
   row.progress = Addon.Theme:Text(row, "GameFontDisableSmall")
   safeMethod(row.progress, "SetPoint", "BOTTOMRIGHT", row, "BOTTOMRIGHT", -12, 9)
-  row.bar = row:CreateTexture(nil, "ARTWORK")
-  safeMethod(row.bar, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 4, 0); safeMethod(row.bar, "SetHeight", 3)
+  if art then
+    row.barTrack = row:CreateTexture(nil, "ARTWORK")
+    safeMethod(row.barTrack, "SetTexture", T.ART .. "Bar"); safeMethod(row.barTrack, "SetTexCoord", 0, 1, 0, 0.25)
+    safeMethod(row.barTrack, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 54, 8); safeMethod(row.barTrack, "SetPoint", "BOTTOMRIGHT", row, "BOTTOMRIGHT", -132, 8); safeMethod(row.barTrack, "SetHeight", 10)
+    row.bar = row:CreateTexture(nil, "ARTWORK", nil, 1)
+    safeMethod(row.bar, "SetTexture", T.ART .. "Bar"); safeMethod(row.bar, "SetTexCoord", 0, 1, 0.25, 0.5)
+    safeMethod(row.bar, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 54, 8); safeMethod(row.bar, "SetHeight", 10)
+  else
+    row.bar = row:CreateTexture(nil, "ARTWORK")
+    safeMethod(row.bar, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 4, 0); safeMethod(row.bar, "SetHeight", 3)
+  end
   safeMethod(row, "SetScript", "OnEnter", function(r)
-    safeMethod(r, "SetBackdropColor", C.hover[1], C.hover[2], C.hover[3], C.hover[4] or 1)
+    T:PanelHover(r, true)
     UI:ShowMedalTooltip(r)
   end)
   safeMethod(row, "SetScript", "OnLeave", function(r)
-    safeMethod(r, "SetBackdropColor", C.panel[1], C.panel[2], C.panel[3], C.panel[4] or 1)
+    T:PanelHover(r, false)
     if GameTooltip then safeMethod(GameTooltip, "Hide") end
   end)
   safeMethod(row, "SetScript", "OnMouseUp", function(r, button) UI:ToggleGoal(r, button) end)
@@ -771,15 +797,29 @@ function UI:BindMedalRow(row, entry, position)
   safeMethod(row.name, "SetTextColor", nameColour[1], nameColour[2], nameColour[3], 1)
   safeMethod(row.points, "SetTextColor", tierColour[1], tierColour[2], tierColour[3], earned and 1 or 0.55)
   safeMethod(row.stripe, "SetColorTexture", tierColour[1], tierColour[2], tierColour[3], earned and 1 or 0.35)
+  local art = T.artTheme and row.badge ~= nil
+  if art then
+    local tier = ({ bronze = 0, silver = 1, gold = 2, platinum = 3 })[def.tier] or 0
+    safeMethod(row.badge, "SetTexCoord", tier * 0.25, (tier + 1) * 0.25, 0, 1)
+    safeMethod(row.badge, "SetDesaturated", not earned); safeMethod(row.badge, "SetAlpha", earned and 1 or 0.55)
+  end
   local rowWidth = (self.textWidth or 700) - 4
+  local trackWidth = math.max(20, rowWidth - 54 - 132)
+  local function paint(r, g, b, fraction)
+    if art then
+      safeMethod(row.bar, "SetVertexColor", r, g, b, 1); safeMethod(row.bar, "SetWidth", math.max(10, trackWidth * fraction))
+    else
+      safeMethod(row.bar, "SetColorTexture", r, g, b, 1); safeMethod(row.bar, "SetWidth", math.max(1, rowWidth * fraction))
+    end
+  end
   if earned then
     local stamp = entry.earned.retro and "Earned before tracking began" or ("Earned " .. (date and date("%d %b %Y", entry.earned.at) or tostring(entry.earned.at)))
     safeMethod(row.progress, "SetText", stamp)
-    safeMethod(row.bar, "SetColorTexture", tierColour[1], tierColour[2], tierColour[3], 1); safeMethod(row.bar, "SetWidth", math.max(1, rowWidth))
+    paint(tierColour[1], tierColour[2], tierColour[3], 1)
   else
     local current = math.floor(math.min(entry.current, entry.target))
     safeMethod(row.progress, "SetText", tostring(current) .. " / " .. tostring(entry.target))
-    safeMethod(row.bar, "SetColorTexture", C.accent[1], C.accent[2], C.accent[3], 1); safeMethod(row.bar, "SetWidth", math.max(1, rowWidth * entry.fraction))
+    paint(C.accent[1], C.accent[2], C.accent[3], entry.fraction)
   end
   safeMethod(row, "Show")
 end
@@ -934,12 +974,14 @@ function UI:Create()
   safeMethod(frame, "SetMovable", true); safeMethod(frame, "EnableMouse", true); safeMethod(frame, "RegisterForDrag", "LeftButton"); safeMethod(frame, "SetClampedToScreen", true); safeMethod(frame, "SetResizable", true)
   if frame.SetResizeBounds then safeMethod(frame, "SetResizeBounds", 620, 440) else safeMethod(frame, "SetMinResize", 620, 440) end
   safeMethod(frame, "SetFrameStrata", "HIGH")
-  T:Panel(frame, C.bg, C.border)
-  self.topAccent = frame:CreateTexture(nil, "OVERLAY")
-  safeMethod(self.topAccent, "SetColorTexture", C.accent[1], C.accent[2], C.accent[3], 1)
-  safeMethod(self.topAccent, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 1, -1); safeMethod(self.topAccent, "SetPoint", "TOPRIGHT", frame, "TOPRIGHT", -1, -1); safeMethod(self.topAccent, "SetHeight", 2)
-  self.bgFill = frame:CreateTexture(nil, "BACKGROUND", nil, -8)
-  safeMethod(self.bgFill, "SetAllPoints", frame); safeMethod(self.bgFill, "SetColorTexture", C.bg[1], C.bg[2], C.bg[3], 1)
+  T:Window(frame)
+  if not T.artTheme then
+    self.topAccent = frame:CreateTexture(nil, "OVERLAY")
+    safeMethod(self.topAccent, "SetColorTexture", C.accent[1], C.accent[2], C.accent[3], 1)
+    safeMethod(self.topAccent, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 1, -1); safeMethod(self.topAccent, "SetPoint", "TOPRIGHT", frame, "TOPRIGHT", -1, -1); safeMethod(self.topAccent, "SetHeight", 2)
+    self.bgFill = frame:CreateTexture(nil, "BACKGROUND", nil, -8)
+    safeMethod(self.bgFill, "SetAllPoints", frame); safeMethod(self.bgFill, "SetColorTexture", C.bg[1], C.bg[2], C.bg[3], 1)
+  end
   self:ApplyAppearance()
   safeMethod(frame, "SetScript", "OnDragStart", function(f) safeMethod(f, "StartMoving") end)
   safeMethod(frame, "SetScript", "OnDragStop", function(f) safeMethod(f, "StopMovingOrSizing"); UI:SaveWindowState() end)
@@ -951,7 +993,8 @@ function UI:Create()
 
   -- title bar
   local bar = CreateFrame("Frame", nil, frame)
-  safeMethod(bar, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 1, -1); safeMethod(bar, "SetPoint", "TOPRIGHT", frame, "TOPRIGHT", -1, -1); safeMethod(bar, "SetHeight", 34)
+  local edge = T.artTheme and 6 or 1
+  safeMethod(bar, "SetPoint", "TOPLEFT", frame, "TOPLEFT", edge, -edge); safeMethod(bar, "SetPoint", "TOPRIGHT", frame, "TOPRIGHT", -edge, -edge); safeMethod(bar, "SetHeight", 34)
   T:Fill(bar, "BACKGROUND", C.panel)
   local icon = bar:CreateTexture(nil, "ARTWORK")
   safeMethod(icon, "SetTexture", ICON); safeMethod(icon, "SetSize", 22, 22); safeMethod(icon, "SetPoint", "LEFT", bar, "LEFT", 12, 0)
@@ -959,7 +1002,7 @@ function UI:Create()
   local title = Addon.Theme:Text(bar, "GameFontNormalLarge")
   safeMethod(title, "SetPoint", "LEFT", icon, "RIGHT", 8, 0); safeMethod(title, "SetText", "Moms Against Magic Chronicles"); safeMethod(title, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1)
   self.title = title
-  local close = T:Button(bar, "x", 28, 22)
+  local close = T:Button(bar, "x", 28, 22, { red = true })
   safeMethod(close, "SetPoint", "RIGHT", bar, "RIGHT", -6, 0)
   safeMethod(close, "SetScript", "OnClick", function() UI:Hide() end)
   self.closeButton = close

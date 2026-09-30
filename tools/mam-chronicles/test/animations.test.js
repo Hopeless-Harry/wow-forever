@@ -67,10 +67,10 @@ test('the Appearance page has an animations checkbox',()=>{
   const h=setup(); h.run('local UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Settings"); __has=UI.settingChecks.animations~=nil'); assert.equal(h.get('__has'),true);
 });
 test('the window has a slim accent line along its top edge',()=>{
-  const h=setup(); h.run('MAMChronicles.UI:Create(); __l=MAMChronicles.UI.topAccent'); assert.ok(h.get('__l.color')); assert.ok(Math.abs(h.get('__l.color[1]')-h.get('MAMChronicles.Theme.colors.accent[1]'))<0.001);
+  const h=setup(); h.run('MAMChronicles.Theme:ApplyPreset("midnight"); MAMChronicles.UI:Create(); __l=MAMChronicles.UI.topAccent'); assert.ok(h.get('__l.color')); assert.ok(Math.abs(h.get('__l.color[1]')-h.get('MAMChronicles.Theme.colors.accent[1]'))<0.001);
 });
 test('medal rows light up under the mouse and return to normal',()=>{
-  const h=setup(); h.run('local UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Medals"); local row=UI.medalRows[1]; row.scripts.OnEnter(row); __on=row.backdropColor; row.scripts.OnLeave(row); __off=row.backdropColor');
+  const h=setup(); h.run('MAMChronicles.Theme:ApplyPreset("midnight"); local UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Medals"); local row=UI.medalRows[1]; row.scripts.OnEnter(row); __on=row.backdropColor; row.scripts.OnLeave(row); __off=row.backdropColor');
   const hover=h.get('MAMChronicles.Theme.colors.hover'), panel=h.get('MAMChronicles.Theme.colors.panel');
   assert.ok(Math.abs(h.get('__on[1]')-hover['1'])<0.001); assert.ok(Math.abs(h.get('__off[1]')-panel['1'])<0.001);
 });

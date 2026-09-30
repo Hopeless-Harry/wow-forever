@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles — User Manual
 
-- **Version:** `0.2.0-alpha19`
+- **Version:** `0.2.0-alpha20`
 - **Primary test target:** WoW Forever (interface 16001, level cap 60)
 - **Secondary test target:** World of Warcraft Retail 12.1
 - **Live evidence:** Retail has been observed live for the window and statistics. Forever, guild sharing between two real players, and most detection (campfires, emotes, consumables, vendor, group, ready checks, fall deaths) are not yet proven live.
@@ -115,6 +115,9 @@ Safeguards: it is on by default but has a one-click opt-out (Settings > Alerts),
 The window and each page fade in softly, medal progress bars grow out from the left when you open the Medals tab or change a filter, medal and guildmate toasts shimmer and their icon pops, and the minimap button glows gently while something new is waiting (a toast appeared while the window was closed) until you open the window. Medal rows also light up under the mouse. The animations use the game's own animation system, so they add no per-frame work. Turn them all off with **Settings > Appearance > Animations**; on a client without animation support they simply do not run.
 
 ### Themes and transparency
+
+The default **Modern** theme is drawn from real texture art: an ornate gold-trimmed window frame with a soft shadow, hanging tabs, inset panels, buttons with hover and pressed looks, art checkboxes and scrollbar thumb, section dividers, art progress bars and tier medal badges (bronze, silver, gold and platinum) on the Medals tab. Toasts and the minimap glow use matching art. The art lives in the addon's `Art` folder (13 texture sheets, all original). The other themes (Midnight, Parchment, Crimson and Slate) keep the flat look.
+
 
 Settings > Appearance has four themes (Midnight, Parchment, Crimson, Slate). Choosing one saves it; press **Apply theme** to reload the interface with it. **Window transparency** makes the window background see-through and applies immediately.
 

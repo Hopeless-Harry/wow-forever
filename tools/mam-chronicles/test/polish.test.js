@@ -315,7 +315,7 @@ function lum(c){const f=v=>v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);retu
 function ratio(a,b){const x=lum(a),y=lum(b);return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);}
 function palette(h,name){h.run(`MAMChronicles.Theme:ApplyPreset("${name}")`);return {c:h.get('MAMChronicles.Theme.colors'),k:h.get('MAMChronicles.Theme.kindColors'),t:h.get('MAMChronicles.Medals and MAMChronicles.Medals.tierColours or {}')};}
 const arr=o=>[o['1'],o['2'],o['3']];
-for (const name of ['midnight','parchment','crimson','slate']) {
+for (const name of ['modern','midnight','parchment','crimson','slate']) {
   test(`theme ${name} meets contrast targets for text, accents and event colours`,()=>{
     const h=dashSetup(); const {c,k,t}=palette(h,name); const grounds=['bg','panel','raised'];
     const fails=[];

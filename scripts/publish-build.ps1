@@ -63,7 +63,7 @@ try {
   foreach ($entry in $archive.Entries) {
     if ($entry.FullName.EndsWith('/')) { continue }
     $count++
-    $name = Split-Path -Leaf $entry.FullName
+    $name = ($entry.FullName -replace '^MAMChronicles[\\/]', '') -replace '/', '\'
     $stream = $entry.Open()
     try { $zipHash = (Get-FileHash -InputStream $stream -Algorithm SHA256).Hash } finally { $stream.Dispose() }
     $sourceHash = (Get-FileHash -LiteralPath (Join-Path $addon $name) -Algorithm SHA256).Hash
@@ -90,9 +90,10 @@ if (-not $SkipInstall) {
     $probe = [scriptblock]::Create("@(Get-Process -Name '$($client.Process)' -ErrorAction SilentlyContinue).Count -gt 0")
     $null = & (Join-Path $repo 'scripts\install-mam-chronicles.ps1') -ClientRoot $clientRoot -BackupRoot $BackupRoot -ProcessProbe $probe
     $target = Join-Path $clientRoot 'Interface\AddOns\MAMChronicles'
-    $bad = 0; $files = Get-ChildItem -LiteralPath $target -File
+    $bad = 0; $files = Get-ChildItem -LiteralPath $target -File -Recurse
     foreach ($file in $files) {
-      if ((Get-FileHash -LiteralPath $file.FullName).Hash -ne (Get-FileHash -LiteralPath (Join-Path $addon $file.Name)).Hash) { $bad++ }
+      $relative = $file.FullName.Substring($target.Length + 1)
+      if ((Get-FileHash -LiteralPath $file.FullName).Hash -ne (Get-FileHash -LiteralPath (Join-Path $addon $relative)).Hash) { $bad++ }
     }
     $installedVersion = ((Select-String -Path (Join-Path $target 'MAMChronicles.toc') -Pattern '^## Version: (.+)$').Matches[0].Groups[1].Value)
     Write-Output ("{0}: installed {1}, {2} files, {3} differ from source" -f $client.Folder, $installedVersion, $files.Count, $bad)

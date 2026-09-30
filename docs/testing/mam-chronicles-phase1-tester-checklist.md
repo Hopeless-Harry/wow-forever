@@ -190,6 +190,17 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] Hover a medal row: it lights up.
 - [ ] Settings > Appearance > Animations off: everything above stops and nothing breaks. Note any stutter with animations on: __________
 
+## Modern look (alpha20)
+
+- [ ] The window has a gold frame with a soft shadow, hanging tabs and dark inset panels. Nothing is stretched, blurry, missing (green or white squares) or misaligned. Note any texture that looks wrong: __________
+- [ ] Buttons change on hover, press and when disabled. Red buttons (Remember, close) look right.
+- [ ] Medal rows show a round tier badge (bronze, silver, gold, platinum) and an art bar. Unearned medals look dimmed.
+- [ ] Toasts have the ornate frame and a glow behind the icon. `/mam toast` three times shows all three looks.
+- [ ] Checkboxes tick with the gold check; the scrollbar thumb is gold.
+- [ ] Settings > Appearance > Theme: Midnight, Parchment, Crimson and Slate still work after Apply (they are flat); switch back to Modern.
+- [ ] The window transparency slider fades the art evenly.
+- [ ] Forever: all textures load (if any are missing, send a screenshot and `/mam diag`).
+
 ## Stability
 
 - [ ] No Lua errors during the test.

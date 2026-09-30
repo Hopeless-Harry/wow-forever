@@ -92,12 +92,24 @@ function Toast:CreateFrame()
   local T = Addon.Theme; local C = T.colors
   local frame = CreateFrame("Frame", "MAMChroniclesToast", UIParent, "BackdropTemplate")
   safeMethod(frame, "SetSize", 340, 66); safeMethod(frame, "SetFrameStrata", "FULLSCREEN_DIALOG"); safeMethod(frame, "EnableMouse", true)
-  T:Panel(frame, C.panel, C.border)
+  if T.artTheme then
+    frame.__shadow = T:NineSlice(frame, "Shadow", { 0, 0, 128, 128 }, 40, "BACKGROUND", 40, 22)
+    frame.__slices = T:NineSlice(frame, "Toast", { 0, 0, 512, 128 }, 18, "BACKGROUND", 16)
+  else
+    T:Panel(frame, C.panel, C.border)
+  end
   self.stripe = frame:CreateTexture(nil, "ARTWORK")
   safeMethod(self.stripe, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 0, 0); safeMethod(self.stripe, "SetPoint", "BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0); safeMethod(self.stripe, "SetWidth", 5)
   local icon = frame:CreateTexture(nil, "ARTWORK")
   safeMethod(icon, "SetTexture", ICON); safeMethod(icon, "SetSize", 34, 34); safeMethod(icon, "SetPoint", "LEFT", frame, "LEFT", 14, 0)
   self.icon = icon
+  if T.artTheme then
+    -- the flat accent stripe becomes a soft glow behind the icon
+    safeMethod(self.stripe, "Hide")
+    local glow = frame:CreateTexture(nil, "BORDER")
+    safeMethod(glow, "SetTexture", T.ART .. "Glow"); safeMethod(glow, "SetSize", 92, 92); safeMethod(glow, "SetPoint", "CENTER", icon, "CENTER", 0, 0); safeMethod(glow, "SetBlendMode", "ADD")
+    self.stripe = glow
+  end
   self.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
   safeMethod(self.title, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 56, -10); safeMethod(self.title, "SetPoint", "RIGHT", frame, "RIGHT", -12, 0); safeMethod(self.title, "SetJustifyH", "LEFT"); safeMethod(self.title, "SetWordWrap", false)
   safeMethod(self.title, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1)
@@ -142,7 +154,7 @@ function Toast:Start(spec)
   self.current, self.phase, self.timer = spec, "in", 0
   local styleColour = Addon.Medals and Addon.Medals.GetToastColour and Addon.Medals:GetToastColour()
   local colour = styleColour or (spec.kind == "medal" and C.gold or (spec.kind == "guild" and T.kindColors.instance or C.accent))
-  safeMethod(self.stripe, "SetColorTexture", colour[1], colour[2], colour[3], 1)
+  if T.artTheme then safeMethod(self.stripe, "SetVertexColor", colour[1], colour[2], colour[3], 0.9) else safeMethod(self.stripe, "SetColorTexture", colour[1], colour[2], colour[3], 1) end
   safeMethod(self.title, "SetText", spec.title or ""); safeMethod(self.body, "SetText", spec.text or "")
   safeMethod(self.points, "SetText", spec.points and ("+" .. tostring(spec.points) .. " Mom Money") or "")
   self:Render()
