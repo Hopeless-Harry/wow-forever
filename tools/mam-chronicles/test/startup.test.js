@@ -16,6 +16,15 @@ for (const client of [
   });
 }
 
+test('a second loaded session retains and searches the first session journal',()=>{
+  let now=1790704800; const h=createHarness({globals:{GetServerTime:()=>now}}); h.load(files); h.fire('ADDON_LOADED','MAMChronicles'); h.fire('PLAYER_LOGIN'); h.slash('remember First session tea'); h.fire('PLAYER_LOGOUT');
+  now+=10;
+  h.run('MAMChronicles=nil'); h.load(files); h.fire('ADDON_LOADED','MAMChronicles'); h.fire('PLAYER_LOGIN');
+  h.run('__retained=MAMChronicles.EventStore:Query({text="First session tea"})');
+  assert.equal(h.get('MAMChroniclesDB.meta.loadCount'),2); assert.equal(h.get('#MAMChroniclesDB.sessions'),2); assert.equal(h.get('MAMChronicles.EventStore:Count("session.login")'),2);
+  assert.equal(h.get('#__retained'),1); assert.equal(h.get('__retained[1].payload.text'),'First session tea'); assert.equal(h.get('__retained[1].pinned'),true);
+});
+
 test('10,000-event history remains searchable and uses only 30 UI rows',()=>{
   const h=createHarness(); h.load(files); h.fire('ADDON_LOADED','MAMChronicles');
   h.run('for i=1,10000 do MAMChronicles.EventStore:Append("quest.completed",{questID=i,questName="Quest "..i},{occurredAt=100000+i}) end; __stats=MAMChronicles.Statistics:Build(0,200000); MAMChronicles.UI:Create(); __page=MAMChronicles.UI:GetVisibleTimeline()');
