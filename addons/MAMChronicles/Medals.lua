@@ -453,7 +453,23 @@ function Medals:Evaluate(reason)
       notify(def, { retro = false, reason = reason })
     end
   end
+  if not baseline then self:CheckGoalProgress(row) end
   return awarded
+end
+
+-- One "nearly there" toast per pinned medal, once it is at 90 percent or more of its target.
+function Medals:CheckGoalProgress(row)
+  local pins = Addon.db and Addon.db.settings and Addon.db.settings.pinnedMedals
+  if type(pins) ~= "table" or #pins == 0 or not Addon.Toast then return end
+  row.goalNotified = tableOr(row.goalNotified)
+  for _, goal in ipairs(self:GetGoals()) do
+    local id = goal.def.id
+    if not row.goalNotified[id] and goal.target >= 5 and goal.current >= goal.target * 0.9 and goal.current < goal.target then
+      row.goalNotified[id] = true
+      Addon:Guard("Goals", Addon.Toast.Show, Addon.Toast, { kind = "info", title = "Nearly there: " .. goal.def.name,
+        text = tostring(math.floor(goal.current)) .. " / " .. tostring(goal.target) .. " - keep going!", action = "Medals" })
+    end
+  end
 end
 
 function Medals:OnEvent(event)

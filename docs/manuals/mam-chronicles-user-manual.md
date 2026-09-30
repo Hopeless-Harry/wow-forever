@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles — User Manual
 
-- **Version:** `0.2.0-alpha11`
+- **Version:** `0.2.0-alpha12`
 - **Primary test target:** WoW Forever (interface 16001, level cap 60)
 - **Secondary test target:** World of Warcraft Retail 12.1
 - **Live evidence:** Retail has been observed live for the window and statistics. Forever, guild sharing between two real players, and most detection (campfires, emotes, consumables, vendor, group, ready checks, fall deaths) are not yet proven live.
@@ -60,7 +60,7 @@ The window has six tabs: **Home** (opens by default), **Chronicle**, **Medals**,
 - The **Medals** tab lists every medal, earned ones first, with a progress bar and count for the rest, and your Mom Money total at the top.
 - Use the **All / Earned / In progress / Locked** buttons (each shows its count) and the **search box** to narrow the list. Search matches a medal's name or description.
 - Hover a medal for a tooltip: what it asks for, **how it is tracked** (game statistics, addon counters that store only numbers, or your Chronicle) and your progress.
-- **Click an unearned medal to pin it as a goal** (up to three, marked GOAL). Goals and their progress appear on Home, and a goal drops off when you earn it. Click again to unpin.
+- **Click an unearned medal to pin it as a goal** (up to three, marked GOAL). Goals and their progress appear on Home, and a goal drops off when you earn it. Click again to unpin. Each goal gives one **Nearly there** toast when you reach 90 percent of its target (targets of 5 or more).
 - Medals you earn during the current session carry a **NEW** marker. Medals the client cannot support (for example Retail-only medals on Forever) are hidden, and the counts and Mom Money total only include medals that are listed.
 - The first time the addon runs it counts your existing history and statistics as a **silent baseline**: those medals are marked "Earned before tracking began" and you see one welcome message, not a toast per medal.
 - After that, each new medal appears as a **toast**, is added to your Chronicle as a Medal entry, and is announced to your guild (see below).

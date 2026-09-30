@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0-alpha12
+
+- A pinned medal goal now shows one "Nearly there" toast when you reach 90 percent of its target (targets of 5 or more). It follows your toast settings and waits for combat to end.
+
 ## 0.2.0-alpha11
 
 - **Monthly recap:** `/mam recap` or the Copy recap button on Home gives a short, shareable summary of the month (sessions, deaths, quests, medals earned with their Mom Money, top statistic changes). It never includes your character name, realm or gold.

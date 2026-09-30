@@ -148,7 +148,7 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 
 - [ ] `/mam recap` shows a short summary of the month with no character name, realm or gold. Home has a Copy recap button that shows the same text.
 - [ ] Click an unearned medal on the Medals tab: it shows GOAL and appears on Home with its progress. Click again to unpin. A fourth pin says you can pin 3 goals.
-- [ ] Earn a pinned medal: it leaves the goals list.
+- [ ] Earn a pinned medal: it leaves the goals list. Pin a medal with a target of 5 or more and get it to 90 percent: one "Nearly there" toast appears, only once.
 - [ ] Two players in one guild: earn a medal on one, confirm the other sees a toast. Then check `/mam diag` on both for `Guild sharing: ... unknown N, other version N`. Record: __________
 
 ## Stability
