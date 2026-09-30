@@ -174,11 +174,11 @@ git commit -m "feat: persist validated Chronicles UI preferences"
 - Consumes: `settings.ui` and `Database:ResetUIState()` from Task 1.
 - Produces: `UI:Toggle()`; `UI:SaveWindowState()`; `UI:RestoreWindowState()`; `UI:ResetWindow()`; `UI:SetActiveTab(name)`.
 
-- [ ] **Step 1: Extend only the test harness capabilities needed by the failing tests**
+- [x] **Step 1: Extend only the test harness capabilities needed by the failing tests**
 
 Make frame stubs retain point/size and support `ClearAllPoints`, `GetPoint`, `GetWidth`, `GetHeight`, `SetUserPlaced`, `SetEnabled`, `LockHighlight`, and `UnlockHighlight`. Define `UIParent={}` and `UISpecialFrames={}` in the harness. Do not add production behaviour here.
 
-- [ ] **Step 2: Write failing window-state tests**
+- [x] **Step 2: Write failing window-state tests**
 
 Add tests equivalent to:
 
@@ -206,7 +206,7 @@ test('reset window restores centred defaults',()=>{
 });
 ```
 
-- [ ] **Step 3: Run the focused tests and verify RED**
+- [x] **Step 3: Run the focused tests and verify RED**
 
 Run:
 
@@ -216,7 +216,7 @@ npm test --prefix tools/mam-chronicles -- --test-name-pattern="restores and save
 
 Expected: FAIL because the five public UI functions and stateful stubs are missing.
 
-- [ ] **Step 4: Implement window state and toggle behaviour**
+- [x] **Step 4: Implement window state and toggle behaviour**
 
 Use these public entry points:
 
@@ -247,7 +247,7 @@ end
 
 Save after drag stop and resize mouse-up. Register `MAMChroniclesFrame` in `UISpecialFrames` exactly once. Change the empty `/mam` command and launcher-facing default action to `Toggle()`.
 
-- [ ] **Step 5: Run focused and full tests**
+- [x] **Step 5: Run focused and full tests**
 
 Run:
 
@@ -258,7 +258,7 @@ npm test --prefix tools/mam-chronicles
 
 Expected: all tests PASS and row-pool count remains 30.
 
-- [ ] **Step 6: Update handoff and commit**
+- [x] **Step 6: Update handoff and commit**
 
 ```powershell
 git add addons/MAMChronicles/Core.lua addons/MAMChronicles/UI.lua tools/mam-chronicles/test/harness.js tools/mam-chronicles/test/ui.test.js PROJECT-HANDOFF.md

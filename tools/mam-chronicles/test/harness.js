@@ -61,15 +61,20 @@ export function createHarness({ globals = {}, savedVariables } = {}) {
   if (savedVariables !== undefined) global(L, 'MAMChroniclesDB', savedVariables);
   run(L, `
     __mamCalls={registered={}}
-    function CreateFrame()
-      local f={scripts={},shown=false}
+    UIParent={}; UISpecialFrames={}
+    function UIParent:GetEffectiveScale() return 1 end
+    function CreateFrame(_,name)
+      local f={scripts={},shown=false,name=name,width=0,height=0,enabled=true,highlighted=false}
       function f:RegisterEvent(e) if __mamFailEvent==e then error("unsupported event: "..e) end table.insert(__mamCalls.registered,e) end
       function f:SetScript(k,v) self.scripts[k]=v end
       function f:Show() self.shown=true end function f:Hide() self.shown=false end function f:IsShown() return self.shown end
-      function f:SetSize() end function f:SetPoint() end function f:SetMovable() end function f:EnableMouse() end
+      function f:SetSize(w,h) self.width=w self.height=h end function f:GetWidth() return self.width end function f:GetHeight() return self.height end
+      function f:SetPoint(...) self.point={...} end function f:GetPoint() return table.unpack(self.point or {}) end function f:ClearAllPoints() self.point=nil end
+      function f:SetMovable() end function f:EnableMouse() end function f:SetUserPlaced(value) self.userPlaced=value end
       function f:RegisterForDrag() end function f:SetClampedToScreen() end function f:SetResizable() end function f:SetMinResize() end
       function f:SetBackdrop() end function f:SetBackdropColor() end function f:SetBackdropBorderColor() end function f:SetFrameStrata() end
-      function f:SetText(value) self.text=value end function f:SetNormalFontObject() end function f:SetWidth() end function f:SetHeight() end
+      function f:SetText(value) self.text=value end function f:SetNormalFontObject() end function f:SetWidth(value) self.width=value end function f:SetHeight(value) self.height=value end
+      function f:SetEnabled(value) self.enabled=value end function f:LockHighlight() self.highlighted=true end function f:UnlockHighlight() self.highlighted=false end
       function f:CreateFontString() return {SetPoint=function()end,SetText=function()end,SetWidth=function()end,SetJustifyH=function()end,Show=function()end,Hide=function()end} end
       function f:CreateTexture() return {SetAllPoints=function()end,SetColorTexture=function()end,SetPoint=function()end,SetSize=function()end} end
       __mamLastFrame=f return f

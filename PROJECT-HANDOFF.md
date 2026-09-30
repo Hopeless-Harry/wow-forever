@@ -2,7 +2,7 @@
 
 **Last updated:** 30 September 2026  
 **Current addon version:** `0.2.0-alpha1`  
-**Current status:** Full proper-addon polish implementation is active. Task 1 of 7 is complete: validated nested UI preferences and an in-place history reset are implemented. Live acceptance of the production addon is still required.
+**Current status:** Full proper-addon polish implementation is active. Tasks 1–2 of 7 are complete: validated UI preferences/history reset and durable main-window state are implemented. Live acceptance of the production addon is still required.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
 This is the first file a new agent should read. Keep it current whenever the version, design, verification status, release location, major decision, or next action changes.
@@ -223,7 +223,7 @@ The user said to proceed on 30 September 2026. Unless corrected, this is being t
 
 The approved design is recorded in `docs/superpowers/specs/2026-09-30-mam-chronicles-proper-addon-polish-design.md`. It uses a native, dependency-free implementation with two focused new modules (`Launcher.lua` and `SettingsPanel.lua`) plus an original icon.
 
-The executable plan is `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`. It has seven test-driven tasks. **Progress: 1/7 tasks complete.**
+The executable plan is `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`. It has seven test-driven tasks. **Progress: 2/7 tasks complete.**
 
 Completed polish checkpoint:
 
@@ -231,6 +231,9 @@ Completed polish checkpoint:
 - The RED run failed for all three new behaviours as expected.
 - The GREEN full Chronicles suite passed **72/72** on 30 September 2026.
 - Task 1 commit is the latest `feat: persist validated Chronicles UI preferences` commit shown by `git log`.
+- Task 2 added window restore/save/reset/toggle, active-tab persistence, Escape registration, and stateful UI harness coverage.
+- Reset Window deliberately preserves the separately controlled minimap angle.
+- The Task 2 RED run failed for all three missing UI behaviours; the GREEN full Chronicles suite passed **75/75**.
 
 ## 10. Later roadmap
 
@@ -291,7 +294,7 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-Execute Task 2 of `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`: extend the UI harness, write failing window-state tests, then implement window restore/save/reset/toggle and active-tab persistence.
+Execute Task 3 of `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`: write failing launcher/AddOn Compartment tests, then add the native minimap launcher and capability-gated compartment callbacks.
 
 ## 15. Recent history
 

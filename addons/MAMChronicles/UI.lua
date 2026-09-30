@@ -7,6 +7,7 @@ UI.filters={"All","Deaths","Quests","World","Instances","Loot","Memories"}
 UI.dateRanges={"All","30 Days","This Month"}
 UI.activeTab="Chronicle"; UI.activeFilter="All"; UI.activeRange="All"; UI.search=""; UI.rowPool={}
 
+local validTabs={Chronicle=true,Statistics=true,Settings=true,Diagnostics=true}
 local groups={
   Deaths={ ["character.death"]=true,["character.resurrected"]=true },
   Quests={ ["quest.accepted"]=true,["quest.completed"]=true },
@@ -19,6 +20,52 @@ local function label(event)
 end
 local function safeMethod(object,method,...)
   if object and type(object[method])=="function" then pcall(object[method],object,...) end
+end
+local function finite(value) return type(value)=="number" and value==value and value~=math.huge and value~=-math.huge end
+local function clamp(value,minimum,maximum) return math.max(minimum,math.min(maximum,value)) end
+
+function UI:SetActiveTab(name)
+  if not validTabs[name] then return false end
+  self.activeTab=name
+  if Addon.db and Addon.db.settings and Addon.db.settings.ui then Addon.db.settings.ui.activeTab=name end
+  self:Refresh()
+  return true
+end
+
+function UI:SaveWindowState()
+  if not self.frame or not Addon.db or not Addon.db.settings then return false end
+  local ok,point,_,_,x,y=pcall(self.frame.GetPoint,self.frame,1)
+  if not ok or not validTabs[self.activeTab] then return false end
+  local width=self.frame.GetWidth and self.frame:GetWidth(); local height=self.frame.GetHeight and self.frame:GetHeight()
+  if type(point)~="string" or not finite(x) or not finite(y) or not finite(width) or not finite(height) then return false end
+  local ui=Addon.db.settings.ui
+  ui.point=point; ui.x=clamp(x,-10000,10000); ui.y=clamp(y,-10000,10000)
+  ui.width=clamp(width,620,1600); ui.height=clamp(height,440,1200); ui.activeTab=self.activeTab
+  Addon.db.meta.updatedAt=Addon:Now()
+  return true
+end
+
+function UI:RestoreWindowState()
+  if not self.frame or not Addon.db or not Addon.db.settings then return false end
+  Addon.Database:NormaliseSettings()
+  local ui=Addon.db.settings.ui; self.activeTab=ui.activeTab
+  safeMethod(self.frame,"ClearAllPoints"); safeMethod(self.frame,"SetSize",ui.width,ui.height)
+  safeMethod(self.frame,"SetPoint",ui.point,UIParent,ui.point,ui.x,ui.y); safeMethod(self.frame,"SetUserPlaced",true); safeMethod(self.frame,"SetClampedToScreen",true)
+  return true
+end
+
+function UI:ResetWindow()
+  if not Addon.db or not Addon.db.settings then return false end
+  local minimapAngle=Addon.db.settings.ui and Addon.db.settings.ui.minimapAngle
+  Addon.Database:ResetUIState()
+  if finite(minimapAngle) then Addon.db.settings.ui.minimapAngle=minimapAngle end
+  self.activeTab="Chronicle"; self:RestoreWindowState(); self:Refresh()
+  return true
+end
+
+function UI:Toggle()
+  self:Create()
+  if self.frame.IsShown and self.frame:IsShown() then self:Hide() else self:Show() end
 end
 
 function UI:GetCurrentMonthRange()
@@ -63,19 +110,20 @@ end
 function UI:Create()
   if self.frame then return self.frame end
   local frame=CreateFrame("Frame","MAMChroniclesFrame",UIParent,"BackdropTemplate")
-  self.frame=frame; safeMethod(frame,"SetSize",780,560); safeMethod(frame,"SetPoint","CENTER"); safeMethod(frame,"SetMovable",true); safeMethod(frame,"EnableMouse",true); safeMethod(frame,"RegisterForDrag","LeftButton"); safeMethod(frame,"SetClampedToScreen",true); safeMethod(frame,"SetResizable",true); safeMethod(frame,"SetMinResize",620,440)
+  self.frame=frame; self:RestoreWindowState(); safeMethod(frame,"SetMovable",true); safeMethod(frame,"EnableMouse",true); safeMethod(frame,"RegisterForDrag","LeftButton"); safeMethod(frame,"SetClampedToScreen",true); safeMethod(frame,"SetResizable",true); safeMethod(frame,"SetMinResize",620,440)
   safeMethod(frame,"SetBackdrop",{bgFile="Interface\\DialogFrame\\UI-DialogBox-Background",edgeFile="Interface\\DialogFrame\\UI-DialogBox-Border",tile=true,tileSize=32,edgeSize=32,insets={left=11,right=12,top=12,bottom=11}})
-  safeMethod(frame,"SetScript","OnDragStart",function(f) safeMethod(f,"StartMoving") end); safeMethod(frame,"SetScript","OnDragStop",function(f) safeMethod(f,"StopMovingOrSizing") end)
+  safeMethod(frame,"SetScript","OnDragStart",function(f) safeMethod(f,"StartMoving") end); safeMethod(frame,"SetScript","OnDragStop",function(f) safeMethod(f,"StopMovingOrSizing"); UI:SaveWindowState() end)
+  if type(UISpecialFrames)=="table" then local found=false; for _,name in ipairs(UISpecialFrames) do if name=="MAMChroniclesFrame" then found=true; break end end; if not found then table.insert(UISpecialFrames,"MAMChroniclesFrame") end end
   local title=frame:CreateFontString(nil,"OVERLAY","GameFontNormalLarge"); safeMethod(title,"SetPoint","TOP",0,-18); safeMethod(title,"SetText","Moms Against Magic Chronicles")
   self.title=title
   local close=CreateFrame("Button",nil,frame,"UIPanelCloseButton"); safeMethod(close,"SetPoint","TOPRIGHT",-7,-7)
   local resize=CreateFrame("Button",nil,frame); safeMethod(resize,"SetSize",18,18); safeMethod(resize,"SetPoint","BOTTOMRIGHT",-8,8)
   safeMethod(resize,"SetNormalTexture","Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up"); safeMethod(resize,"SetPushedTexture","Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down"); safeMethod(resize,"SetHighlightTexture","Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
-  safeMethod(resize,"SetScript","OnMouseDown",function(_,button) if button=="LeftButton" then safeMethod(frame,"StartSizing","BOTTOMRIGHT") end end); safeMethod(resize,"SetScript","OnMouseUp",function() safeMethod(frame,"StopMovingOrSizing") end); self.resizeHandle=resize
+  safeMethod(resize,"SetScript","OnMouseDown",function(_,button) if button=="LeftButton" then safeMethod(frame,"StartSizing","BOTTOMRIGHT") end end); safeMethod(resize,"SetScript","OnMouseUp",function() safeMethod(frame,"StopMovingOrSizing"); UI:SaveWindowState() end); self.resizeHandle=resize
   self.tabButtons={}
   for index,name in ipairs(self.tabs) do
     local button=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(button,"SetSize",120,24); safeMethod(button,"SetPoint","TOPLEFT",20+(index-1)*125,-48); safeMethod(button,"SetText",name)
-    safeMethod(button,"SetScript","OnClick",function() UI.activeTab=name; UI:Refresh() end); self.tabButtons[index]=button
+    safeMethod(button,"SetScript","OnClick",function() UI:SetActiveTab(name) end); self.tabButtons[index]=button
   end
   local search=CreateFrame("EditBox",nil,frame,"InputBoxTemplate"); safeMethod(search,"SetSize",230,28); safeMethod(search,"SetPoint","TOPLEFT",24,-82); safeMethod(search,"SetAutoFocus",false)
   safeMethod(search,"SetScript","OnTextChanged",function(box) if box.GetText then UI.search=box:GetText() or ""; UI.timelineOffset=0; UI:Refresh() end end); self.searchBox=search
@@ -127,11 +175,11 @@ end
 
 function UI:HandleSlash(command)
   command=(command or ""):match("^%s*(.-)%s*$"); local verb,rest=command:match("^(%S+)%s*(.-)$"); verb=string.lower(verb or "")
-  if verb=="" then self.activeTab="Chronicle"; self:Show()
+  if verb=="" then self.activeTab="Chronicle"; Addon.db.settings.ui.activeTab="Chronicle"; self:Toggle()
   elseif verb=="remember" then local event,err=Addon.Collectors:RecordManualMemory(rest); self.lastMessage=event and "Memory saved." or err; Addon:Print(self.lastMessage)
-  elseif verb=="stats" then self.activeTab="Statistics"; self:Show()
+  elseif verb=="stats" then self.activeTab="Statistics"; Addon.db.settings.ui.activeTab="Statistics"; self:Show()
   elseif verb=="export" then local value,err=Addon.Export:BuildCourierPayload(0,Addon:Now()); self:ShowCopy(value or err)
-  elseif verb=="diag" then self.activeTab="Diagnostics"; self:ShowCopy(Addon.Export:BuildDiagnosticReport())
+  elseif verb=="diag" then self.activeTab="Diagnostics"; Addon.db.settings.ui.activeTab="Diagnostics"; self:ShowCopy(Addon.Export:BuildDiagnosticReport())
   else self.lastMessage="Commands: /mam, remember, stats, export, diag, help"; Addon:Print(self.lastMessage) end
 end
 
