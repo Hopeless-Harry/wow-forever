@@ -1,7 +1,7 @@
 # Moms Against Magic Chronicles — Project Handoff
 
 **Last updated:** 30 September 2026  
-**Current addon version:** `0.2.0-alpha18`  
+**Current addon version:** `0.2.0-alpha19`  
 **Current status:** alpha11 (recap, goals, safer data) complete in AUTOMATED testing (Chronicles 322/322; alpha10 polish before it) and published to both clients and the CurseForge package. Nothing new has been observed live; Forever and two-player guild sharing are still unproven.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
@@ -452,6 +452,14 @@ Weekly Mom Quests, holidays, Characters tab, Memory Book, quiet mode (alpha18, 3
 - Unverified live: whether the weekly quests feel doable at each Forever pace (user wants week one gentle and later weeks harder; targets are estimates), holiday dates on Forever, Home month card length with the quest lines (it grew by about 4 lines), seven-tab layout, Characters and Memory Book wording, quiet mode in real instances, `IsInInstance` types on Forever.
 - Still not done from the research list: `/mam selftest` capability report (user chose item 2 = weekly challenges instead of item 1), Guild Today card, leaderboard, Pi ingestion, per-player font size and UI scale, luacheck.
 
+Animations and polish (alpha19, 30 Sep 2026) - AUTOMATED EVIDENCE ONLY; appearance and feel NOT seen live:
+
+- `Theme:CanAnimate/FadeIn/Pulse/StopPulse/GrowBar/Pop` use engine animation groups (`CreateAnimationGroup`), so there is no per-frame Lua; each returns false when `settings.animations == false` (new Appearance checkbox, default on) or the client lacks the API (`SetScaleFrom` is required for Scale animations, otherwise skipped).
+- Used for: window fade-in on open (not on refresh), page fade-in on tab change (`UI:FadeActivePage`), Medals progress bars grow from the left (`UI:AnimateMedalBars`, on tab open and filter/category change), toast shimmer (stripe pulse) and icon pop for medal and guild toasts, toast easing (cubic ease-out in, drift up on out), a minimap glow (`Launcher:SetAttention`) while a toast appeared with the window closed (cleared when the window opens), medal row hover highlight, slim accent line along the window top (`UI.topAccent`).
+- Test harness gained `CreateAnimationGroup`, `SetAlpha`, `GetAlpha` stubs (`__mamNewGroup` in `harness.js`) so animation calls are recorded and asserted.
+- Unverified live: whether Alpha/Scale animation groups behave on Forever, whether fading the window frame interferes with the window transparency setting (transparency is backdrop alpha, frame alpha is animated only during the fade), the look of the glow texture, and any stutter. If something looks wrong, Settings > Appearance > Animations switches all of it off.
+- Commit `0677ce8`. Suites: Chronicles **459/459**, Diagnostics **35/35**, Dashboard **39/39** (total **533**). Published on BOTH clients (21 files, 0 differences). Release `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha19/`, ZIP SHA-256 `DA770E4C06548680C36E8986FE0D82FD4DDFB1F0A57F10091612AE8B3AC44FDB`. Not uploaded to CurseForge.
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -511,7 +519,7 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-0. alpha18 is installed on BOTH clients and packaged (SHA-256 in the alpha18 block of section 9). The alpha10 instructions below still apply. If any later change is made, run `scripts/publish-build.ps1` again from the PowerShell tool.
+0. alpha19 is installed on BOTH clients and packaged (SHA-256 in the alpha19 block of section 9). The alpha10 instructions below still apply. If any later change is made, run `scripts/publish-build.ps1` again from the PowerShell tool.
 1. **Next action (user):** log in on the WoW Forever client with alpha10 and (a) type `/mam diag`, click Copy diagnostics and send the pasted report (look at `Handler errors:`, `Medals:`, `Camp spells seen:`, `Statistics:` and `scan N ms`); (b) open the Medals tab, try the filters and search, hover a few medals and send a screenshot; (c) do the campfire test: complete The Great Outdoors, craft and light a campfire, place a camp object, then send `/mam diag` again. Continue with the alpha9 confirmations below. Confirm live: The Great Outdoors gives Happy Camper; lighting a campfire and placing an object moves Firestarter / Camp Decorator; entering the new dungeons, raids, Darkspear Islands and new zones moves their medals; Plot Twist for a new race-class combo; which statistic-based medals appear.
 2. Fix whatever the live check disproves (exact spell names, instance names, quest name, Statistics availability on Forever).
 3. User decides: the licence text, CurseForge project name/category, and then uploads `docs/release/curseforge` material with the ZIP following `UPLOAD-CHECKLIST.md`.
