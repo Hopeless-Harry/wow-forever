@@ -2,18 +2,18 @@ local Addon=MAMChronicles
 Addon.UI=Addon.UI or {}
 local UI=Addon.UI
 
-UI.tabs={"Home","Chronicle","Statistics","Settings","Diagnostics"}
-UI.filters={"All","Deaths","Quests","World","Instances","Loot","Memories"}
+UI.tabs={"Home","Chronicle","Medals","Statistics","Settings","Diagnostics"}
+UI.filters={"All","Deaths","Quests","World","Instances","Loot","Memories","Medals"}
 UI.dateRanges={"All","30 Days","This Month"}
 UI.activeTab="Home"; UI.activeFilter="All"; UI.activeRange="All"; UI.search=""; UI.rowPool={}
 
-local validTabs={Home=true,Chronicle=true,Statistics=true,Settings=true,Diagnostics=true}
+local validTabs={Home=true,Chronicle=true,Medals=true,Statistics=true,Settings=true,Diagnostics=true}
 local groups={
   Deaths={ ["character.death"]=true,["character.resurrected"]=true },
   Quests={ ["quest.accepted"]=true,["quest.completed"]=true },
   World={ ["world.zone_discovered"]=true },
   Instances={ ["instance.entered"]=true,["instance.exited"]=true },
-  Loot={ ["loot.notable"]=true }, Memories={ ["memory.manual"]=true },
+  Loot={ ["loot.notable"]=true }, Memories={ ["memory.manual"]=true }, Medals={ ["medal.earned"]=true },
 }
 local function label(event)
   local p=event.payload or {}; return p.text or p.questName or p.itemName or p.achievementName or p.professionName or p.zone or p.instanceName or event.type
@@ -268,7 +268,7 @@ function UI:ApplyLayout(width, height)
   safeMethod(self.content, "SetWidth", self.textWidth); safeMethod(self.copyBox, "SetWidth", self.textWidth)
   self:LayoutRows(height - ROW_TOP - FOOTER)
   if self.dashboard then self.dashboard:Layout(width - SIDE * 2, height - 84 - FOOTER - 4) end
-  self:UpdateTextScroll(); self:UpdateSettingsScroll()
+  self:UpdateTextScroll(); self:UpdateSettingsScroll(); self:UpdateMedalsScroll()
 end
 
 function UI:SetDetailsVisible(visible)
@@ -503,6 +503,89 @@ function UI:BuildSettingsPage(frame)
   area:Hide()
 end
 
+local MEDAL_ROW_HEIGHT = 46
+
+function UI:UpdateMedalsScroll()
+  if not self.medalsArea then return end
+  self.medalsArea:Update(self.medalsHeight or 200, self:TextViewHeight(), self.textWidth or 700)
+end
+
+function UI:BuildMedalsPage(frame)
+  local T = Addon.Theme; local C = T.colors
+  local area = T:ScrollArea(frame); self.medalsArea = area
+  local child = area.child
+  self.medalHeader = child:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  safeMethod(self.medalHeader, "SetPoint", "TOPLEFT", child, "TOPLEFT", 4, -4); safeMethod(self.medalHeader, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1)
+  self.medalSub = child:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+  safeMethod(self.medalSub, "SetPoint", "TOPLEFT", self.medalHeader, "BOTTOMLEFT", 0, -4)
+  self.medalRows = {}
+  for index in ipairs(Addon.Medals and Addon.Medals:GetDefinitions() or {}) do
+    local row = CreateFrame("Frame", nil, child, "BackdropTemplate")
+    T:Panel(row, C.panel, C.border); safeMethod(row, "SetHeight", MEDAL_ROW_HEIGHT)
+    row.stripe = row:CreateTexture(nil, "ARTWORK")
+    safeMethod(row.stripe, "SetPoint", "TOPLEFT", row, "TOPLEFT", 0, 0); safeMethod(row.stripe, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 0, 0); safeMethod(row.stripe, "SetWidth", 4)
+    row.name = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    safeMethod(row.name, "SetPoint", "TOPLEFT", row, "TOPLEFT", 14, -7); safeMethod(row.name, "SetJustifyH", "LEFT")
+    row.desc = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    safeMethod(row.desc, "SetPoint", "TOPLEFT", row.name, "BOTTOMLEFT", 0, -3); safeMethod(row.desc, "SetPoint", "RIGHT", row, "RIGHT", -130, 0); safeMethod(row.desc, "SetJustifyH", "LEFT"); safeMethod(row.desc, "SetWordWrap", false)
+    row.points = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    safeMethod(row.points, "SetPoint", "TOPRIGHT", row, "TOPRIGHT", -12, -7)
+    row.progress = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    safeMethod(row.progress, "SetPoint", "BOTTOMRIGHT", row, "BOTTOMRIGHT", -12, 9)
+    row.bar = row:CreateTexture(nil, "ARTWORK")
+    safeMethod(row.bar, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 4, 0); safeMethod(row.bar, "SetHeight", 3)
+    self.medalRows[index] = row
+  end
+  area:Hide()
+end
+
+function UI:RefreshMedals()
+  local T = Addon.Theme; local C = T.colors
+  local progress = Addon.Medals:GetProgress(Addon.characterKey)
+  local order = {}
+  for index, entry in ipairs(progress) do entry.index = index; order[index] = entry end
+  table.sort(order, function(a, b)
+    local ea, eb = a.earned ~= nil, b.earned ~= nil
+    if ea ~= eb then return ea end
+    if ea then if a.earned.at ~= b.earned.at then return a.earned.at > b.earned.at end return a.index < b.index end
+    if a.fraction ~= b.fraction then return a.fraction > b.fraction end
+    return a.index < b.index
+  end)
+  local summary = Addon.Medals:GetSummary(Addon.characterKey)
+  safeMethod(self.medalHeader, "SetText", "Mom Money " .. tostring(summary.total))
+  safeMethod(self.medalSub, "SetText", tostring(summary.count) .. " of " .. tostring(summary.possible) .. " Mom Medals earned")
+  local rowWidth = (self.textWidth or 700) - 4
+  for position, entry in ipairs(order) do
+    local row, def = self.medalRows[position], entry.def
+    local tierColour = Addon.Medals.tierColours[def.tier]
+    local offset = -(48 + (position - 1) * (MEDAL_ROW_HEIGHT + 4))
+    safeMethod(row, "ClearAllPoints"); safeMethod(row, "SetPoint", "TOPLEFT", self.medalsArea.child, "TOPLEFT", 0, offset); safeMethod(row, "SetPoint", "TOPRIGHT", self.medalsArea.child, "TOPRIGHT", 0, offset)
+    safeMethod(row.name, "SetText", def.name); safeMethod(row.desc, "SetText", def.description)
+    safeMethod(row.points, "SetText", "+" .. tostring(def.points))
+    local earned = entry.earned ~= nil
+    local nameColour = earned and C.gold or C.muted
+    safeMethod(row.name, "SetTextColor", nameColour[1], nameColour[2], nameColour[3], 1)
+    safeMethod(row.points, "SetTextColor", tierColour[1], tierColour[2], tierColour[3], earned and 1 or 0.55)
+    safeMethod(row.stripe, "SetColorTexture", tierColour[1], tierColour[2], tierColour[3], earned and 1 or 0.35)
+    if earned then
+      local stamp = entry.earned.retro and "Earned before tracking began" or ("Earned " .. (date and date("%d %b %Y", entry.earned.at) or tostring(entry.earned.at)))
+      safeMethod(row.progress, "SetText", stamp)
+      safeMethod(row.bar, "SetColorTexture", tierColour[1], tierColour[2], tierColour[3], 1); safeMethod(row.bar, "SetWidth", math.max(1, rowWidth))
+    else
+      local current = math.floor(math.min(entry.current, entry.target))
+      safeMethod(row.progress, "SetText", tostring(current) .. " / " .. tostring(entry.target))
+      safeMethod(row.bar, "SetColorTexture", C.accent[1], C.accent[2], C.accent[3], 1); safeMethod(row.bar, "SetWidth", math.max(1, rowWidth * entry.fraction))
+    end
+  end
+  self.medalsHeight = 48 + #order * (MEDAL_ROW_HEIGHT + 4) + 8
+end
+
+function UI:ShowMedalsPage()
+  local area = self.medalsArea
+  area:Place(self.frame, 84, FOOTER + 4, SIDE, TEXT_SCROLLBAR); area:Show()
+  self:RefreshMedals(); self:UpdateMedalsScroll()
+end
+
 function UI:Create()
   if self.frame then return self.frame end
   local T = Addon.Theme; local C = T.colors
@@ -541,8 +624,8 @@ function UI:Create()
   -- tabs
   self.tabButtons = {}
   for index, name in ipairs(self.tabs) do
-    local tab = T:Tab(frame, name, 112, 28)
-    safeMethod(tab, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 12 + (index - 1) * 114, -38)
+    local tab = T:Tab(frame, name, 96, 28)
+    safeMethod(tab, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 12 + (index - 1) * 98, -38)
     safeMethod(tab, "SetScript", "OnClick", function() UI:SetActiveTab(name) end)
     self.tabButtons[index] = tab
   end
@@ -661,6 +744,7 @@ function UI:Create()
   self.dashboard = Addon.Dashboard and Addon.Dashboard:Create(frame, self) or nil
 
   self:BuildSettingsPage(frame)
+  if Addon.Medals then self:BuildMedalsPage(frame) end
 
   safeMethod(frame, "SetScript", "OnSizeChanged", function(_, width, height) UI:ApplyLayout(width, height) end)
   self:ApplyLayout(frame.GetWidth and frame:GetWidth() or 780, frame.GetHeight and frame:GetHeight() or 560)
@@ -676,6 +760,7 @@ function UI:HideAllViews()
   safeMethod(self.textScroll, "Hide"); safeMethod(self.textSlider, "Hide"); self.textVisible = false; self.copyShown = false
   if self.dashboard then self.dashboard:Hide() end
   if self.settingsArea then self.settingsArea:Hide() end
+  if self.medalsArea then self.medalsArea:Hide() end
 end
 
 function UI:Refresh()
@@ -700,6 +785,8 @@ function UI:Refresh()
     local fromTime, toTime = self:GetCurrentMonthRange(); local stats = Addon.Statistics:Build(fromTime, toTime)
     local text = Addon.Export:BuildHumanSummary(stats.fromTime, stats.toTime) .. (Addon.AchievementStats and "\n\n" .. Addon.AchievementStats:BuildText(Addon.characterKey) or "")
     safeMethod(self.content, "SetText", self:ColouriseStatistics(text)); self:ShowTextArea(false)
+  elseif self.activeTab == "Medals" then
+    if self.medalsArea then self:ShowMedalsPage() end
   elseif self.activeTab == "Settings" then
     self:ShowSettingsPage()
   else

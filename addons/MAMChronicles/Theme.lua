@@ -43,6 +43,7 @@ local typeInfo = {
   ["profession.changed"]   = { "Profession", "world" },
   ["achievement.earned"]   = { "Achievement", "quest" },
   ["memory.manual"]        = { "Memory", "memory" },
+  ["medal.earned"]         = { "Medal", "quest" },
 }
 
 local function safeMethod(object, method, ...)

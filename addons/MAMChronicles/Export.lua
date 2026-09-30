@@ -5,7 +5,7 @@ local Export=Addon.Export
 local safeFields={
   duration=true,level=true,zone=true,subzone=true,mapID=true,x=true,y=true,instanceName=true,instanceType=true,difficultyID=true,lastHostileTarget=true,deathKind=true,
   questID=true,questName=true,itemID=true,itemName=true,itemLink=true,quality=true,quantity=true,professionID=true,professionName=true,skillLevel=true,maxSkillLevel=true,skillLineID=true,
-  achievementID=true,achievementName=true,points=true,text=true,
+  achievementID=true,achievementName=true,points=true,text=true,medalId=true,medalName=true,
 }
 local function escape(value)
   return tostring(value):gsub("\\","\\\\"):gsub("\r","\\r"):gsub("\n","\\n"):gsub("\t","\\t")

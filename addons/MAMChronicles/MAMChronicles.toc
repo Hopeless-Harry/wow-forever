@@ -16,6 +16,7 @@ EventStore.lua
 Collectors.lua
 Statistics.lua
 AchievementStats.lua
+Medals.lua
 Export.lua
 Theme.lua
 Dashboard.lua

@@ -14,6 +14,7 @@ local types = {
   ["profession.changed"]={professionID=true,professionName=true,skillLevel=true,maxSkillLevel=true,skillLineID=true},
   ["achievement.earned"]={achievementID=true,achievementName=true,points=true},
   ["memory.manual"]={text=true,zone=true,subzone=true,mapID=true,x=true,y=true},
+  ["medal.earned"]={medalId=true,medalName=true,points=true},
 }
 local numericFields={duration=true,level=true,mapID=true,x=true,y=true,difficultyID=true,questID=true,itemID=true,quality=true,quantity=true,professionID=true,skillLevel=true,maxSkillLevel=true,skillLineID=true,achievementID=true,points=true}
 
@@ -52,7 +53,7 @@ end
 
 function Store:BuildSemanticKey(eventType,payload,characterKey)
   if eventType=="memory.manual" then return nil end
-  local identity=payload.questID or payload.itemID or payload.achievementID or payload.mapID or payload.instanceName or payload.level or ""
+  local identity=payload.questID or payload.itemID or payload.achievementID or payload.medalId or payload.mapID or payload.instanceName or payload.level or ""
   if eventType=="profession.changed" then identity=tostring(payload.professionID or payload.skillLineID or payload.professionName or "")..":"..tostring(payload.skillLevel or "") end
   return tostring(characterKey or Addon.characterKey or "unknown")..":"..eventType..":"..tostring(identity)
 end
@@ -76,6 +77,7 @@ function Store:Append(eventType,payload,options)
   table.insert(self.db.events,event); self.db.eventIds[id]=true; if semantic then self.recentSemantic[semantic]=observedAt end
   self.db.meta.updatedAt=observedAt
   if #self.db.events>(tonumber(self.db.settings.maxEvents) or 10000) then Addon.Database:Compact() end
+  if eventType~="medal.earned" and Addon.Medals then Addon:SafeCall(Addon.Medals.OnEvent,Addon.Medals,event) end
   return event
 end
 

@@ -100,6 +100,30 @@ local function characterKey() return Addon.characterKey end
 
 function AchievementStats:SetStatus(state, reason, count, unparsed)
   self.status = { state = state, reason = reason, statCount = count, unparsed = unparsed, takenAt = state == "ok" and Addon:Now() or nil }
+  -- Once statistics are read (or ruled out) medals can be evaluated against them.
+  if state ~= "pending" and Addon.Medals then Addon:SafeCall(Addon.Medals.Evaluate, Addon.Medals, "statistics") end
+end
+
+-- Finds the largest lifetime value among statistics whose name matches the first pattern that matches anything.
+function AchievementStats:FindValue(patterns, key)
+  local database = Addon.db
+  local row = database and database.statistics and database.statistics[key or Addon.characterKey]
+  if not (row and row.latest and row.latest.values) then return nil end
+  local catalog = database.statisticCatalog or {}
+  for _, pattern in ipairs(patterns) do
+    local bestId, bestValue
+    for id, value in pairs(row.latest.values) do
+      local entry = catalog[id]
+      if entry then
+        local name = tostring(entry.name):lower()
+        if name == pattern or name:find(pattern, 1, true) then
+          if not bestValue or value > bestValue then bestId, bestValue = id, value end
+        end
+      end
+    end
+    if bestId then return bestId, bestValue end
+  end
+  return nil
 end
 
 local function apisAvailable()

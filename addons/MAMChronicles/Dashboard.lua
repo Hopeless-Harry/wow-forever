@@ -23,24 +23,8 @@ local function safe(fn, ...) return Addon:SafeCall(fn, ...) end
 local function escapeText(text) return (tostring(text or ""):gsub("|", "||")) end
 
 function Dashboard:FindStatistic(patterns)
-  local database = Addon.db
-  local row = database and database.statistics and database.statistics[Addon.characterKey]
-  if not (row and row.latest and row.latest.values) then return nil end
-  local catalog = database.statisticCatalog or {}
-  for _, pattern in ipairs(patterns) do
-    local bestId, bestValue
-    for id, value in pairs(row.latest.values) do
-      local entry = catalog[id]
-      if entry then
-        local name = tostring(entry.name):lower()
-        if name == pattern or name:find(pattern, 1, true) then
-          if not bestValue or value > bestValue then bestId, bestValue = id, value end
-        end
-      end
-    end
-    if bestId then return bestId, bestValue end
-  end
-  return nil
+  if not Addon.AchievementStats then return nil end
+  return Addon.AchievementStats:FindValue(patterns, Addon.characterKey)
 end
 
 function Dashboard:Build()
@@ -76,6 +60,7 @@ function Dashboard:Build()
     table.insert(model.recent, { kind = kind, color = color, text = UI.EventLabel(event), time = stamp, event = event })
   end
 
+  model.medals = Addon.Medals and Addon.Medals:GetSummary() or { total = 0, count = 0, possible = 0 }
   local status = AS and AS.status
   model.status = {
     statistics = status and status.state or "not scanned", statCount = status and status.statCount or 0,
@@ -218,6 +203,7 @@ function Dashboard:Refresh()
     tostring(month.events) .. " events in " .. tostring(month.sessions) .. " sessions",
     "Deaths " .. tostring(month.deaths) .. "   Quests " .. tostring(month.quests) .. "   Discoveries " .. tostring(month.discoveries) .. "   Loot " .. tostring(month.loot),
   }
+  table.insert(lines, T:Colorize("Mom Money " .. tostring(model.medals.total), C.gold) .. "  \194\183  " .. tostring(model.medals.count) .. " of " .. tostring(model.medals.possible) .. " medals")
   for _, award in ipairs(model.awards) do table.insert(lines, T:Colorize(award.name, C.gold) .. " " .. tostring(award.count)) end
   local statistics = model.status.statistics == "ok" and (tostring(model.status.statCount) .. " lifetime statistics tracked") or ("Statistics: " .. tostring(model.status.statistics))
   table.insert(lines, T:Colorize(statistics, C.muted))

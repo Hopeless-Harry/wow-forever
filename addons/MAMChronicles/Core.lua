@@ -62,6 +62,7 @@ function Addon:Boot()
   if self.Launcher and self.Launcher.Initialise then self:SafeCall(self.Launcher.Initialise, self.Launcher) end
   if self.SettingsPanel and self.SettingsPanel.Register then self:SafeCall(self.SettingsPanel.Register, self.SettingsPanel) end
   self:ShowWelcome()
+  if self.Medals then self:SafeCall(self.Medals.Evaluate, self.Medals, "boot") end
   return self.db
 end
 
