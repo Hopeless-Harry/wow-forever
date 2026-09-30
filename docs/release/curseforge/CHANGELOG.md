@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0-alpha14
+
+- **Toast sound choices:** nine stock game sounds (Chime, Quest complete, Fanfare, Loot toast, Ready check, Raid warning, Map ping, Whisper, Coins). Settings > Alerts > "Toast sound" plays each one as you click through and keeps your choice. Sounds still only play when "Play a sound with toasts" is ticked.
+- The statistics scan now waits 0.05 seconds between slices, so its roughly 3 seconds of total work is spread thinly instead of adding a few milliseconds to every frame.
+
 ## 0.2.0-alpha13
 
 Fixes from the first live Retail screenshots of alpha12.

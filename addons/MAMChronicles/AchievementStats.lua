@@ -159,6 +159,7 @@ local function rootTitleFor(map, id)
 end
 
 local SCAN_BUDGET_MS = 6
+local SLICE_GAP = 0.05 -- seconds between slices: a few milliseconds every few frames instead of every frame
 
 local function clockMs()
   if type(debugprofilestop) ~= "function" then return nil end
@@ -231,7 +232,7 @@ local function runScan(self, state)
           state.elapsed = (state.elapsed or 0) + spent
           self.scanning = true
           self:SetStatus("pending", "scanning")
-          C_Timer.After(0, function()
+          C_Timer.After(SLICE_GAP, function()
             if InCombatLockdown and InCombatLockdown() then
               C_Timer.After(RETRY_DELAY, function() runScan(AchievementStats, state) end)
             else

@@ -19,7 +19,7 @@ local booleanDefaults = { toastsEnabled=true, toastSound=false, announceMedals=t
 local validTabs = { Home=true, Chronicle=true, Medals=true, Statistics=true, Settings=true, Diagnostics=true }
 local function freshSettings()
   return { enabled=true, recordCoordinates=true, recordQuestAccepts=true, notableQuality=4, maxEvents=10000, showMinimapButton=true, recordStatistics=true, recordGoldStatistics=false,
-    windowAlpha=1, theme="midnight", toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, pinnedMedals={}, ui=copyTable(uiDefaults) }
+    windowAlpha=1, theme="midnight", toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, pinnedMedals={}, toastSoundChoice="chime", ui=copyTable(uiDefaults) }
 end
 local function monthKey(timestamp)
   local dateFn=date or (os and os.date); return dateFn and dateFn("%Y-%m",timestamp) or "unknown"
@@ -83,6 +83,8 @@ function Database:NormaliseSettings()
   if not finite(settings.windowAlpha) then settings.windowAlpha = 1 else settings.windowAlpha = clamp(settings.windowAlpha, 0.3, 1) end
   if not validThemes[settings.theme] then settings.theme = "midnight" end
   if settings.welcomeVersion ~= nil and type(settings.welcomeVersion) ~= "string" then settings.welcomeVersion = nil end
+  local soundKeys = Addon.Toast and Addon.Toast.soundKeys
+  if type(settings.toastSoundChoice) ~= "string" or (soundKeys and not soundKeys[settings.toastSoundChoice]) then settings.toastSoundChoice = "chime" end
   -- Up to three pinned medal ids; anything else is discarded.
   local pins, seenPins = {}, {}
   if type(settings.pinnedMedals) == "table" then

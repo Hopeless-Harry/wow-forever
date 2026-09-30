@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles — User Manual
 
-- **Version:** `0.2.0-alpha13`
+- **Version:** `0.2.0-alpha14`
 - **Primary test target:** WoW Forever (interface 16001, level cap 60)
 - **Secondary test target:** World of Warcraft Retail 12.1
 - **Live evidence:** Retail has been observed live for the window and statistics. Forever, guild sharing between two real players, and most detection (campfires, emotes, consumables, vendor, group, ready checks, fall deaths) are not yet proven live.
@@ -80,6 +80,8 @@ There are **264 medals in 96 families worth 7,985 Mom Money** across both client
 A small counter module watches what you do and stores **only whole numbers per category on this computer**: never item names, chat, or locations. Consumables (wine, ale, coffee and tea, food, bandages, potions) are counted when you press an item **and** the game confirms a successful cast within two seconds, so mashing a key while an item is on cooldown does not count. Item names are matched against keywords as whole words, so a "Whale" item is not an ale. Emotes, jumps, mounting, going AFK, resting, screenshots, groups, ready checks, vendor sales and purchases, repairs and equipment changes are counted the same way: only the number is kept. Death by falling is detected by remembering when you were last falling. One known limit: using the very last item of a stack from your bags may not be counted. Counters are cleared by Erase Chronicle Data.
 
 ### Alerts (toasts)
+
+Pick the toast sound in **Settings > Alerts > Toast sound**: each click plays the next of nine stock game sounds (Chime, Quest complete, Fanfare, Loot toast, Ready check, Raid warning, Map ping, Whisper, Coins) and keeps it. It only plays with toasts when **Play a sound with toasts** is ticked. A sound the client does not have plays nothing.
 
 Toasts slide in near the top of the screen for new medals, guildmates' medals, and level-ups. They are **on by default** and **never appear during combat**: they wait and appear when combat ends. If several medals arrive together they merge into one summary. A sound is optional and off by default. Everything is under Settings > Alerts, including **Send a test toast** (also `/mam toast`), which cycles through the three looks so you can check they show.
 

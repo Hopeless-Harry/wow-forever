@@ -151,6 +151,11 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] Earn a pinned medal: it leaves the goals list. Pin a medal with a target of 5 or more and get it to 90 percent: one "Nearly there" toast appears, only once.
 - [ ] Two players in one guild: earn a medal on one, confirm the other sees a toast. Then check `/mam diag` on both for `Guild sharing: ... unknown N, other version N`. Record: __________
 
+## Toast sounds (alpha14)
+
+- [ ] Settings > Alerts: click Toast sound repeatedly; each click plays a different sound and the label changes. Note any that are silent on your client: __________
+- [ ] Tick Play a sound with toasts, pick Quest complete, then /mam toast: the chosen sound plays with the toast.
+
 ## Stability
 
 - [ ] No Lua errors during the test.

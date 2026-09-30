@@ -34,3 +34,8 @@ test('count statistics that merely mention gold are not treated as money',()=>{
   const h=boot(); h.run('local A=MAMChronicles.AchievementStats; __a=A:Classify("Legacy","Gold Challenge ratings earned","count"); __b=A:Classify("Dungeons","Goldie Baronbottom kills (Normal Cinderbrew Meadery)","count"); __c=A:Classify("Character","Total gold looted","money"); __d=A:Classify("Character","Total money received","money")');
   assert.notEqual(h.get('__a'),'Gold and money'); assert.notEqual(h.get('__b'),'Gold and money'); assert.equal(h.get('__c'),'Gold and money'); assert.equal(h.get('__d'),'Gold and money');
 });
+test('statistics slices are spaced out by a short delay',()=>{
+  const h=boot(big.replace('C_Timer={After=function(d,fn) table.insert(__timers,fn) end}','__delays={}; C_Timer={After=function(d,fn) table.insert(__delays,d); table.insert(__timers,fn) end}'));
+  h.run('MAMChronicles.AchievementStats:Scan(); __d=__delays[#__delays]');
+  assert.ok(h.get('__d')>=0.03,`delay ${h.get('__d')}`);
+});

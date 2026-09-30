@@ -100,6 +100,29 @@ function Toast:CreateFrame()
   return frame
 end
 
+-- Stock game sounds only (no files shipped). Each entry names a SOUNDKIT field and a numeric fallback id for clients
+-- that lack the name; an id a client does not know simply plays nothing.
+Toast.sounds = {
+  { key = "chime", label = "Chime", kit = "ACHIEVEMENT_MENU_OPEN", id = 12891 },
+  { key = "quest", label = "Quest complete", kit = "IG_QUEST_LIST_COMPLETE", id = 878 },
+  { key = "fanfare", label = "Fanfare", kit = "LEVELUP", id = 888 },
+  { key = "loot", label = "Loot toast", kit = "UI_EPICLOOT_TOAST", id = 31578 },
+  { key = "ready", label = "Ready check", kit = "READY_CHECK", id = 8960 },
+  { key = "raid", label = "Raid warning", kit = "RAID_WARNING", id = 8959 },
+  { key = "ping", label = "Map ping", kit = "MAP_PING", id = 3175 },
+  { key = "whisper", label = "Whisper", kit = "TELL_MESSAGE", id = 3081 },
+  { key = "coins", label = "Coins", kit = "LOOT_WINDOW_COIN_SOUND", id = 120 },
+}
+Toast.soundKeys = {}
+for _, sound in ipairs(Toast.sounds) do Toast.soundKeys[sound.key] = sound end
+
+function Toast:PreviewSound(key)
+  local sound = self.soundKeys[key] or self.sounds[1]
+  if not PlaySound then return false end
+  local kits = type(SOUNDKIT) == "table" and SOUNDKIT or {}
+  return pcall(PlaySound, kits[sound.kit] or sound.id)
+end
+
 function Toast:Start(spec)
   local frame = self:CreateFrame()
   local T = Addon.Theme; local C = T.colors
@@ -112,7 +135,7 @@ function Toast:Start(spec)
   safeMethod(frame, "Show")
   local settings = Addon.db and Addon.db.settings
   if settings and settings.toastSound and PlaySound then
-    pcall(PlaySound, SOUNDKIT and SOUNDKIT.ACHIEVEMENT_MENU_OPEN or 888)
+    self:PreviewSound(settings.toastSoundChoice)
   end
 end
 

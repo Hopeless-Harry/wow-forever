@@ -224,6 +224,9 @@ function UI:SetSetting(key,value)
   elseif key=="windowAlpha" then
     settings.windowAlpha=math.max(0.3,math.min(1,math.floor((tonumber(value) or 1)*100+0.5)/100)); Addon.db.meta.updatedAt=Addon:Now()
     self:ApplyAppearance(); return true
+  elseif key=="toastSoundChoice" then
+    if not (Addon.Toast and Addon.Toast.soundKeys[value]) then return false end
+    settings.toastSoundChoice=value; Addon.db.meta.updatedAt=Addon:Now(); return true
   elseif key=="notableQuality" then value=math.max(4,math.min(5,tonumber(value) or 4))
   elseif key=="maxEvents" then value=math.max(100,math.min(10000,math.floor(tonumber(value) or 10000)))
   elseif booleanSettings[key] then value=value==true
@@ -506,6 +509,16 @@ function UI:BuildSettingsPage(frame)
   check("announceGuildChat", "Also post my medals in guild chat", "Posts one line to guild chat that everyone can read, even without the addon. Off by default.")
   check("receiveGuildAlerts", "Show toasts when guildmates earn medals")
   y = y - 4
+  local function soundText() local s = Addon.Toast.soundKeys[Addon.db.settings.toastSoundChoice] or Addon.Toast.sounds[1]; return "Toast sound: " .. s.label end
+  self.soundButton = button(soundText(), 220, 8, function(b)
+    local list, current = Addon.Toast.sounds, 1
+    for index, sound in ipairs(list) do if sound.key == Addon.db.settings.toastSoundChoice then current = index end end
+    local nextSound = list[current % #list + 1]
+    UI:SetSetting("toastSoundChoice", nextSound.key); safeMethod(b, "SetText", soundText())
+    Addon.Toast:PreviewSound(nextSound.key)
+  end)
+  attachTooltip(self.soundButton, "Toast sound", "Click to hear the next sound and choose it. It plays with toasts when 'Play a sound with toasts' is ticked.")
+  y = y - 34
   self.testToastButton = button("Send a test toast", 220, 8, function() if Addon.Toast then Addon.Toast:SendTest() end end)
   attachTooltip(self.testToastButton, "Send a test toast", "Shows a sample toast so you can check they appear. Click again for the medal and guildmate looks.")
   y = y - 34
