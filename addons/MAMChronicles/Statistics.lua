@@ -191,3 +191,51 @@ function Statistics:DescribeHighlights(h)
   if #lines==0 then return nil end
   return table.concat(lines,"\n")
 end
+
+
+-- Every character of this account that has used the addon, from our own saved data (local only, nothing is shared).
+function Statistics:BuildCharacters()
+  local database=Addon.db
+  local list={}
+  for key,record in pairs(database and database.characters or {}) do
+    if type(record)=="table" then
+      local entry={key=key,name=tostring(record.name or "Unknown"),realm=record.realm,className=record.className,level=tonumber(record.level),
+        lastSeenAt=tonumber(record.lastSeenAt) or 0,isCurrent=key==Addon.characterKey,professions={}}
+      if Addon.Medals then
+        entry.title=Addon.Medals:GetTitle(key); entry.money=Addon.Medals:GetMoneyFor(key); entry.medals=Addon.Medals:GetSummary(key).count
+      end
+      local snapshots=database.professionSnapshots and database.professionSnapshots[key]
+      if type(snapshots)=="table" then
+        for _,snapshot in pairs(snapshots) do
+          if type(snapshot)=="table" and snapshot.professionName then table.insert(entry.professions,{name=tostring(snapshot.professionName),level=tonumber(snapshot.skillLevel),max=tonumber(snapshot.maxSkillLevel)}) end
+        end
+        table.sort(entry.professions,function(a,b) return a.name<b.name end)
+      end
+      table.insert(list,entry)
+    end
+  end
+  table.sort(list,function(a,b) if a.lastSeenAt~=b.lastSeenAt then return a.lastSeenAt>b.lastSeenAt end return a.name<b.name end)
+  return list
+end
+
+function Statistics:DescribeCharacters(list)
+  list=list or self:BuildCharacters()
+  local lines={"Characters on this account ("..#list..")"}
+  for _,entry in ipairs(list) do
+    table.insert(lines,entry.name..(entry.realm and (" - "..tostring(entry.realm)) or "")..(entry.isCurrent and "  (this character)" or ""))
+    local facts={}
+    if entry.level then table.insert(facts,"Level "..entry.level..(entry.className and (" "..entry.className) or ""))
+    elseif entry.className then table.insert(facts,entry.className) end
+    if entry.title then table.insert(facts,entry.title) end
+    if entry.medals then table.insert(facts,entry.medals.." medals") end
+    if entry.money then table.insert(facts,entry.money.." Mom Money") end
+    if #facts>0 then table.insert(lines,"  "..table.concat(facts,"  \194\183  ")) end
+    if #entry.professions>0 then
+      local parts={}
+      for _,profession in ipairs(entry.professions) do table.insert(parts,profession.name.." "..tostring(profession.level or "?")..(profession.max and ("/"..profession.max) or "")) end
+      table.insert(lines,"  "..table.concat(parts,", "))
+    end
+    if not entry.isCurrent and entry.lastSeenAt>0 then table.insert(lines,"  Last played "..ago(math.max(0,Addon:Now()-entry.lastSeenAt))) end
+  end
+  return table.concat(lines,"\n")
+end

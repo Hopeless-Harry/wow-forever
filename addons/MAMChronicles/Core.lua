@@ -84,9 +84,10 @@ function Addon:IdentifyCharacter()
   local guid = self:SafeCall(UnitGUID, "player")
   local name, realm = self:SafeCall(UnitName, "player")
   realm = realm or self:SafeCall(GetRealmName) or "unknown"
-  local _, _, classID = self:SafeCall(UnitClass, "player")
+  local className, _, classID = self:SafeCall(UnitClass, "player")
+  local level = tonumber(self:SafeCall(UnitLevel, "player"))
   self.characterKey = guid or (normalise(name) .. "-" .. normalise(realm))
-  self.character = { guid = guid, name = name or "Unknown", realm = realm, classID = classID }
+  self.character = { guid = guid, name = name or "Unknown", realm = realm, classID = classID, className = className, level = level }
   return self.characterKey
 end
 

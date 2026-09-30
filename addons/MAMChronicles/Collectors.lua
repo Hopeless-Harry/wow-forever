@@ -106,8 +106,8 @@ function Collectors:HandleEvent(eventName,...)
   local args={...}
   local ok,err=pcall(function()
     if eventName=="PLAYER_LOGIN" then Addon.Database:BeginSession(); Addon.EventStore:Append("session.login",{})
-    elseif eventName=="PLAYER_LOGOUT" then local session=Addon.Database.currentSession; Addon.EventStore:Append("session.logout",{duration=session and session.startedAt and math.max(0,Addon:Now()-session.startedAt) or nil}); Addon.Database:EndSession()
-    elseif eventName=="PLAYER_LEVEL_UP" then Addon.EventStore:Append("character.level_up",{level=args[1]})
+    elseif eventName=="PLAYER_LOGOUT" then local session=Addon.Database.currentSession; Addon.EventStore:Append("session.logout",{duration=session and session.startedAt and math.max(0,Addon:Now()-session.startedAt) or nil}); Addon.Database:EndSession(); local record=Addon.db.characters[Addon.characterKey]; if record then record.lastSeenAt=Addon:Now() end
+    elseif eventName=="PLAYER_LEVEL_UP" then Addon.EventStore:Append("character.level_up",{level=args[1]}); local record=Addon.db.characters[Addon.characterKey]; if record and tonumber(args[1]) then record.level=args[1] end
     elseif eventName=="PLAYER_DEAD" then
       local payload=self:CaptureLocation()
       if UnitCanAttack and safe(UnitCanAttack,"player","target") then payload.lastHostileTarget=safe(UnitName,"target") end

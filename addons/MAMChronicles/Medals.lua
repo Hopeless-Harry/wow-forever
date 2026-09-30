@@ -626,7 +626,7 @@ Medals.cosmetics = {
 Medals.cosmeticsById = {}
 for _, item in ipairs(Medals.cosmetics) do Medals.cosmeticsById[item.id] = item end
 
-local function characterRow() return Addon.db and Addon.db.medals and Addon.db.medals[Addon.characterKey] end
+local function characterRow(key) return Addon.db and Addon.db.medals and Addon.db.medals[key or Addon.characterKey] end
 local function cosmeticSettings()
   local settings = Addon.db and Addon.db.settings
   if not settings then return nil end
@@ -635,8 +635,8 @@ local function cosmeticSettings()
   return settings.cosmetics
 end
 
-local function earnedPointsByFamily()
-  local row = characterRow()
+local function earnedPointsByFamily(key)
+  local row = characterRow(key)
   local points, order = {}, {}
   if not row then return points, order end
   for _, def in ipairs(definitions) do
@@ -666,11 +666,11 @@ function Medals:SetTitleChoice(family)
   return true
 end
 
-function Medals:GetTitle()
+function Medals:GetTitle(key)
   local settings = Addon.db and Addon.db.settings
-  local points, order = earnedPointsByFamily()
+  local points, order = earnedPointsByFamily(key)
   local family
-  local choice = settings and settings.titleChoice
+  local choice = (not key or key == Addon.characterKey) and settings and settings.titleChoice
   if choice and choice ~= "auto" and points[choice] then family = choice
   else
     for _, candidate in ipairs(order) do
@@ -699,6 +699,12 @@ end
 function Medals:GetEarnedMoney()
   local row = characterRow()
   return self:GetSummary(Addon.characterKey).total + (row and tonumber(row.bonus) or 0)
+end
+
+-- Mom Money left for any character (used by the Characters tab).
+function Medals:GetMoneyFor(key)
+  local row = characterRow(key)
+  return math.max(0, self:GetSummary(key).total + (row and tonumber(row.bonus) or 0) - (row and tonumber(row.spent) or 0))
 end
 
 function Medals:GetMomMoney()

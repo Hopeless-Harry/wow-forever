@@ -2,12 +2,12 @@ local Addon=MAMChronicles
 Addon.UI=Addon.UI or {}
 local UI=Addon.UI
 
-UI.tabs={"Home","Chronicle","Medals","Statistics","Settings","Diagnostics"}
+UI.tabs={"Home","Chronicle","Medals","Statistics","Characters","Settings","Diagnostics"}
 UI.filters={"All","Deaths","Quests","World","Instances","Loot","Memories","Medals"}
 UI.dateRanges={"All","30 Days","This Month"}
 UI.activeTab="Home"; UI.activeFilter="All"; UI.activeRange="All"; UI.search=""; UI.rowPool={}
 
-local validTabs={Home=true,Chronicle=true,Medals=true,Statistics=true,Settings=true,Diagnostics=true}
+local validTabs={Home=true,Chronicle=true,Medals=true,Statistics=true,Characters=true,Settings=true,Diagnostics=true}
 local groups={
   Deaths={ ["character.death"]=true,["character.resurrected"]=true },
   Quests={ ["quest.accepted"]=true,["quest.completed"]=true },
@@ -354,6 +354,18 @@ function UI:ColouriseStatistics(text)
     elseif line == "Moms Against Magic Chronicles" or line == "Hall of Shame" or line == "Hall of Fame" or groups[line] then line = T:Colorize(line, T.colors.gold)
     elseif line:match("^  %+") then line = T:Colorize(line, T.kindColors.world)
     elseif line:match("^Changes shown") or line:match("^Coverage") or line:match("^Reporting window") then line = T:Colorize(line, T.colors.muted) end
+    table.insert(lines, line)
+  end
+  return table.concat(lines, "\n")
+end
+
+function UI:ColouriseCharacters(text)
+  local T = Addon.Theme
+  local lines = {}
+  for line in (text .. "\n"):gmatch("(.-)\n") do
+    if line:match("^Characters on this account") then line = T:Colorize(line, T.colors.gold)
+    elseif line ~= "" and not line:match("^%s") then line = T:Colorize(line, T.colors.gold)
+    elseif line:match("^  Last played") then line = T:Colorize(line, T.colors.muted) end
     table.insert(lines, line)
   end
   return table.concat(lines, "\n")
@@ -944,8 +956,8 @@ function UI:Create()
   -- tabs
   self.tabButtons = {}
   for index, name in ipairs(self.tabs) do
-    local tab = T:Tab(frame, name, 96, 28)
-    safeMethod(tab, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 12 + (index - 1) * 98, -38)
+    local tab = T:Tab(frame, name, 84, 28)
+    safeMethod(tab, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 12 + (index - 1) * 86, -38)
     safeMethod(tab, "SetScript", "OnClick", function() UI:SetActiveTab(name) end)
     self.tabButtons[index] = tab
   end
@@ -1123,6 +1135,8 @@ function UI:Refresh()
     local halls = Addon.Statistics:DescribeHighlights(Addon.Statistics:BuildHighlights())
     local text = Addon.Export:BuildHumanSummary(stats.fromTime, stats.toTime) .. (halls and "\n\n" .. halls or "") .. (Addon.AchievementStats and "\n\n" .. Addon.AchievementStats:BuildText(Addon.characterKey) or "")
     safeMethod(self.content, "SetText", self:ColouriseStatistics(text)); self:ShowTextArea(false)
+  elseif self.activeTab == "Characters" then
+    safeMethod(self.content, "SetText", self:ColouriseCharacters(Addon.Statistics:DescribeCharacters())); self:ShowTextArea(false)
   elseif self.activeTab == "Medals" then
     if self.medalsArea then self:ShowMedalsPage() end
   elseif self.activeTab == "Settings" then

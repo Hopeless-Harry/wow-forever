@@ -16,7 +16,7 @@ local uiDefaults = { point="CENTER", x=0, y=0, width=780, height=560, activeTab=
 local validPoints = { CENTER=true, TOP=true, BOTTOM=true, LEFT=true, RIGHT=true, TOPLEFT=true, TOPRIGHT=true, BOTTOMLEFT=true, BOTTOMRIGHT=true }
 local validThemes = { midnight=true, parchment=true, crimson=true, slate=true }
 local booleanDefaults = { toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, gettingStartedDismissed=false, quietInstances=true }
-local validTabs = { Home=true, Chronicle=true, Medals=true, Statistics=true, Settings=true, Diagnostics=true }
+local validTabs = { Home=true, Chronicle=true, Medals=true, Statistics=true, Characters=true, Settings=true, Diagnostics=true }
 local function freshSettings()
   return { enabled=true, recordCoordinates=true, recordQuestAccepts=true, notableQuality=4, maxEvents=10000, showMinimapButton=true, recordStatistics=true, recordGoldStatistics=false,
     windowAlpha=1, theme="midnight", toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, pinnedMedals={}, toastSoundChoice="chime", ui=copyTable(uiDefaults) }
@@ -152,6 +152,8 @@ end
 function Database:RegisterCharacter(key, character)
   local current = self.db.characters[key] or { firstSeenAt = now() }
   current.guid, current.name, current.realm, current.classID = character.guid, character.name, character.realm, character.classID
+  if character.className then current.className = character.className end
+  if character.level then current.level = character.level end
   current.lastSeenAt = now(); self.db.characters[key] = current
 end
 
