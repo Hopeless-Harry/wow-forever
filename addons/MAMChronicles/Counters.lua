@@ -82,7 +82,7 @@ end
 
 local function itemName(itemID)
   if C_Item and C_Item.GetItemNameByID then return safe(C_Item.GetItemNameByID, itemID) end
-  return (safe(GetItemInfo, itemID))
+  return (Addon:GetItemInfo(itemID))
 end
 
 -- Pressing an item does not prove it was used (it may be on cooldown), so it is only "armed" until

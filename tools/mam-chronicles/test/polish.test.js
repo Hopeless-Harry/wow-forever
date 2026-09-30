@@ -292,3 +292,20 @@ test('resizing the window in combat postpones the layout until combat ends',()=>
   assert.equal(h.get('__w1'),h.get('__w0'));
   h.run('function InCombatLockdown() return false end'); h.fire('PLAYER_REGEN_ENABLED'); assert.equal(h.get('MAMChronicles.UI.textWidth'),850);
 });
+
+// ---- namespaced APIs ----
+test('item lookups prefer C_Item and fall back to the old globals',()=>{
+  let h=createHarness(); h.load(dashFiles);
+  h.run('C_Item={GetItemInfo=function() __used="C_Item" return "Fancy Hat","|cffa335ee|Hitem:99:::::::|h[Fancy Hat]|h|r",4 end, GetItemInfoInstant=function() return 99 end}; MAMChronicles:Boot(); __ok=MAMChronicles.Collectors:ResolveItem(99,nil,1)');
+  assert.equal(h.get('__ok'),true); assert.equal(h.get('__used'),'C_Item');
+  h=createHarness(); h.load(dashFiles);
+  h.run('function GetItemInfo() __used="global" return "Old Hat","l",4 end; MAMChronicles:Boot(); __ok=MAMChronicles.Collectors:ResolveItem(98,nil,1)');
+  assert.equal(h.get('__ok'),true); assert.equal(h.get('__used'),'global');
+});
+test('item lookups degrade quietly when neither API exists',()=>{
+  const h=createHarness(); h.load(dashFiles); h.run('MAMChronicles:Boot(); __ok=MAMChronicles.Collectors:ResolveItem(5,nil,1)'); assert.equal(h.get('__ok'),false);
+});
+test('the source no longer calls deprecated item globals directly',async()=>{
+  const { readAddonFile } = await import('./harness.js');
+  for (const f of ['Collectors.lua','Counters.lua']) { const t=readAddonFile(f); assert.ok(!/safe\(GetItemInfo[,)]/.test(t),`${f} calls GetItemInfo directly`); assert.ok(!/safe\(GetItemInfoInstant/.test(t),`${f} calls GetItemInfoInstant directly`); }
+});

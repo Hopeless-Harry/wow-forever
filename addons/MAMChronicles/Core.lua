@@ -43,6 +43,17 @@ function Addon:Guard(label, fn, ...)
   return (table.unpack or unpack)(results, 2, results.n)
 end
 
+-- Item lookups prefer the namespaced C_Item API and fall back to the old globals on clients that lack it.
+function Addon:GetItemInfo(item)
+  if C_Item and C_Item.GetItemInfo then return self:SafeCall(C_Item.GetItemInfo, item) end
+  if GetItemInfo then return self:SafeCall(GetItemInfo, item) end
+end
+
+function Addon:GetItemInfoInstant(item)
+  if C_Item and C_Item.GetItemInfoInstant then return self:SafeCall(C_Item.GetItemInfoInstant, item) end
+  if GetItemInfoInstant then return self:SafeCall(GetItemInfoInstant, item) end
+end
+
 -- Work that builds or lays out UI waits for combat to end (PLAYER_REGEN_ENABLED).
 Addon.afterCombat = {}
 

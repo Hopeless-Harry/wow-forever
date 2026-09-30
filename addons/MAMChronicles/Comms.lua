@@ -89,10 +89,10 @@ function Comms:OnMedal(def, info)
     table.insert(self.queue, string.format("M1|%s|%d|%d", def.id, def.points, Addon.Medals.version))
     self:Pump()
   end
-  if config.announceGuildChat and IsInGuild and IsInGuild() and SendChatMessage and (not self.lastChat or now() - self.lastChat >= CHAT_INTERVAL) then
+  if config.announceGuildChat and IsInGuild and IsInGuild() and (SendChatMessage or (C_ChatInfo and C_ChatInfo.SendChatMessage)) and (not self.lastChat or now() - self.lastChat >= CHAT_INTERVAL) then
     local who = Addon.character and Addon.character.name or "Someone"
     local line = "[Moms Against Magic Chronicles] " .. who .. " earned the " .. def.name .. " Mom Medal (+" .. tostring(def.points) .. " Mom Money)!"
-    if pcall(SendChatMessage, line, "GUILD") then self.lastChat = now() end
+    if pcall(C_ChatInfo and C_ChatInfo.SendChatMessage or SendChatMessage, line, "GUILD") then self.lastChat = now() end
   end
 end
 

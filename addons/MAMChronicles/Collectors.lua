@@ -47,8 +47,7 @@ function Collectors:CaptureInstance()
 end
 
 function Collectors:ResolveItem(itemID,itemLink,quantity)
-  if not GetItemInfo then return false end
-  local name,link,quality=safe(GetItemInfo,itemLink or itemID)
+  local name,link,quality=Addon:GetItemInfo(itemLink or itemID)
   if not name then self.pendingItems[itemID]={itemID=itemID,itemLink=itemLink,quantity=quantity}; return false end
   if tonumber(quality) and quality>=(tonumber(Addon.db.settings.notableQuality) or 4) then
     Addon.EventStore:Append("loot.notable",{itemID=itemID,itemName=name,itemLink=link or itemLink,quality=quality,quantity=quantity or 1})
@@ -73,7 +72,7 @@ function Collectors:CaptureLoot(message)
   end
   if not isSelf then return end
   local id=link and tonumber(string.match(link,"item:(%d+)"))
-  if not id and GetItemInfoInstant then id=safe(GetItemInfoInstant,link) end
+  if not id then id=Addon:GetItemInfoInstant(link) end
   if id then self:ResolveItem(id,link,quantity) end
 end
 
