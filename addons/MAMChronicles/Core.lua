@@ -2,7 +2,7 @@ MAMChronicles = MAMChronicles or {}
 local Addon = MAMChronicles
 
 Addon.name = "MAMChronicles"
-Addon.version = "0.2.0-alpha15"
+Addon.version = "0.2.0-alpha16"
 Addon.schemaVersion = 1
 
 function Addon:Now()
@@ -99,7 +99,7 @@ end
 local WELCOME_VERSION = "personal-chronicle-v3"
 
 -- One line shown on Home after an update; keep it in step with CHANGELOG.md.
-Addon.whatsNewText = "a Next up medals view, Mom titles and a Mom Money shop, Hall of Shame and Fame, a last-session summary and /mam recap week."
+Addon.whatsNewText = "the Medals tab opens on Next up, plus Mom titles, a Mom Money shop, Hall of Shame and Fame and /mam recap week."
 
 function Addon:GetWhatsNew()
   local settings = self.db and self.db.settings

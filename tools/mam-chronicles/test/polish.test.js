@@ -122,7 +122,7 @@ test('medal search matches name or description ignoring case',()=>{
   h.run('MAMChronicles.UI:SetMedalSearch("")'); assert.equal(h.get('MAMChronicles.UI.medalEmpty.shown'),false);
 });
 test('medal rows are created lazily for the visible part only',()=>{
-  const h=createHarness(); h.load(dashFiles); h.run('MAMChronicles:Boot(); local n=0; local orig=CreateFrame; function CreateFrame(...) n=n+1; return orig(...) end; __before=n; MAMChronicles.UI:Show(); __afterShow=n; MAMChronicles.UI:SetActiveTab("Medals"); __afterMedals=n');
+  const h=createHarness(); h.load(dashFiles); h.run('MAMChronicles:Boot(); local n=0; local orig=CreateFrame; function CreateFrame(...) n=n+1; return orig(...) end; __before=n; MAMChronicles.UI:Show(); __afterShow=n; MAMChronicles.UI:SetActiveTab("Medals"); MAMChronicles.UI:SetMedalFilter("All"); __afterMedals=n');
   assert.ok(h.get('#MAMChronicles.UI.medalRows')>0); assert.ok(h.get('#MAMChronicles.UI.medalRows')<40);
   assert.ok(h.get('#MAMChronicles.UI.medalList')>150);
 });

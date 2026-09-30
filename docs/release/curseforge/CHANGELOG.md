@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0-alpha16
+
+- The Medals tab now opens on **Next up** (one medal per family, the next tier to aim for). Click All to see every medal.
+
 ## 0.2.0-alpha15
 
 - **Next up** filter on the Medals tab: one medal per family, the next tier to aim for, so the long list becomes short. The filter buttons now sit on their own row.

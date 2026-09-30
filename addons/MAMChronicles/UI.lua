@@ -628,7 +628,7 @@ end
 local MEDAL_PITCH = MEDAL_ROW_HEIGHT + 4
 local MEDAL_LIST_TOP = 124
 UI.medalFilters = { "All", "Earned", "In progress", "Locked", "Next up" }
-UI.medalFilter = "All"
+UI.medalFilter = "Next up"
 UI.medalSearch = ""
 
 function UI:SetMedalFilter(value)

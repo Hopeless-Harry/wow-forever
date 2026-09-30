@@ -25,3 +25,7 @@ test('the filter buttons fit in the narrowest window',()=>{
   const h=setup(); h.run('__w=0; for _,b in ipairs(MAMChronicles.UI.medalFilterButtons) do __w=__w+b.width+6 end');
   assert.ok(h.get('__w')<=560,`buttons need ${h.get('__w')}px`);
 });
+test('the Medals tab opens on Next up, a short to-do list, and All is one click away',()=>{
+  const h=createHarness(); h.load(files); h.run('MAMChronicles:Boot(); MAMChronicles.AchievementStats:Scan(); MAMChronicles.Medals:Evaluate("t"); MAMChronicles.UI:Show(); MAMChronicles.UI:SetActiveTab("Medals"); __filter=MAMChronicles.UI.medalFilter; __short=#MAMChronicles.UI.medalList; MAMChronicles.UI:SetMedalFilter("All"); __all=#MAMChronicles.UI.medalList');
+  assert.equal(h.get('__filter'),'Next up'); assert.ok(h.get('__short')<h.get('__all')/2,`${h.get('__short')} vs ${h.get('__all')}`);
+});

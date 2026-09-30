@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles — User Manual
 
-- **Version:** `0.2.0-alpha15`
+- **Version:** `0.2.0-alpha16`
 - **Primary test target:** WoW Forever (interface 16001, level cap 60)
 - **Secondary test target:** World of Warcraft Retail 12.1
 - **Live evidence:** Retail has been observed live for the window and statistics. Forever, guild sharing between two real players, and most detection (campfires, emotes, consumables, vendor, group, ready checks, fall deaths) are not yet proven live.
@@ -58,7 +58,7 @@ The window has six tabs: **Home** (opens by default), **Chronicle**, **Medals**,
 **Mom Medals** are the guild's own achievements, and each one is worth **Mom Money** by tier: bronze 10, silver 25, gold 50, platinum 100. There are hundreds, for things like completing quests and dungeons, exploring, keeping memories, levelling, and a lot of jokes (dying from a fall, being defeated by a murloc, wine drunk).
 
 - The **Medals** tab lists every medal, earned ones first, with a progress bar and count for the rest, and your Mom Money total at the top.
-- Use the **All / Earned / In progress / Locked / Next up** buttons (each shows its count) and the **search box** to narrow the list. **Next up** shows one medal per family: the next tier you have not earned, which turns the long list into a short to-do list. Search matches a medal's name or description.
+- Use the **All / Earned / In progress / Locked / Next up** buttons (each shows its count) and the **search box** to narrow the list. The Medals tab **opens on Next up**; click **All** for the full list. **Next up** shows one medal per family: the next tier you have not earned, which turns the long list into a short to-do list. Search matches a medal's name or description.
 - Hover a medal for a tooltip: what it asks for, **how it is tracked** (game statistics, addon counters that store only numbers, or your Chronicle) and your progress.
 - **Click an unearned medal to pin it as a goal** (up to three, marked GOAL). Goals and their progress appear on Home, and a goal drops off when you earn it. Click again to unpin. Each goal gives one **Nearly there** toast when you reach 90 percent of its target (targets of 5 or more).
 - Medals you earn during the current session carry a **NEW** marker. Medals the client cannot support (for example Retail-only medals on Forever) are hidden, and the counts and Mom Money total only include medals that are listed.

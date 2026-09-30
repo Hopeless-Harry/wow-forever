@@ -1,7 +1,7 @@
 # Moms Against Magic Chronicles — Project Handoff
 
 **Last updated:** 30 September 2026  
-**Current addon version:** `0.2.0-alpha15`  
+**Current addon version:** `0.2.0-alpha16`  
 **Current status:** alpha11 (recap, goals, safer data) complete in AUTOMATED testing (Chronicles 322/322; alpha10 polish before it) and published to both clients and the CurseForge package. Nothing new has been observed live; Forever and two-player guild sharing are still unproven.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
@@ -432,6 +432,8 @@ Next up, titles, shop, halls, last session, weekly recap (alpha15, 30 Sep 2026) 
 - Commits: `1e6a54d`..`079f9ea` group (weekly recap + last session, Hall of Fame, Next up, titles/shop/release). Suites: Chronicles **378/378**, Diagnostics **35/35**, Dashboard **39/39** (total **452**). Published on BOTH clients (21 files, 0 differences). Release `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha15/`, ZIP SHA-256 `0BBD65072808686539DBBA2D9F563BE84225E679E8DCD7D800BBE01EE71399E0`. Not uploaded to CurseForge.
 - Unverified live: the new Settings section layout (length grew by about 11 buttons), Next up filter row layout, title and flourish wording, Hall of Shame/Fame against real history, toast colours.
 
+alpha16 (30 Sep 2026): the Medals tab now opens on the Next up filter (`UI.medalFilter` default), All is one click away; two older tests now select All first and one new test covers the default. Suites Chronicles 379/379, Diagnostics 35/35, Dashboard 39/39. Published on both clients; ZIP SHA-256 in the release folder `MAMChronicles-0.2.0-alpha16` (recorded below after publishing).
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -491,7 +493,7 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-0. alpha15 is installed on BOTH clients and packaged (SHA-256 in the alpha15 block of section 9). The alpha10 instructions below still apply. If any later change is made, run `scripts/publish-build.ps1` again from the PowerShell tool.
+0. alpha16 is installed on BOTH clients and packaged (SHA-256 in the alpha16 note of section 9). The alpha10 instructions below still apply. If any later change is made, run `scripts/publish-build.ps1` again from the PowerShell tool.
 1. **Next action (user):** log in on the WoW Forever client with alpha10 and (a) type `/mam diag`, click Copy diagnostics and send the pasted report (look at `Handler errors:`, `Medals:`, `Camp spells seen:`, `Statistics:` and `scan N ms`); (b) open the Medals tab, try the filters and search, hover a few medals and send a screenshot; (c) do the campfire test: complete The Great Outdoors, craft and light a campfire, place a camp object, then send `/mam diag` again. Continue with the alpha9 confirmations below. Confirm live: The Great Outdoors gives Happy Camper; lighting a campfire and placing an object moves Firestarter / Camp Decorator; entering the new dungeons, raids, Darkspear Islands and new zones moves their medals; Plot Twist for a new race-class combo; which statistic-based medals appear.
 2. Fix whatever the live check disproves (exact spell names, instance names, quest name, Statistics availability on Forever).
 3. User decides: the licence text, CurseForge project name/category, and then uploads `docs/release/curseforge` material with the ZIP following `UPLOAD-CHECKLIST.md`.
