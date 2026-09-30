@@ -60,6 +60,11 @@ function Counters:Add(name, amount)
   local row = database.counters[Addon.characterKey] or {}
   database.counters[Addon.characterKey] = row
   row[name] = math.min(1000000000, (row[name] or 0) + amount)
+  local season = Addon.Medals and Addon.Medals.ActiveSeason and Addon.Medals:ActiveSeason()
+  if season and season.counters[name] then
+    local key = "season_" .. season.key
+    row[key] = math.min(1000000000, (row[key] or 0) + amount)
+  end
   if not Addon.Medals then return end
   if C_Timer and C_Timer.After then
     if self.evaluatePending then return end

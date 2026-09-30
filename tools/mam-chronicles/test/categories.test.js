@@ -37,7 +37,7 @@ test('every medal family has a unique title',()=>{
   assert.equal(h.get('__missing'),''); assert.equal(h.get('__dup'),'');
 });
 test('the first medal of a family unlocks a title with a toast, later tiers do not',()=>{
-  const h=setup(); h.run('MAMChronicles.Toast.queue={}; MAMChronicles.Toast.current=nil; '+count('wine',1)+'; __q=""; for _,q in ipairs(MAMChronicles.Toast.queue) do __q=__q..q.title.." | " end; __q=__q..((MAMChronicles.Toast.current or {}).title or "")');
+  const h=setup(); h.run('MAMChronicles.Now=function() return time({year=2026,month=11,day=10,hour=12}) end; MAMChronicles.Toast.queue={}; MAMChronicles.Toast.current=nil; '+count('wine',1)+'; __q=""; for _,q in ipairs(MAMChronicles.Toast.queue) do __q=__q..q.title.." | " end; __q=__q..((MAMChronicles.Toast.current or {}).title or "")');
   assert.match(h.get('__q'),/New title: Wine Mom/);
   h.run('MAMChronicles.Toast.queue={}; MAMChronicles.Toast.current=nil; '+count('wine',9)+'; __q2=""; for _,q in ipairs(MAMChronicles.Toast.queue) do __q2=__q2..q.title.." | " end; __q2=__q2..((MAMChronicles.Toast.current or {}).title or "")');
   assert.ok(!/New title/.test(h.get('__q2')));

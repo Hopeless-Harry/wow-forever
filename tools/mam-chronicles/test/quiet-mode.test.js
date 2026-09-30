@@ -1,6 +1,6 @@
 import test from 'node:test'; import assert from 'node:assert/strict'; import { createHarness } from './harness.js';
 const files=['Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Counters.lua','Export.lua','Theme.lua','Toast.lua','Comms.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua'];
-function setup(saved){const h=createHarness({savedVariables:saved});h.load(files);h.run('MAMChronicles:Boot(); MAMChronicles.Toast.queue={}; MAMChronicles.Toast.current=nil');return h;}
+function setup(saved){const h=createHarness({savedVariables:saved});h.load(files);h.run('MAMChronicles:Boot(); MAMChroniclesDB.settings.seasonsSeen={brewfest2026=true}; MAMChronicles.Toast.queue={}; MAMChronicles.Toast.current=nil');return h;}
 const spec='{title="T",text="x",kind="info"}';
 const inside=(kind)=>`function IsInInstance() return true,"${kind}" end`;
 const outside='function IsInInstance() return false,"none" end';

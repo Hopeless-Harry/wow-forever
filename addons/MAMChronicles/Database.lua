@@ -98,6 +98,13 @@ function Database:NormaliseSettings()
   }
   local titles = Addon.Medals and Addon.Medals.titles
   if type(settings.titleChoice) ~= "string" or (settings.titleChoice ~= "auto" and titles and not titles[settings.titleChoice]) then settings.titleChoice = "auto" end
+  local seen, seenCount = {}, 0
+  if type(settings.seasonsSeen) == "table" then
+    for key, value in pairs(settings.seasonsSeen) do
+      if type(key) == "string" and #key <= 30 and value == true and seenCount < 20 then seen[key] = true; seenCount = seenCount + 1 end
+    end
+  end
+  settings.seasonsSeen = seen
   local soundKeys = Addon.Toast and Addon.Toast.soundKeys
   if type(settings.toastSoundChoice) ~= "string" or (soundKeys and not soundKeys[settings.toastSoundChoice]) then settings.toastSoundChoice = "chime" end
   -- Up to three pinned medal ids; anything else is discarded.

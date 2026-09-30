@@ -186,6 +186,55 @@ series("islander", "Islander", "Enter the Darkspear Islands battleground {n} tim
 series("new_horizons", "New Horizons", "Discover an area in {n} of Forever's four new zones.", { 1, 2, 4 }, bts, tally("newZonesCount"), { client = "forever" })
 single("plot_twist", "Plot Twist", "silver", 1, "Play one of Forever's new race and class combinations.", function(ctx) return ctx.newCombo() and 1 or 0 end, { client = "forever" })
 
+-- ---------------------------------------------------------------- holidays
+-- Holiday dates are approximate (a fixed window each year) and may differ on WoW Forever. Two medal series per holiday:
+-- logging in on different days during it, and a themed activity counted only while it runs (Counters.lua adds the
+-- counts). Nothing here needs the network or the game calendar.
+Medals.seasons = {
+  { key = "brewfest", label = "Brewfest", from = { 9, 20 }, to = { 10, 6 }, counters = { wine = true, ale = true }, fun = "Toast", funText = "Drink {n} ales or wines during Brewfest." },
+  { key = "hallows", label = "Hallow's End", from = { 10, 18 }, to = { 11, 1 }, counters = { food = true, cookie = true, pie = true }, fun = "Treats", funText = "Eat {n} treats during Hallow's End." },
+  { key = "winter", label = "Winter Veil", from = { 12, 15 }, to = { 1, 2 }, counters = { food = true, coffee = true, juice = true }, fun = "Feast", funText = "Eat or drink {n} festive things during Winter Veil." },
+  { key = "lunar", label = "Lunar Festival", from = { 1, 21 }, to = { 2, 4 }, counters = { emote_cheer = true, emote_wave = true }, fun = "Cheers", funText = "Cheer or wave {n} times during the Lunar Festival." },
+  { key = "love", label = "Love Is in the Air", from = { 2, 5 }, to = { 2, 19 }, counters = { emote_hug = true, emote_kiss = true }, fun = "Cuddles", funText = "Give {n} hugs or kisses during Love Is in the Air." },
+  { key = "midsummer", label = "Midsummer", from = { 6, 21 }, to = { 7, 5 }, counters = { emote_dance = true }, fun = "Dance", funText = "Dance {n} times during Midsummer." },
+}
+for _, season in ipairs(Medals.seasons) do
+  series("season_" .. season.key .. "_days", season.label .. " Regular", "Log in on {n} days during " .. season.label .. ".", { 1, 3, 7 }, bts, tally("season_" .. season.key .. "_daysCount"))
+  series("season_" .. season.key .. "_fun", season.label .. " " .. season.fun, season.funText, { 5, 25, 100 }, bts, counter("season_" .. season.key))
+end
+
+-- The season running at a timestamp (default now), and the year it started in (Winter Veil spans New Year).
+function Medals:ActiveSeason(timestamp)
+  if not dateFn then return nil end
+  local parts = dateFn("*t", tonumber(timestamp) or Addon:Now())
+  if type(parts) ~= "table" or not parts.month then return nil end
+  local stamp = parts.month * 100 + parts.day
+  for _, season in ipairs(self.seasons) do
+    local from, to = season.from[1] * 100 + season.from[2], season.to[1] * 100 + season.to[2]
+    if (from <= to and stamp >= from and stamp <= to) or (from > to and (stamp >= from or stamp <= to)) then
+      local year = parts.year
+      if from > to and stamp <= to then year = year - 1 end
+      return season, year
+    end
+  end
+  return nil
+end
+
+-- One toast when a holiday starts (once per holiday per year).
+function Medals:AnnounceSeason()
+  local season, year = self:ActiveSeason()
+  local settings = Addon.db and Addon.db.settings
+  if not (season and settings and Addon.Toast) then return end
+  settings.seasonsSeen = tableOr(settings.seasonsSeen)
+  local key = season.key .. tostring(year)
+  if settings.seasonsSeen[key] then return end
+  local known = 0
+  for _ in pairs(settings.seasonsSeen) do known = known + 1 end
+  if known >= 20 then settings.seasonsSeen = {} end
+  settings.seasonsSeen[key] = true
+  Addon:Guard("Seasons", Addon.Toast.Show, Addon.Toast, { kind = "info", title = season.label .. " is on!", text = "Seasonal medals are earning (holiday dates are approximate).", action = "Medals" })
+end
+
 Medals.foreverDungeons = {
   thanes = { "hall of thanes" }, lordaeron = { "ruins of lordaeron" }, excavation = { "excavation site", "whelgar" }, dalaran = { "dalaran" },
   drowned = { "drowned city" }, kroldok = { "krol'dok", "kroldok" }, alcaz = { "alcaz prison" }, blackmaw = { "blackmaw hold" }, shaper = { "shaper's terrace" },
@@ -298,6 +347,8 @@ function Medals:CountLogin(counts, timestamp)
   if counts.lastLogoutAt and timestamp - counts.lastLogoutAt >= 0 and timestamp - counts.lastLogoutAt <= 60 then counts.quickRelogs = (counts.quickRelogs or 0) + 1 end
   local day, parts = localDay(timestamp)
   if day then
+    local season = self:ActiveSeason(timestamp)
+    if season then self:AddToSet("season_" .. season.key .. "_days", day) end
     if counts.lastLoginDay ~= day then
       if counts.lastLoginDay and day == counts.lastLoginDay + 1 then counts.streak = (counts.streak or 1) + 1 else counts.streak = 1 end
       counts.bestStreak = math.max(counts.bestStreak or 0, counts.streak)
@@ -497,6 +548,7 @@ Medals.categories = {
   { key = "habits", label = "Mom Habits" },
   { key = "emotes", label = "Emotes" },
   { key = "pattern", label = "Play Pattern" },
+  { key = "seasonal", label = "Holidays" },
   { key = "forever", label = "WoW Forever" },
 }
 Medals.categoriesByKey = {}
@@ -512,7 +564,7 @@ assignCategory("habits", "jumps mounts afk rest shots outfits repairs sales purc
 assignCategory("emotes", "sit sleep stare facepalm no thank hugs dances kisses waves cheers")
 assignCategory("pattern", "late early marathon relog streak weekend learning clean raid oops cooking fishing jack mom_of_many long_haul gravity murloc_magnet")
 for _, def in ipairs(definitions) do
-  def.category = def.client == "forever" and "forever" or Medals.familyCategory[def.family] or "progress"
+  def.category = def.client == "forever" and "forever" or (def.family:find("^season_") and "seasonal") or Medals.familyCategory[def.family] or "progress"
 end
 
 -- Categories that have at least one medal this client can show (or that the player already earned), with progress.
@@ -869,6 +921,13 @@ function Medals:DescribeQuests()
     lines[#lines + 1] = (quest.done and "[x] " or "[ ] ") .. quest.text .. "  " .. tostring(progress) .. " / " .. tostring(quest.target) .. "  +" .. tostring(quest.reward)
   end
   return week, lines
+end
+
+
+-- Titles and category for the holiday medal families.
+for _, season in ipairs(Medals.seasons) do
+  Medals.titles["season_" .. season.key .. "_days"] = season.label .. " Regular Mom"
+  Medals.titles["season_" .. season.key .. "_fun"] = season.label .. " " .. season.fun .. " Mom"
 end
 
 -- Goals: up to three unearned medals the player pins to follow on Home.
