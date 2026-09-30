@@ -302,6 +302,8 @@ Second live Retail diagnostics (user, 30 Sep 2026, build 69933, 30 events): unre
 
 Fix (source, NOT yet installed because WoW was running again): parser now accepts a count followed by a bracketed label; new groups Character, World events, Pet battles, Legacy. Chronicles suite **118/118**. Release ZIP rebuilt, SHA-256 `16DA6614F0878F1AB3800662CB424CC4602E59E999489D65FC1137F9838B43FE`. Still unexplained: no Professions or Time played group on that character (likely none present for that character, unproven); Consumables-type stats should now appear under Loot and items. Bracketed labels (e.g. the creature type) are discarded; showing them is a possible enhancement. The Forever client has still not been tested live.
 
+Third live Retail result (user, 30 Sep 2026, build 69933, interface 120100, bb4b6e1 installed on BOTH clients, hash-verified): `Statistics: ok, 429 read, 0 unreadable`; no `Uncategorised` line; 33 events, 0 collector errors. Groups displayed with sensible headline values: Deaths and combat, Quests, Exploration and travel, Dungeons and raids, Social, Player versus player, Character, World events, Pet battles, Legacy. Statistics on **Retail: PASS (user-observed)**. No Professions, Loot and items, or Time played group appeared for this character (consumable stats such as Healthstones used sit under Character). **Forever: still NOT tested live** - this screenshot is Retail.
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -361,8 +363,8 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-1. User closes WoW fully; reinstall latest source to `_retail_` and `_classic_beta_` (scripts/install-mam-chronicles.ps1, verify 14 files and 0 hash diffs).
-2. User logs in on Forever (priority) and Retail, waits ~10s, sends the Statistics tab text and `/mam diag`. Check `Statistics:` counts, Unreadable and Uncategorised lines on Forever specifically.
+1. User logs in on the WoW Forever client (`_classic_beta_`, WowB.exe), waits ~10s, and sends the Statistics tab text and `/mam diag` (look at `Statistics:` counts, Unreadable sample, Uncategorised). Forever already has the same build installed.
+2. Fix Forever-specific findings. Consider showing bracketed labels and improving group naming.
 3. Then: statistics-driven awards, Characters roster tab, opt-in popups/toasts, Courier export of non-sensitive statistics, then Phase 2 sync with the recorded sharing-on-by-default safeguards.
 
 ## 15. Recent history
