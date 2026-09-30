@@ -20,7 +20,7 @@ Retail is a shared-behaviour smoke test. These results do not establish WoW Fore
 | Loaded-marker diagnostic | PASS | On `0.1.4-phase0`, Current marker and Loaded marker both reported the exact value `1790708096-4` at load count 7. |
 | Map APIs | PASS (outdoors) | Map ID, normalised map position, and outdoor world position were all available in the sampled outdoor state. Restricted-instance behaviour remains untested. |
 | Guild roster | INCONCLUSIVE | The API was available, but the sampled character exposed zero members and zero online members. |
-| Professions | PASS (Cooking detection) | Retail `0.1.6-phase0` reported one secondary profession and `Cooking learned: yes`. Recipe enumeration was available but returned zero before any profession window had been opened. |
+| Professions | PASS | Retail `0.1.6-phase0` reported one secondary profession and `Cooking learned: yes`. Opening Cooking fired `TRADE_SKILL_SHOW` and exposed 185 recipes in the current window. |
 | Addon messaging | RESTRICTED (confirmed) | Prefix registration succeeded with `duplicate-prefix`; outgoing addon messages were restricted while chat lockdown was not active. Version `0.1.5-phase0` visibly reported that the self ping was not sent, and all ping counters correctly remained zero. |
 | Privacy | PASS | The copied report contained no character name, sender name, BattleTag, account path, or chat content. |
 
@@ -33,6 +33,7 @@ Retail is a shared-behaviour smoke test. These results do not establish WoW Fore
 - `ZONE_CHANGED_NEW_AREA`: 8
 - `PLAYER_ENTERING_WORLD`: 9
 - `SKILL_LINES_CHANGED`: 732
+- `TRADE_SKILL_SHOW`: 1
 
 ## Persistence defect and correction
 
@@ -75,7 +76,7 @@ After the character learned Cooking, `SKILL_LINES_CHANGED` advanced from 583 to 
 
 Version `0.1.6-phase0` preserves all API return positions, checks primary professions plus Archaeology, Fishing, and Cooking, and reports secondary professions explicitly. It also distinguishes an unavailable recipe-enumeration API from a genuine zero recipe count.
 
-The live Retail retest at load count 10 reported `Secondary professions visible: 1` and `Cooking learned: yes`, confirming the correction. `Recipe enumeration available: yes` with zero visible recipes is retained as a separate, incomplete check because `TRADE_SKILL_SHOW` remained at zero.
+The live Retail retest at load count 10 reported `Secondary professions visible: 1` and `Cooking learned: yes`, confirming the correction. Opening the Cooking window then raised `TRADE_SKILL_SHOW` to 1 and the available runtime enumeration returned 185 recipes in the current window. This establishes that profession-window recipe enumeration works; it does not establish that all 185 recipes are learned.
 
 - Diagnostic tests: 35/35 passed.
 - Guild Ledger regression tests: 39/39 passed.
@@ -93,7 +94,6 @@ Blizzard's generated API documentation treats outgoing-addon-message restriction
 
 ## Next live check
 
-1. Open the Cooking profession window, then use `/mamdiag run` and check `TRADE_SKILL_SHOW` plus the recipe count.
-2. Use a guilded Retail character, if available, and refresh the guild roster.
-3. Check map capability inside an instance or another naturally restricted area.
-4. Leave quest, level, death, and resurrection checks until they occur naturally.
+1. Use a guilded Retail character, if available, and refresh the guild roster.
+2. Check map capability inside an instance or another naturally restricted area.
+3. Leave quest, level, death, and resurrection checks until they occur naturally.
