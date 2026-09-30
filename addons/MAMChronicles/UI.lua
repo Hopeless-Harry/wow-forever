@@ -147,8 +147,25 @@ function UI:ResetWindow()
 end
 
 function UI:Toggle()
-  self:Create()
-  if self.frame.IsShown and self.frame:IsShown() then self:Hide() else self:Show() end
+  if self.frame and self.frame.IsShown and self.frame:IsShown() then self:Hide(); return end
+  self:Show()
+end
+
+-- Building or laying out the window waits for the end of combat.
+function UI:DeferForCombat(copyText)
+  if not Addon:InCombat() then return false end
+  local first = not (self.pendingShow or self.pendingCopy)
+  self.pendingShow, self.pendingCopy = true, copyText
+  Addon:Print("In combat: the Chronicle will open when combat ends.")
+  if first then Addon:AfterCombat(function() UI:OpenPending() end) end
+  return true
+end
+
+function UI:OpenPending()
+  local text = self.pendingCopy
+  self.pendingShow, self.pendingCopy = nil, nil
+  if text then self:ShowCopy(text, self.pendingDiagnostics) else self:Show() end
+  self.pendingDiagnostics = nil
 end
 
 function UI:GetCurrentMonthRange()
@@ -919,7 +936,13 @@ function UI:Create()
   self:BuildSettingsPage(frame)
   if Addon.Medals then self:BuildMedalsPage(frame) end
 
-  safeMethod(frame, "SetScript", "OnSizeChanged", function(_, width, height) UI:ApplyLayout(width, height) end)
+  safeMethod(frame, "SetScript", "OnSizeChanged", function(_, width, height)
+    if Addon:InCombat() then
+      local first = not UI.layoutPending
+      UI.layoutPending = { width, height }
+      if first then Addon:AfterCombat(function() local size = UI.layoutPending; UI.layoutPending = nil; if size then UI:ApplyLayout(size[1], size[2]) end end) end
+    else UI:ApplyLayout(width, height) end
+  end)
   self:ApplyLayout(frame.GetWidth and frame:GetWidth() or 780, frame.GetHeight and frame:GetHeight() or 560)
   safeMethod(frame, "Hide"); return frame
 end
@@ -968,9 +991,13 @@ function UI:Refresh()
   end
 end
 
-function UI:Show() self:Create(); self:Refresh(); safeMethod(self.frame,"Show") end
+function UI:Show()
+  if self:DeferForCombat() then return end
+  self:Create(); self:Refresh(); safeMethod(self.frame,"Show")
+end
 function UI:Hide() if self.frame then safeMethod(self.frame,"Hide") end end
 function UI:ShowCopy(text, diagnostics)
+  if Addon:InCombat() then self.pendingDiagnostics = diagnostics; self:DeferForCombat(text or ""); return end
   self:Create(); self:HideAllViews(); self:CloseMenu(); self:SetToolbarVisible(false); self:PlaceContent(diagnostics and true or false)
   self:SetDiagBarVisible(diagnostics)
   self.copyText = text or ""; self.textOffset = 0

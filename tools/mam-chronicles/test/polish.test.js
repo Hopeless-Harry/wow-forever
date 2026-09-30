@@ -246,3 +246,49 @@ test('a very large saved history boots, compacts on the next event and stays sea
   h.run('MAMChronicles.EventStore:Append("memory.manual",{text="after"},{occurredAt=1790704801}); __n=#MAMChroniclesDB.events; MAMChronicles.UI:Show(); MAMChronicles.UI:SetActiveTab("Chronicle"); __rows=#MAMChronicles.UI.rowPool');
   assert.ok(h.get('__n')<=10001); assert.equal(h.get('__rows'),30);
 });
+
+// ---- combat safety ----
+function combatSetup(){const h=createHarness();h.load(dashFiles);h.run('MAMChronicles:Boot()');return h;}
+const countFrames='__frames=0; local orig=CreateFrame; function CreateFrame(...) __frames=__frames+1; return orig(...) end';
+test('AfterCombat runs work immediately out of combat and queues it in combat',()=>{
+  const h=combatSetup(); h.run('__ran=0; MAMChronicles:AfterCombat(function() __ran=__ran+1 end)'); assert.equal(h.get('__ran'),1);
+  h.run('function InCombatLockdown() return true end; MAMChronicles:AfterCombat(function() __ran=__ran+10 end)'); assert.equal(h.get('__ran'),1);
+  h.run('function InCombatLockdown() return false end'); h.fire('PLAYER_REGEN_ENABLED'); assert.equal(h.get('__ran'),11);
+  h.fire('PLAYER_REGEN_ENABLED'); assert.equal(h.get('__ran'),11);
+});
+test('a failing after-combat job is counted and does not stop the others',()=>{
+  const h=combatSetup(); h.run('function InCombatLockdown() return true end; __ok=0; MAMChronicles:AfterCombat(function() error("x") end); MAMChronicles:AfterCombat(function() __ok=1 end); function InCombatLockdown() return false end');
+  h.fire('PLAYER_REGEN_ENABLED'); assert.equal(h.get('__ok'),1); assert.equal(h.get('MAMChronicles.errorStats.count'),1);
+});
+test('opening the window in combat creates no frames until combat ends',()=>{
+  const h=combatSetup(); h.run(countFrames+'; function InCombatLockdown() return true end; SlashCmdList.MAMCHRONICLES("")');
+  assert.equal(h.get('__frames'),0); assert.equal(h.get('MAMChronicles.UI.frame'),null);
+  assert.ok(h.calls.printed.some(m=>/combat/i.test(m)));
+  h.run('function InCombatLockdown() return false end'); h.fire('PLAYER_REGEN_ENABLED');
+  assert.equal(h.get('MAMChronicles.UI.frame.shown'),true);
+});
+test('/mam diag in combat waits and then opens the diagnostics',()=>{
+  const h=combatSetup(); h.run('function InCombatLockdown() return true end; SlashCmdList.MAMCHRONICLES("diag")'); assert.equal(h.get('MAMChronicles.UI.frame'),null);
+  h.run('function InCombatLockdown() return false end'); h.fire('PLAYER_REGEN_ENABLED');
+  assert.match(h.get('MAMChronicles.UI.copyText'),/Diagnostics/); assert.equal(h.get('MAMChronicles.UI.frame.shown'),true);
+});
+test('the window can still be closed in combat',()=>{
+  const h=combatSetup(); h.run('MAMChronicles.UI:Show(); function InCombatLockdown() return true end; MAMChronicles.UI:Toggle()');
+  assert.equal(h.get('MAMChronicles.UI.frame.shown'),false);
+});
+test('the minimap button is not created during combat',()=>{
+  const h=createHarness(); h.load(dashFiles); h.run('function InCombatLockdown() return true end; '+countFrames+'; MAMChronicles:Boot(); __during=__frames');
+  const during=h.get('__during'); h.run('function InCombatLockdown() return false end'); h.fire('PLAYER_REGEN_ENABLED');
+  assert.ok(h.get('__frames')>during); assert.ok(h.get('MAMChronicles.Launcher.button'));
+});
+test('counters stop counting while recording is switched off',()=>{
+  const h=combatSetup(); h.run('MAMChroniclesDB.settings.enabled=false'); h.fire('SCREENSHOT_SUCCEEDED');
+  assert.equal(h.get('(MAMChroniclesDB.counters[MAMChronicles.characterKey] or {}).shots'),null);
+  h.run('MAMChroniclesDB.settings.enabled=true'); h.fire('SCREENSHOT_SUCCEEDED');
+  assert.equal(h.get('MAMChroniclesDB.counters[MAMChronicles.characterKey].shots'),1);
+});
+test('resizing the window in combat postpones the layout until combat ends',()=>{
+  const h=combatSetup(); h.run('local UI=MAMChronicles.UI; UI:Show(); UI:ApplyLayout(780,560); __w0=UI.textWidth; function InCombatLockdown() return true end; UI.frame.scripts.OnSizeChanged(UI.frame,900,600); __w1=UI.textWidth');
+  assert.equal(h.get('__w1'),h.get('__w0'));
+  h.run('function InCombatLockdown() return false end'); h.fire('PLAYER_REGEN_ENABLED'); assert.equal(h.get('MAMChronicles.UI.textWidth'),850);
+});

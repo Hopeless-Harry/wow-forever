@@ -43,6 +43,28 @@ function Addon:Guard(label, fn, ...)
   return (table.unpack or unpack)(results, 2, results.n)
 end
 
+-- Work that builds or lays out UI waits for combat to end (PLAYER_REGEN_ENABLED).
+Addon.afterCombat = {}
+
+function Addon:InCombat()
+  local ok, value = pcall(function() return InCombatLockdown and InCombatLockdown() end)
+  return ok and value and true or false
+end
+
+function Addon:AfterCombat(fn)
+  if type(fn) ~= "function" then return false end
+  if not self:InCombat() then self:Guard("AfterCombat", fn); return true end
+  table.insert(self.afterCombat, fn)
+  if self.eventFrame then pcall(function() self.eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED") end) end
+  return false
+end
+
+function Addon:RunAfterCombat()
+  local queue = self.afterCombat
+  self.afterCombat = {}
+  for _, fn in ipairs(queue) do self:Guard("AfterCombat", fn) end
+end
+
 local function normalise(value)
   return string.lower(tostring(value or "unknown")):gsub("[^%w%-]", "-")
 end
@@ -113,7 +135,8 @@ function Addon:HandleEvent(eventName, ...)
     return
   end
   if not self.booted then self:Boot() end
-  if self.Counters and self.Counters.handles[eventName] then self:Guard("Counters", self.Counters.OnEvent, self.Counters, eventName, ...) end
+  if eventName == "PLAYER_REGEN_ENABLED" then self:RunAfterCombat() end
+  if self.db.settings.enabled ~= false and self.Counters and self.Counters.handles[eventName] then self:Guard("Counters", self.Counters.OnEvent, self.Counters, eventName, ...) end
   if eventName == "CHAT_MSG_ADDON" then
     if self.Comms then self:Guard("Comms", self.Comms.OnAddonMessage, self.Comms, ...) end
     return

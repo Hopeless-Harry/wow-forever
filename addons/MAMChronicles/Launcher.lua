@@ -121,6 +121,7 @@ function Launcher:Create()
 end
 
 function Launcher:Initialise()
+  if not self.button and Addon:InCombat() then Addon:AfterCombat(function() Launcher:Initialise() end); return end
   if not self:Create() then return end
   local settings = ui()
   self:SetAngle(settings and settings.minimapAngle or DEFAULT_ANGLE)
