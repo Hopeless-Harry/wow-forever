@@ -1,7 +1,7 @@
 # Moms Against Magic Chronicles — Project Handoff
 
 **Last updated:** 30 September 2026  
-**Current addon version:** `0.2.0-alpha11`  
+**Current addon version:** `0.2.0-alpha12`  
 **Current status:** alpha11 (recap, goals, safer data) complete in AUTOMATED testing (Chronicles 322/322; alpha10 polish before it) and published to both clients and the CurseForge package. Nothing new has been observed live; Forever and two-player guild sharing are still unproven.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
@@ -400,6 +400,12 @@ Commits: `1e6a54d` salvage + version counters; `ab66cb5` monthly recap; `97a6781
 - **Cut**: medal description clipping (still single-line, full text in the tooltip); non-English consumable keywords (needs locale word lists); guild medal board (waits for two-player proof); Characters roster tab; Pi export. Goal toasts ("9/10") not built.
 - Publish with the PowerShell tool and UTF-8 console encoding (see alpha10 note).
 
+Nearly-there goal toast (alpha12, 30 Sep 2026) - AUTOMATED EVIDENCE ONLY:
+
+- `Medals:CheckGoalProgress(row)` runs at the end of each non-baseline `Evaluate`: for each pinned goal with target >= 5 and progress between 90 and 100 percent it shows one "Nearly there: <medal>" info toast (`row.goalNotified[id]` remembers it, persisted in `db.medals[char]`). Respects the toast setting and combat queue. Commit `c2d501f`.
+- Suites: Chronicles **326/326**, Diagnostics **35/35**, Dashboard **39/39** (total **400**). Published on BOTH clients (21 files, 0 differences). Release `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha12/`, ZIP SHA-256 `7ED952EE1006BF08514C82FA05D402F1765A4306B1CEF5AB34273B0A97A87747`. Not uploaded to CurseForge.
+- Still cut: medal description wrapping (layout cannot be verified without a live look), non-English consumable keywords, guild medal board, Characters roster, Pi export.
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -459,7 +465,7 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-0. alpha11 is installed on BOTH clients and packaged (SHA-256 in the alpha11 block of section 9). The alpha10 instructions below still apply. If any later change is made, run `scripts/publish-build.ps1` again from the PowerShell tool.
+0. alpha12 is installed on BOTH clients and packaged (SHA-256 in the alpha12 block of section 9). The alpha10 instructions below still apply. If any later change is made, run `scripts/publish-build.ps1` again from the PowerShell tool.
 1. **Next action (user):** log in on the WoW Forever client with alpha10 and (a) type `/mam diag`, click Copy diagnostics and send the pasted report (look at `Handler errors:`, `Medals:`, `Camp spells seen:`, `Statistics:` and `scan N ms`); (b) open the Medals tab, try the filters and search, hover a few medals and send a screenshot; (c) do the campfire test: complete The Great Outdoors, craft and light a campfire, place a camp object, then send `/mam diag` again. Continue with the alpha9 confirmations below. Confirm live: The Great Outdoors gives Happy Camper; lighting a campfire and placing an object moves Firestarter / Camp Decorator; entering the new dungeons, raids, Darkspear Islands and new zones moves their medals; Plot Twist for a new race-class combo; which statistic-based medals appear.
 2. Fix whatever the live check disproves (exact spell names, instance names, quest name, Statistics availability on Forever).
 3. User decides: the licence text, CurseForge project name/category, and then uploads `docs/release/curseforge` material with the ZIP following `UPLOAD-CHECKLIST.md`.
