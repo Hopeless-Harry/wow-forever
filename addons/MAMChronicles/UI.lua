@@ -181,14 +181,21 @@ function UI:GetVisibleTimeline()
   local result={}; for index=offset+1,math.min(offset+30,#events) do table.insert(result,events[index]) end return result,#events
 end
 
+local booleanSettings={enabled=true,recordCoordinates=true,recordQuestAccepts=true,recordStatistics=true,recordGoldStatistics=true,toastsEnabled=true,toastSound=true,announceMedals=true,announceGuildChat=true,receiveGuildAlerts=true}
 function UI:SetSetting(key,value)
-  local allowed={enabled=true,recordCoordinates=true,recordQuestAccepts=true,notableQuality=true,maxEvents=true,recordStatistics=true,recordGoldStatistics=true}
   if key=="showMinimapButton" and Addon.SettingsPanel then return Addon.SettingsPanel:ApplySetting(key,value==true) end
-  if not allowed[key] then return false end
-  if key=="notableQuality" then value=math.max(4,math.min(5,tonumber(value) or 4))
+  local settings=Addon.db.settings
+  if key=="theme" then
+    if not (Addon.Theme and Addon.Theme.presets[value]) then return false end
+    settings.theme=value; Addon.db.meta.updatedAt=Addon:Now(); return true
+  elseif key=="windowAlpha" then
+    settings.windowAlpha=math.max(0.3,math.min(1,math.floor((tonumber(value) or 1)*100+0.5)/100)); Addon.db.meta.updatedAt=Addon:Now()
+    self:ApplyAppearance(); return true
+  elseif key=="notableQuality" then value=math.max(4,math.min(5,tonumber(value) or 4))
   elseif key=="maxEvents" then value=math.max(100,math.min(10000,math.floor(tonumber(value) or 10000)))
-  else value=value==true end
-  Addon.db.settings[key]=value; Addon.db.meta.updatedAt=Addon:Now()
+  elseif booleanSettings[key] then value=value==true
+  else return false end
+  settings[key]=value; Addon.db.meta.updatedAt=Addon:Now()
   if key=="recordGoldStatistics" and not value and Addon.AchievementStats then Addon.AchievementStats:PurgeGold() end
   return true
 end
@@ -261,7 +268,7 @@ function UI:ApplyLayout(width, height)
   safeMethod(self.content, "SetWidth", self.textWidth); safeMethod(self.copyBox, "SetWidth", self.textWidth)
   self:LayoutRows(height - ROW_TOP - FOOTER)
   if self.dashboard then self.dashboard:Layout(width - SIDE * 2, height - 84 - FOOTER - 4) end
-  self:UpdateTextScroll()
+  self:UpdateTextScroll(); self:UpdateSettingsScroll()
 end
 
 function UI:SetDetailsVisible(visible)
@@ -348,6 +355,154 @@ local function createRow(self, frame, index)
   return row
 end
 
+function UI:ApplyAppearance()
+  if not (self.frame and Addon.Theme and Addon.db) then return end
+  local C, alpha = Addon.Theme.colors, Addon.db.settings.windowAlpha or 1
+  safeMethod(self.bgFill, "SetColorTexture", C.bg[1], C.bg[2], C.bg[3], alpha)
+  safeMethod(self.frame, "SetBackdropColor", C.bg[1], C.bg[2], C.bg[3], alpha)
+end
+
+function UI:SyncSettingsControls()
+  if not (self.settingChecks and Addon.db) then return end
+  local settings, T = Addon.db.settings, Addon.Theme
+  for key, check in pairs(self.settingChecks) do safeMethod(check, "SetChecked", settings[key] == true) end
+  for index, button in ipairs(self.themeButtons or {}) do T:SetSelected(button, T.presetOrder[index] == settings.theme) end
+  if self.alphaSlider then
+    self.syncingSettings = true
+    safeMethod(self.alphaSlider, "SetValue", math.floor((1 - (settings.windowAlpha or 1)) * 100 + 0.5))
+    self.syncingSettings = false
+  end
+  safeMethod(self.alphaValue, "SetText", tostring(math.floor((1 - (settings.windowAlpha or 1)) * 100 + 0.5)) .. "% transparent")
+  local pending = settings.theme ~= T.current
+  T:SetEnabled(self.applyThemeButton, pending)
+  safeMethod(self.themeNote, "SetText", pending and "Saved. Apply to reload the interface with this theme." or "")
+end
+
+function UI:UpdateSettingsScroll()
+  if not self.settingsArea then return end
+  local view = self:TextViewHeight()
+  self.settingsArea:Update(self.settingsHeight or 700, view, (self.textWidth or 700))
+end
+
+function UI:ShowSettingsPage()
+  local area = self.settingsArea
+  area:Place(self.frame, 84, FOOTER + 4, SIDE, TEXT_SCROLLBAR); area:Show()
+  for _, control in ipairs(self.settingControls) do safeMethod(control, "Show") end
+  self:SyncSettingsControls(); self:UpdateSettingsScroll()
+end
+
+function UI:BuildSettingsPage(frame)
+  local T = Addon.Theme; local C = T.colors
+  local area = T:ScrollArea(frame); self.settingsArea = area
+  local child = area.child
+  self.settingControls, self.settingChecks, self.themeButtons = {}, {}, {}
+  local y = -4
+  local function add(control) self.settingControls[#self.settingControls + 1] = control end
+  local function heading(text)
+    y = y - 10
+    local fs = child:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    safeMethod(fs, "SetPoint", "TOPLEFT", child, "TOPLEFT", 4, y); safeMethod(fs, "SetText", text); safeMethod(fs, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1)
+    add(fs); y = y - 30
+  end
+  local function label(text)
+    local fs = child:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    safeMethod(fs, "SetPoint", "TOPLEFT", child, "TOPLEFT", 8, y); safeMethod(fs, "SetText", text); safeMethod(fs, "SetTextColor", C.muted[1], C.muted[2], C.muted[3], 1)
+    add(fs); y = y - 20
+    return fs
+  end
+  local function check(key, text, tip)
+    local box, caption = T:Check(child, text)
+    safeMethod(box, "SetPoint", "TOPLEFT", child, "TOPLEFT", 8, y)
+    safeMethod(box, "SetScript", "OnClick", function(button)
+      local checked = button.GetChecked and button:GetChecked() or not Addon.db.settings[key]
+      UI:SetSetting(key, checked); UI:SyncSettingsControls()
+    end)
+    if tip then attachTooltip(box, text, tip) end
+    self.settingChecks[key] = box; add(box); add(caption); y = y - 26
+  end
+  local function button(text, width, x, onClick)
+    local b = T:Button(child, text, width, 26)
+    safeMethod(b, "SetPoint", "TOPLEFT", child, "TOPLEFT", x, y); safeMethod(b, "SetScript", "OnClick", onClick)
+    add(b); return b
+  end
+
+  heading("Appearance")
+  label("Theme")
+  for index, name in ipairs(T.presetOrder) do
+    local b = button(T.presetNames[name], 112, 8 + (index - 1) * 120, function()
+      UI:SetSetting("theme", name); UI:SyncSettingsControls()
+    end)
+    self.themeButtons[index] = b
+  end
+  y = y - 34
+  self.applyThemeButton = button("Apply theme (reloads UI)", 220, 8, function()
+    if ReloadUI then ReloadUI() else Addon:Print("Type /reload to apply the theme.") end
+  end)
+  self.themeNote = child:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+  safeMethod(self.themeNote, "SetPoint", "LEFT", self.applyThemeButton, "RIGHT", 12, 0); add(self.themeNote)
+  y = y - 38
+  label("Window transparency")
+  self.alphaSlider = T:Slider(child, 260, 0, 70, 1)
+  safeMethod(self.alphaSlider, "SetPoint", "TOPLEFT", child, "TOPLEFT", 8, y - 2)
+  safeMethod(self.alphaSlider, "SetScript", "OnValueChanged", function(_, value)
+    if UI.syncingSettings then return end
+    UI:SetSetting("windowAlpha", 1 - (tonumber(value) or 0) / 100); UI:SyncSettingsControls()
+  end)
+  attachTooltip(self.alphaSlider, "Window transparency", "Make the window background see-through so the game shows behind it.")
+  add(self.alphaSlider)
+  self.alphaValue = child:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  safeMethod(self.alphaValue, "SetPoint", "LEFT", self.alphaSlider, "RIGHT", 14, 0); add(self.alphaValue)
+  y = y - 34
+  check("showMinimapButton", "Show minimap button")
+
+  heading("Alerts")
+  check("toastsEnabled", "Show toast alerts", "Toasts are held while you are in combat and appear once combat ends.")
+  check("toastSound", "Play a sound with toasts")
+  check("announceMedals", "Announce my Mom Medals to the guild", "Guildmates running the addon see a toast when you earn a medal. Nothing is sent when messaging is restricted.")
+  check("announceGuildChat", "Also post my medals in guild chat", "Posts one line to guild chat that everyone can read, even without the addon. Off by default.")
+  check("receiveGuildAlerts", "Show toasts when guildmates earn medals")
+
+  heading("Recording")
+  check("enabled", "Record Chronicle")
+  check("recordQuestAccepts", "Record quest accepts")
+  check("recordCoordinates", "Attach coordinates to events")
+
+  heading("Statistics")
+  check("recordStatistics", "Collect achievement statistics")
+  check("recordGoldStatistics", "Include gold statistics (local only)")
+
+  heading("Data")
+  local function qualityText(value) return value == 5 and "Loot: Legendary only" or "Loot: Epic and above" end
+  self.qualityButton = button(qualityText(Addon.db.settings.notableQuality), 220, 8, function(b)
+    local nextValue = Addon.db.settings.notableQuality == 4 and 5 or 4
+    UI:SetSetting("notableQuality", nextValue); safeMethod(b, "SetText", qualityText(nextValue))
+  end)
+  y = y - 34
+  self.historyButton = button("History: " .. tostring(Addon.db.settings.maxEvents), 220, 8, function(b)
+    local current = Addon.db.settings.maxEvents
+    local nextValue = current >= 10000 and 1000 or (current >= 5000 and 10000 or 5000)
+    UI:SetSetting("maxEvents", nextValue); safeMethod(b, "SetText", "History: " .. tostring(nextValue)); Addon.Database:Compact()
+  end)
+  y = y - 34
+
+  heading("Window")
+  local resetWindow = button("Reset Window", 220, 8, function() if Addon.SettingsPanel then Addon.SettingsPanel:ResetWindow() end end)
+  attachTooltip(resetWindow, "Reset Window", "Restore the window size and position.")
+  y = y - 34
+  local resetMinimap = button("Reset Minimap Button", 220, 8, function() if Addon.SettingsPanel then Addon.SettingsPanel:ResetMinimap() end end)
+  attachTooltip(resetMinimap, "Reset Minimap Button", "Put the minimap button back in its default place.")
+  y = y - 34
+
+  heading("Danger zone")
+  self.eraseButton = button("Erase Chronicle Data...", 220, 8, function() if Addon.SettingsPanel then Addon.SettingsPanel:RequestEraseHistory() end end)
+  if self.eraseButton.label then safeMethod(self.eraseButton.label, "SetTextColor", C.danger[1], C.danger[2], C.danger[3], 1) end
+  attachTooltip(self.eraseButton, "Erase Chronicle Data", "Permanently deletes recorded history. Settings are kept.")
+  y = y - 40
+  self.settingsHeight = -y
+  safeMethod(area.child, "SetSize", 600, self.settingsHeight)
+  area:Hide()
+end
+
 function UI:Create()
   if self.frame then return self.frame end
   local T = Addon.Theme; local C = T.colors
@@ -359,6 +514,7 @@ function UI:Create()
   T:Panel(frame, C.bg, C.border)
   self.bgFill = frame:CreateTexture(nil, "BACKGROUND", nil, -8)
   safeMethod(self.bgFill, "SetAllPoints", frame); safeMethod(self.bgFill, "SetColorTexture", C.bg[1], C.bg[2], C.bg[3], 1)
+  self:ApplyAppearance()
   safeMethod(frame, "SetScript", "OnDragStart", function(f) safeMethod(f, "StartMoving") end)
   safeMethod(frame, "SetScript", "OnDragStop", function(f) safeMethod(f, "StopMovingOrSizing"); UI:SaveWindowState() end)
   if type(UISpecialFrames) == "table" then
@@ -504,61 +660,7 @@ function UI:Create()
 
   self.dashboard = Addon.Dashboard and Addon.Dashboard:Create(frame, self) or nil
 
-  -- settings tab
-  self.settingControls = {}
-  local function heading(text, x, y)
-    local fs = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    safeMethod(fs, "SetPoint", "TOPLEFT", frame, "TOPLEFT", x, y); safeMethod(fs, "SetText", text); safeMethod(fs, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1)
-    self.settingControls[#self.settingControls + 1] = fs
-  end
-  heading("Recording", SIDE + 8, -90); heading("Launcher and statistics", 360, -90)
-  local settingDefs = {
-    { "enabled", "Record Chronicle", SIDE + 8, -118 }, { "recordQuestAccepts", "Record quest accepts", SIDE + 8, -146 }, { "recordCoordinates", "Attach coordinates to events", SIDE + 8, -174 },
-    { "showMinimapButton", "Show minimap button", 360, -118 }, { "recordStatistics", "Collect achievement statistics", 360, -146 }, { "recordGoldStatistics", "Include gold statistics (local only)", 360, -174 },
-  }
-  for _, definition in ipairs(settingDefs) do
-    local key, text = definition[1], definition[2]
-    local check, caption = T:Check(frame, text)
-    safeMethod(check, "SetPoint", "TOPLEFT", frame, "TOPLEFT", definition[3], definition[4]); safeMethod(check, "SetChecked", Addon.db.settings[key])
-    safeMethod(check, "SetScript", "OnClick", function(button)
-      local checked = button.GetChecked and button:GetChecked() or not Addon.db.settings[key]
-      UI:SetSetting(key, checked); UI:Refresh()
-    end)
-    self.settingControls[#self.settingControls + 1] = check; self.settingControls[#self.settingControls + 1] = caption
-  end
-  local function qualityText(value) return value == 5 and "Loot: Legendary only" or "Loot: Epic and above" end
-  local quality = T:Button(frame, qualityText(Addon.db.settings.notableQuality), 220, 26)
-  safeMethod(quality, "SetPoint", "TOPLEFT", frame, "TOPLEFT", SIDE + 8, -226)
-  safeMethod(quality, "SetScript", "OnClick", function(button)
-    local nextValue = Addon.db.settings.notableQuality == 4 and 5 or 4
-    UI:SetSetting("notableQuality", nextValue); safeMethod(button, "SetText", qualityText(nextValue))
-  end)
-  self.qualityButton = quality; self.settingControls[#self.settingControls + 1] = quality
-  local history = T:Button(frame, "History: " .. tostring(Addon.db.settings.maxEvents), 220, 26)
-  safeMethod(history, "SetPoint", "TOPLEFT", frame, "TOPLEFT", SIDE + 8, -258)
-  safeMethod(history, "SetScript", "OnClick", function(button)
-    local current = Addon.db.settings.maxEvents
-    local nextValue = current >= 10000 and 1000 or (current >= 5000 and 10000 or 5000)
-    UI:SetSetting("maxEvents", nextValue); safeMethod(button, "SetText", "History: " .. tostring(nextValue)); Addon.Database:Compact()
-  end)
-  self.historyButton = history; self.settingControls[#self.settingControls + 1] = history
-  local actions = {
-    { "Reset Window", -226, "ResetWindow", "Reset Window", "Restore the window size and position." },
-    { "Reset Minimap Button", -258, "ResetMinimap", "Reset Minimap Button", "Put the minimap button back in its default place." },
-    { "Erase Chronicle Data...", -290, "RequestEraseHistory", "Erase Chronicle Data", "Permanently deletes recorded history. Settings are kept." },
-  }
-  for _, action in ipairs(actions) do
-    local button = T:Button(frame, action[1], 220, 26)
-    safeMethod(button, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 360, action[2])
-    safeMethod(button, "SetScript", "OnClick", function() if Addon.SettingsPanel then Addon.SettingsPanel[action[3]](Addon.SettingsPanel) end end)
-    self.settingControls[#self.settingControls + 1] = button
-    attachTooltip(button, action[4], action[5])
-    if action[3] == "RequestEraseHistory" then
-      self.eraseButton = button
-      if button.label then safeMethod(button.label, "SetTextColor", C.danger[1], C.danger[2], C.danger[3], 1) end
-    end
-  end
-  for _, control in ipairs(self.settingControls) do safeMethod(control, "Hide") end
+  self:BuildSettingsPage(frame)
 
   safeMethod(frame, "SetScript", "OnSizeChanged", function(_, width, height) UI:ApplyLayout(width, height) end)
   self:ApplyLayout(frame.GetWidth and frame:GetWidth() or 780, frame.GetHeight and frame:GetHeight() or 560)
@@ -573,6 +675,7 @@ function UI:HideAllViews()
   self:SetDetailsVisible(false); safeMethod(self.copyBox, "Hide"); safeMethod(self.content, "SetText", "")
   safeMethod(self.textScroll, "Hide"); safeMethod(self.textSlider, "Hide"); self.textVisible = false; self.copyShown = false
   if self.dashboard then self.dashboard:Hide() end
+  if self.settingsArea then self.settingsArea:Hide() end
 end
 
 function UI:Refresh()
@@ -598,7 +701,7 @@ function UI:Refresh()
     local text = Addon.Export:BuildHumanSummary(stats.fromTime, stats.toTime) .. (Addon.AchievementStats and "\n\n" .. Addon.AchievementStats:BuildText(Addon.characterKey) or "")
     safeMethod(self.content, "SetText", self:ColouriseStatistics(text)); self:ShowTextArea(false)
   elseif self.activeTab == "Settings" then
-    for _, control in ipairs(self.settingControls) do safeMethod(control, "Show") end
+    self:ShowSettingsPage()
   else
     self.copyText = Addon.Export:BuildDiagnosticReport(); safeMethod(self.copyBox, "SetText", self.copyText); safeMethod(self.copyBox, "Show"); self:ShowTextArea(true)
   end

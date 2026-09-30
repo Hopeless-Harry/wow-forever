@@ -191,3 +191,100 @@ function Theme:Input(box)
   safeMethod(box, "SetScript", "OnEditFocusLost", function(self_) safeMethod(self_, "SetBackdropBorderColor", unpackColor(Theme.colors.border)) end)
   return box
 end
+
+-- ---------------------------------------------------------------- presets
+local function copyPalette(palette)
+  local copy = {}
+  for key, color in pairs(palette) do copy[key] = { color[1], color[2], color[3], color[4] } end
+  return copy
+end
+
+Theme.presetOrder = { "midnight", "parchment", "crimson", "slate" }
+Theme.presetNames = { midnight = "Midnight", parchment = "Parchment", crimson = "Crimson", slate = "Slate" }
+Theme.presets = {
+  midnight = copyPalette(Theme.colors),
+  parchment = {
+    bg = { 0.930, 0.890, 0.800, 1.00 }, panel = { 0.890, 0.840, 0.730, 1.00 }, raised = { 0.840, 0.780, 0.660, 1.00 },
+    hover = { 0.780, 0.700, 0.560, 1.00 }, border = { 0.550, 0.440, 0.280, 1.00 }, accent = { 0.620, 0.140, 0.160, 1.00 },
+    gold = { 0.450, 0.290, 0.050, 1.00 }, text = { 0.160, 0.120, 0.080, 1.00 }, muted = { 0.400, 0.330, 0.240, 1.00 },
+    disabled = { 0.580, 0.520, 0.420, 1.00 }, danger = { 0.700, 0.120, 0.120, 1.00 }, stripe = { 0.000, 0.000, 0.000, 0.050 },
+  },
+  crimson = {
+    bg = { 0.070, 0.030, 0.040, 1.00 }, panel = { 0.110, 0.050, 0.060, 1.00 }, raised = { 0.160, 0.070, 0.090, 1.00 },
+    hover = { 0.250, 0.100, 0.130, 1.00 }, border = { 0.340, 0.140, 0.170, 1.00 }, accent = { 0.850, 0.200, 0.280, 1.00 },
+    gold = { 0.950, 0.750, 0.350, 1.00 }, text = { 0.940, 0.900, 0.900, 1.00 }, muted = { 0.720, 0.620, 0.640, 1.00 },
+    disabled = { 0.460, 0.380, 0.400, 1.00 }, danger = { 1.000, 0.350, 0.350, 1.00 }, stripe = { 1.000, 1.000, 1.000, 0.035 },
+  },
+  slate = {
+    bg = { 0.060, 0.080, 0.100, 1.00 }, panel = { 0.090, 0.120, 0.150, 1.00 }, raised = { 0.130, 0.170, 0.210, 1.00 },
+    hover = { 0.190, 0.250, 0.310, 1.00 }, border = { 0.240, 0.310, 0.380, 1.00 }, accent = { 0.250, 0.620, 0.850, 1.00 },
+    gold = { 0.550, 0.800, 0.900, 1.00 }, text = { 0.900, 0.930, 0.950, 1.00 }, muted = { 0.600, 0.680, 0.750, 1.00 },
+    disabled = { 0.380, 0.440, 0.500, 1.00 }, danger = { 0.900, 0.350, 0.350, 1.00 }, stripe = { 1.000, 1.000, 1.000, 0.035 },
+  },
+}
+Theme.current = "midnight"
+
+-- Recolours the shared palette in place, so any code holding a reference sees the new colours.
+-- Frames that were already built keep the colours they were created with; a UI reload applies it everywhere.
+function Theme:ApplyPreset(name)
+  if not self.presets[name] then name = "midnight" end
+  for key, color in pairs(self.presets[name]) do
+    local target = self.colors[key]
+    for index = 1, 4 do target[index] = color[index] end
+  end
+  self.current = name
+  return name
+end
+
+-- ---------------------------------------------------------------- horizontal slider
+function Theme:Slider(parent, width, minimum, maximum, step)
+  local slider = CreateFrame("Slider", nil, parent, "BackdropTemplate")
+  safeMethod(slider, "SetOrientation", "HORIZONTAL"); safeMethod(slider, "SetSize", width or 220, 16)
+  safeMethod(slider, "SetMinMaxValues", minimum or 0, maximum or 100); safeMethod(slider, "SetValueStep", step or 1); safeMethod(slider, "SetObeyStepOnDrag", true)
+  self:Panel(slider, self.colors.bg, self.colors.border)
+  safeMethod(slider, "SetThumbTexture", WHITE)
+  local thumb = slider.GetThumbTexture and slider:GetThumbTexture()
+  if thumb then safeMethod(thumb, "SetSize", 10, 20); safeMethod(thumb, "SetVertexColor", unpackColor(self.colors.gold)) end
+  return slider
+end
+
+-- ---------------------------------------------------------------- scroll area (scroll frame, child, themed scrollbar)
+function Theme:ScrollArea(parent)
+  local area = { offset = 0, range = 0 }
+  area.scroll = CreateFrame("ScrollFrame", nil, parent)
+  area.child = CreateFrame("Frame", nil, area.scroll)
+  safeMethod(area.scroll, "SetScrollChild", area.child); safeMethod(area.scroll, "EnableMouseWheel", true)
+  area.slider = CreateFrame("Slider", nil, parent, "BackdropTemplate")
+  safeMethod(area.slider, "SetOrientation", "VERTICAL"); safeMethod(area.slider, "SetWidth", 10); safeMethod(area.slider, "SetMinMaxValues", 0, 0); safeMethod(area.slider, "SetValueStep", 1)
+  self:Scrollbar(area.slider)
+  safeMethod(area.slider, "Hide"); safeMethod(area.scroll, "Hide")
+
+  function area:SetOffset(value)
+    local target = math.max(0, math.min(self.range, tonumber(value) or 0))
+    self.offset = target
+    safeMethod(self.scroll, "SetVerticalScroll", target)
+    self.updating = true; safeMethod(self.slider, "SetValue", target); self.updating = false
+  end
+  function area:Place(parentFrame, top, bottom, side, barWidth)
+    safeMethod(self.scroll, "ClearAllPoints")
+    safeMethod(self.scroll, "SetPoint", "TOPLEFT", parentFrame, "TOPLEFT", side, -top)
+    safeMethod(self.scroll, "SetPoint", "BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -(side + barWidth), bottom)
+    safeMethod(self.slider, "ClearAllPoints")
+    safeMethod(self.slider, "SetPoint", "TOPRIGHT", parentFrame, "TOPRIGHT", -side, -top)
+    safeMethod(self.slider, "SetPoint", "BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -side, bottom)
+  end
+  function area:Update(contentHeight, viewHeight, width)
+    local view = math.max(40, viewHeight or 0)
+    self.range = math.max(0, (contentHeight or 0) - view)
+    safeMethod(self.child, "SetSize", width or 600, math.max(contentHeight or 0, view))
+    self.updating = true; safeMethod(self.slider, "SetMinMaxValues", 0, self.range); self.updating = false
+    self:SetOffset(self.offset)
+    safeMethod(self.slider, (self.visible and self.range > 0) and "Show" or "Hide")
+  end
+  function area:Show() self.visible = true; safeMethod(self.scroll, "Show") end
+  function area:Hide() self.visible = false; safeMethod(self.scroll, "Hide"); safeMethod(self.slider, "Hide") end
+
+  safeMethod(area.scroll, "SetScript", "OnMouseWheel", function(_, delta) area:SetOffset(area.offset - delta * 28) end)
+  safeMethod(area.slider, "SetScript", "OnValueChanged", function(_, value) if not area.updating then area:SetOffset(value) end end)
+  return area
+end

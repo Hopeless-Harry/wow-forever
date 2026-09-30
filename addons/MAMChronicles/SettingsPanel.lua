@@ -4,7 +4,8 @@ Addon.SettingsPanel = SettingsPanel
 
 local PANEL_NAME = "Moms Against Magic Chronicles"
 local POPUP = "MAMCHRONICLES_ERASE_HISTORY"
-local uiSettings = { enabled = true, recordQuestAccepts = true, recordCoordinates = true, notableQuality = true, maxEvents = true, recordStatistics = true, recordGoldStatistics = true }
+local uiSettings = { enabled = true, recordQuestAccepts = true, recordCoordinates = true, notableQuality = true, maxEvents = true, recordStatistics = true, recordGoldStatistics = true,
+  windowAlpha = true, theme = true, toastsEnabled = true, toastSound = true, announceMedals = true, announceGuildChat = true, receiveGuildAlerts = true }
 
 local function safeMethod(object, method, ...)
   if object and type(object[method]) == "function" then return pcall(object[method], object, ...) end

@@ -53,6 +53,7 @@ function Addon:Boot()
   self:IdentifyCharacter()
   self.db = self.Database:Open(MAMChroniclesDB)
   MAMChroniclesDB = self.db
+  if self.Theme and self.Theme.ApplyPreset then self.Theme:ApplyPreset(self.db.settings.theme) end
   self.Database:RegisterCharacter(self.characterKey, self.character)
   self.booted = true
   if self.EventStore and self.EventStore.Initialise then self.EventStore:Initialise() end
