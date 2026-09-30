@@ -69,7 +69,7 @@ export function createHarness({ globals = {}, savedVariables } = {}) {
       function f:SetSize() end function f:SetPoint() end function f:SetMovable() end function f:EnableMouse() end
       function f:RegisterForDrag() end function f:SetClampedToScreen() end function f:SetResizable() end function f:SetMinResize() end
       function f:SetBackdrop() end function f:SetBackdropColor() end function f:SetBackdropBorderColor() end function f:SetFrameStrata() end
-      function f:SetText() end function f:SetNormalFontObject() end function f:SetWidth() end function f:SetHeight() end
+      function f:SetText(value) self.text=value end function f:SetNormalFontObject() end function f:SetWidth() end function f:SetHeight() end
       function f:CreateFontString() return {SetPoint=function()end,SetText=function()end,SetWidth=function()end,SetJustifyH=function()end,Show=function()end,Hide=function()end} end
       function f:CreateTexture() return {SetAllPoints=function()end,SetColorTexture=function()end,SetPoint=function()end,SetSize=function()end} end
       __mamLastFrame=f return f
