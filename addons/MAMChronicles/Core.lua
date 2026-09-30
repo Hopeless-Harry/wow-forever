@@ -39,6 +39,15 @@ function Addon:Print(message)
   end
 end
 
+local WELCOME_VERSION = "personal-chronicle-v1"
+
+function Addon:ShowWelcome()
+  local settings = self.db and self.db.settings
+  if not settings or settings.welcomeVersion == WELCOME_VERSION then return end
+  self:Print("Welcome! Type /mam to open your personal Chronicle. Everything stays on this computer; nothing is shared or uploaded.")
+  settings.welcomeVersion = WELCOME_VERSION
+end
+
 function Addon:Boot()
   if self.booted then return self.db end
   self:IdentifyCharacter()
@@ -50,6 +59,8 @@ function Addon:Boot()
   if self.Collectors and self.Collectors.Register then self.Collectors:Register() end
   if self.UI and self.UI.InitialiseSlashCommands then self.UI:InitialiseSlashCommands() end
   if self.Launcher and self.Launcher.Initialise then self:SafeCall(self.Launcher.Initialise, self.Launcher) end
+  if self.SettingsPanel and self.SettingsPanel.Register then self:SafeCall(self.SettingsPanel.Register, self.SettingsPanel) end
+  self:ShowWelcome()
   return self.db
 end
 

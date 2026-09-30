@@ -100,6 +100,7 @@ end
 
 function UI:SetSetting(key,value)
   local allowed={enabled=true,recordCoordinates=true,recordQuestAccepts=true,notableQuality=true,maxEvents=true}
+  if key=="showMinimapButton" and Addon.SettingsPanel then return Addon.SettingsPanel:ApplySetting(key,value==true) end
   if not allowed[key] then return false end
   if key=="notableQuality" then value=math.max(4,math.min(5,tonumber(value) or 4))
   elseif key=="maxEvents" then value=math.max(100,math.min(10000,math.floor(tonumber(value) or 10000)))
@@ -141,13 +142,18 @@ function UI:Create()
   self.rowButtons={}
   for index=1,30 do local button=CreateFrame("Button",nil,frame); safeMethod(button,"SetPoint","TOPLEFT",26,-115-index*14); safeMethod(button,"SetSize",430,14); safeMethod(button,"SetScript","OnClick",function(clicked) UI.selectedEvent=clicked.event; safeMethod(UI.details,"SetText",UI:FormatEventDetails(clicked.event)) end); self.rowButtons[index]=button end
   self.settingControls={}
-  local settingDefs={{"enabled","Record Chronicle"},{"recordQuestAccepts","Record quest accepts"},{"recordCoordinates","Attach coordinates to events"}}
+  local settingDefs={{"enabled","Record Chronicle"},{"recordQuestAccepts","Record quest accepts"},{"recordCoordinates","Attach coordinates to events"},{"showMinimapButton","Show minimap button"}}
   for index,definition in ipairs(settingDefs) do
     local key,text=definition[1],definition[2]; local check=CreateFrame("CheckButton",nil,frame,"UICheckButtonTemplate"); safeMethod(check,"SetPoint","TOPLEFT",28,-145-(index-1)*30); safeMethod(check,"SetChecked",Addon.db.settings[key]); local caption=check:CreateFontString(nil,"OVERLAY","GameFontHighlight"); safeMethod(caption,"SetPoint","LEFT",check,"RIGHT",4,0); safeMethod(caption,"SetText",text)
     safeMethod(check,"SetScript","OnClick",function(button) local checked=button.GetChecked and button:GetChecked() or not Addon.db.settings[key]; UI:SetSetting(key,checked); UI:Refresh() end); self.settingControls[#self.settingControls+1]=check; self.settingControls[#self.settingControls+1]=caption
   end
   local quality=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(quality,"SetSize",210,24); safeMethod(quality,"SetPoint","TOPLEFT",30,-250); safeMethod(quality,"SetText",Addon.db.settings.notableQuality==5 and "Loot: Legendary only" or "Loot: Epic and above"); safeMethod(quality,"SetScript","OnClick",function(button) local nextValue=Addon.db.settings.notableQuality==4 and 5 or 4; UI:SetSetting("notableQuality",nextValue); safeMethod(button,"SetText",nextValue==5 and "Loot: Legendary only" or "Loot: Epic and above") end); self.qualityButton=quality; self.settingControls[#self.settingControls+1]=quality
   local history=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(history,"SetSize",210,24); safeMethod(history,"SetPoint","TOPLEFT",30,-282); safeMethod(history,"SetText","History: "..tostring(Addon.db.settings.maxEvents)); safeMethod(history,"SetScript","OnClick",function(button) local current=Addon.db.settings.maxEvents; local nextValue=current>=10000 and 1000 or (current>=5000 and 10000 or 5000); UI:SetSetting("maxEvents",nextValue); safeMethod(button,"SetText","History: "..tostring(nextValue)); Addon.Database:Compact() end); self.historyButton=history; self.settingControls[#self.settingControls+1]=history
+  local actions={{"Reset Window",-314,"ResetWindow"},{"Reset Minimap Button",-346,"ResetMinimap"},{"Erase Chronicle Data...",-378,"RequestEraseHistory"}}
+  for _,action in ipairs(actions) do
+    local button=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(button,"SetSize",210,24); safeMethod(button,"SetPoint","TOPLEFT",30,action[2]); safeMethod(button,"SetText",action[1])
+    safeMethod(button,"SetScript","OnClick",function() if Addon.SettingsPanel then Addon.SettingsPanel[action[3]](Addon.SettingsPanel) end end); self.settingControls[#self.settingControls+1]=button
+  end
   for _,control in ipairs(self.settingControls) do safeMethod(control,"Hide") end
   safeMethod(frame,"Hide"); return frame
 end

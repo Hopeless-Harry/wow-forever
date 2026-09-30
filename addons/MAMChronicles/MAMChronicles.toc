@@ -16,3 +16,4 @@ Statistics.lua
 Export.lua
 UI.lua
 Launcher.lua
+SettingsPanel.lua

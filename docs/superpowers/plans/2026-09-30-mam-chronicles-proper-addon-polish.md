@@ -361,7 +361,7 @@ git commit -m "feat: add Chronicles minimap launcher"
 - Consumes: database settings/reset APIs, `UI:ResetWindow()`, `Launcher:ResetPosition()`, `Launcher:Show()/Hide()`.
 - Produces: `SettingsPanel:Register()`; `Open()`; `ApplySetting(key,value)`; `ResetWindow()`; `ResetMinimap()`; `RequestEraseHistory()`; `MAMCHRONICLES_ERASE_HISTORY` popup.
 
-- [ ] **Step 1: Write failing registration, action, and welcome tests**
+- [x] **Step 1: Write failing registration, action, and welcome tests**
 
 Cover these exact cases:
 
@@ -375,7 +375,7 @@ test('erase control is disabled when confirmation APIs are absent',()=>{/* Reque
 test('first-run local-only welcome prints once',()=>{/* Boot twice against same saved table, assert one matching message and welcomeVersion */});
 ```
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run:
 
@@ -385,7 +385,7 @@ npm test --prefix tools/mam-chronicles -- --test-name-pattern="settings panel|er
 
 Expected: FAIL because the module, popup, and welcome-version behaviour are absent.
 
-- [ ] **Step 3: Implement one shared settings action layer**
+- [x] **Step 3: Implement one shared settings action layer**
 
 Use `Settings.RegisterCanvasLayoutCategory(panel,panel.name)` plus `Settings.RegisterAddOnCategory(category)` when present; otherwise use `InterfaceOptions_AddCategory(panel)` when present. `Open()` uses `Settings.OpenToCategory(category.ID or category:GetID())`, with legacy double-call fallback only where required.
 
@@ -402,7 +402,7 @@ showMinimapButton=true,
 
 Validate the existing numeric settings through `UI:SetSetting`, then synchronise launcher visibility. Build both settings surfaces from the same values.
 
-- [ ] **Step 4: Implement guarded history deletion and first-run message**
+- [x] **Step 4: Implement guarded history deletion and first-run message**
 
 Register:
 
@@ -421,7 +421,7 @@ StaticPopupDialogs.MAMCHRONICLES_ERASE_HISTORY = {
 
 If `StaticPopup_Show` or `StaticPopupDialogs` is unavailable, return `false`, print a clear message, and do not delete. On first boot where `settings.welcomeVersion ~= "personal-chronicle-v1"`, print the approved local-only welcome and then persist that marker.
 
-- [ ] **Step 5: Run focused and full tests**
+- [x] **Step 5: Run focused and full tests**
 
 Run:
 
@@ -432,7 +432,7 @@ npm test --prefix tools/mam-chronicles
 
 Expected: all tests PASS.
 
-- [ ] **Step 6: Update handoff and commit**
+- [x] **Step 6: Update handoff and commit**
 
 ```powershell
 git add addons/MAMChronicles/SettingsPanel.lua addons/MAMChronicles/MAMChronicles.toc addons/MAMChronicles/Core.lua addons/MAMChronicles/UI.lua tools/mam-chronicles/test/harness.js tools/mam-chronicles/test/settings-panel.test.js tools/mam-chronicles/test/manifest.test.js PROJECT-HANDOFF.md

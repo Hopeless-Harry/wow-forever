@@ -2,7 +2,7 @@
 
 **Last updated:** 30 September 2026  
 **Current addon version:** `0.2.0-alpha1`  
-**Current status:** In progress. Proper-addon polish Tasks 1–3 of 7 are complete (Chronicles 80/80). Live acceptance of the production addon is still required.
+**Current status:** In progress. Proper-addon polish Tasks 1–4 of 7 are complete (Chronicles 87/87). Live acceptance of the production addon is still required.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
 This is the first file a new agent should read. Keep it current whenever the version, design, verification status, release location, major decision, or next action changes.
@@ -223,7 +223,7 @@ The user said to proceed on 30 September 2026. Unless corrected, this is being t
 
 The approved design is recorded in `docs/superpowers/specs/2026-09-30-mam-chronicles-proper-addon-polish-design.md`. It uses a native, dependency-free implementation with two focused new modules (`Launcher.lua` and `SettingsPanel.lua`) plus an original icon.
 
-The executable plan is `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`. It has seven test-driven tasks. **Progress: 3/7 tasks complete.**
+The executable plan is `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`. It has seven test-driven tasks. **Progress: 4/7 tasks complete.**
 
 Completed polish checkpoint:
 
@@ -243,7 +243,16 @@ Completed Task 3 checkpoint (launcher):
 - `MAMChroniclesIcon` texture file does not exist yet (Task 5 creates the original icon); until then the button icon is blank.
 - Chronicles suite **80/80** passing (75 prior + 5 launcher).
 - Task 3 implementation commit: see latest `feat: add Chronicles minimap launcher` in `git log`.
-- Progress: **3/7 tasks complete**.
+- Progress after Task 3: 3/7.
+
+Completed Task 4 checkpoint (settings/welcome/erase):
+
+- Added `SettingsPanel.lua`: Blizzard `Settings` canvas category (legacy `InterfaceOptions_AddCategory` fallback, else opens the in-addon Settings tab), `ApplySetting` allowlist incl. `showMinimapButton` (syncs launcher), `ResetWindow`, `ResetMinimap`, guarded `RequestEraseHistory` with `MAMCHRONICLES_ERASE_HISTORY` popup (returns false and deletes nothing when popup APIs are absent; settings survive erase).
+- `Core.lua`: registers panel in `Boot()` via `SafeCall`; `ShowWelcome()` prints the local-only welcome once (`welcomeVersion="personal-chronicle-v1"`).
+- `UI.lua`: Settings tab gains minimap checkbox plus Reset Window / Reset Minimap Button / Erase buttons.
+- TOC loads `SettingsPanel.lua` last; package allowlist updated.
+- Chronicles suite **87/87** (80 + 7 settings-panel tests; RED run confirmed 9 expected failures first).
+- Progress: **4/7 tasks complete**.
 
 ## 10. Later roadmap
 
@@ -304,7 +313,7 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-Start Task 4 of `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md` (SettingsPanel.lua / settings controls). Read the task, write failing tests first, verify RED, then implement.
+Start Task 5 (tabs, menus, scrolling, tooltips, empty states, original icon) of `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`: read the task, write failing tests first, verify RED, implement.
 
 ## 15. Recent history
 
