@@ -531,7 +531,7 @@ git commit -m "feat: polish Chronicle navigation and controls"
 - Consumes: all user-visible behaviour from Tasks 1–5.
 - Produces: package-ready `0.2.0-alpha2` metadata and original texture asset.
 
-- [ ] **Step 1: Write failing manifest/asset tests**
+- [x] **Step 1: Write failing manifest/asset tests**
 
 Assert exact version, load order, icon metadata, compartment metadata, non-empty TGA and licence files, and no invented project URL:
 
@@ -545,7 +545,7 @@ test('manifest declares alpha2 polish metadata and exact module order',()=>{
 });
 ```
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run:
 
@@ -555,19 +555,19 @@ npm test --prefix tools/mam-chronicles -- --test-name-pattern="manifest|alpha2|i
 
 Expected: FAIL because the version and assets have not been finalised.
 
-- [ ] **Step 3: Create and validate the original icon**
+- [x] **Step 3: Create and validate the original icon**
 
 Use the image-generation skill to create an original square icon: an open chronicle/book, restrained dark-red cover, gold edging, and a small crossed-out magical spark, readable at 32 pixels, no text, no copied Warcraft or addon art. Convert/export it to an uncompressed 32-bit TGA with power-of-two dimensions. Inspect both the full-size image and a 32-pixel preview before accepting it.
 
-- [ ] **Step 4: Finalise manifest and licence**
+- [x] **Step 4: Finalise manifest and licence**
 
 Set version `0.2.0-alpha2`, `IconTexture`, compartment functions, and exact nine-file Lua load order. Add a concise project-owned licence granting guild/private testing use unless the user later chooses a public open-source licence. Do not add a website/source URL that does not exist.
 
-- [ ] **Step 5: Update user documentation and acceptance checks**
+- [x] **Step 5: Update user documentation and acceptance checks**
 
 Document minimap clicks/drag/hide recovery, Addon Compartment, Blizzard Settings, window persistence/reset, first-run message, menus/scrolling, and erase-history confirmation. Add live checks for `/reload`, full restart, common UI scales, minimum window size, and optional-API fallback evidence.
 
-- [ ] **Step 6: Run focused and full tests**
+- [x] **Step 6: Run focused and full tests**
 
 Run:
 
@@ -579,7 +579,7 @@ git diff --check
 
 Expected: all tests PASS and diff check is silent.
 
-- [ ] **Step 7: Update handoff and commit**
+- [x] **Step 7: Update handoff and commit**
 
 ```powershell
 git add addons/MAMChronicles/MAMChroniclesIcon.tga addons/MAMChronicles/LICENSE.txt addons/MAMChronicles/MAMChronicles.toc addons/MAMChronicles/README.md docs/manuals/mam-chronicles-user-manual.md docs/testing/mam-chronicles-phase1-tester-checklist.md tools/mam-chronicles/test/manifest.test.js PROJECT-HANDOFF.md

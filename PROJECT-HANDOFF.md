@@ -1,8 +1,8 @@
 # Moms Against Magic Chronicles — Project Handoff
 
 **Last updated:** 30 September 2026  
-**Current addon version:** `0.2.0-alpha1`  
-**Current status:** In progress. Proper-addon polish Tasks 1–5 of 7 are complete (Chronicles 95/95). Live acceptance of the production addon is still required.
+**Current addon version:** `0.2.0-alpha2`  
+**Current status:** In progress. Proper-addon polish Tasks 1–6 of 7 are complete (Chronicles 98/98). Live acceptance of the production addon is still required.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
 This is the first file a new agent should read. Keep it current whenever the version, design, verification status, release location, major decision, or next action changes.
@@ -223,7 +223,7 @@ The user said to proceed on 30 September 2026. Unless corrected, this is being t
 
 The approved design is recorded in `docs/superpowers/specs/2026-09-30-mam-chronicles-proper-addon-polish-design.md`. It uses a native, dependency-free implementation with two focused new modules (`Launcher.lua` and `SettingsPanel.lua`) plus an original icon.
 
-The executable plan is `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`. It has seven test-driven tasks. **Progress: 5/7 tasks complete.**
+The executable plan is `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`. It has seven test-driven tasks. **Progress: 6/7 tasks complete.**
 
 Completed polish checkpoint:
 
@@ -260,7 +260,19 @@ Completed Task 5 checkpoint (navigation/controls polish):
 - Decision: the older page-aligned clamp (offset 30 of 38 showed 8 rows) was replaced by the plan's `total-30` clamp (last window always shows 30 rows). The old test `timeline paging reaches entries beyond the fixed row pool` was updated to the new contract.
 - Harness: Slider methods, FontString text capture.
 - Suites: Chronicles **95/95**, Diagnostics **35/35**, Guild dashboard **39/39**.
-- Progress: **5/7 tasks complete**.
+- Progress after Task 5: 5/7.
+
+Completed Task 6 checkpoint (icon, metadata, licence, docs) - also absorbed the plan's Task 7 Steps 1-3:
+
+- Version bumped to `0.2.0-alpha2` (TOC, `Core.lua`, `tools/mam-chronicles/package*.json`).
+- Original icon `MAMChroniclesIcon.tga` (64x64 uncompressed 32-bit TGA) generated reproducibly by `tools/mam-chronicles/make-icon.py` (pure Python; open book, dark-red cover, gold edge, crossed-out spark; inspected at full size and 32px). The plan called for an image-generation skill; none was available, so a programmatic original was used. It can be replaced later without code changes.
+- TOC now has `IconTexture` and `Category: Chat & Communication`; no invented website/source URL. `LICENSE.txt` is a project-owned private-testing licence (owner may swap in an open-source licence later).
+- **Defect found and fixed:** `scripts/install-mam-chronicles.ps1` had its own allowlist that omitted `Launcher.lua`/`SettingsPanel.lua` (an installed addon would have failed to load files listed in the TOC). Installer and packager allowlists now both contain the 13 shipped files; the install test checks the exact file list and hashes for `_retail_` and `_classic_beta_`.
+- README, manual (opening methods, window persistence, menus, erase, first-run), and tester checklist (new alpha2 section) updated.
+- Suites: Chronicles **98/98**, Diagnostics **35/35**, Guild dashboard **39/39**; `git diff --check` silent.
+- Test-package SHA-256 (temp build, not yet a release): `929D6FB02B9A8A0E3ADAD8911C615379412B824D613BF851C9A00B2E9105C7E7`.
+- Task 6 implementation commit: `4267990`.
+- Progress: **6/7 tasks complete**.
 
 ## 10. Later roadmap
 
@@ -321,7 +333,7 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-Start Task 6 (original icon, final TOC metadata, changelog, licence, manual/checklist updates) of `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`: read the task, write failing tests first, verify RED, implement.
+Finish Task 7 Steps 4-6: run all verification, confirm fake-client install/rollback (package-install tests), build the tester-release directory `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha2/` (ZIP, SEND-TO-TESTERS.txt, TESTER-CHECKLIST.md, USER-MANUAL.md), record the final SHA-256, and keep automated evidence separate from live acceptance.
 
 ## 15. Recent history
 
