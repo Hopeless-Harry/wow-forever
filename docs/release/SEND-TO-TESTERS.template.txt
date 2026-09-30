@@ -6,7 +6,10 @@ SEND THIS FILE
 
 READ FIRST
   USER-MANUAL.md explains every screen, command, recorded event, privacy rule,
-  and troubleshooting step. MOM-MEDALS-CATALOGUE.md lists every medal.
+  and troubleshooting step. MOM-MEDALS-CATALOGUE.html lists every medal (double-click
+  it to open it in your browser; you can search and filter).
+  TESTER-CHECKLIST.html is an interactive checklist: open it in your browser, tick
+  Pass / Fail / Skip as you test, then press Copy results and paste them to Harry.
 
 INSTALL
 1. Fully close World of Warcraft.
@@ -24,7 +27,7 @@ QUICK TEST
 4. Type: /mam remember tester check
 5. Type: /reload
 6. Open /mam and confirm the memory is still present.
-7. Work through TESTER-CHECKLIST.md where practical.
+7. Work through TESTER-CHECKLIST.html where practical.
 
 IF SOMETHING BREAKS
 1. Type: /mam diag

@@ -47,13 +47,21 @@ if (-not (Test-Path -LiteralPath $zip)) { throw "Package was not created: $zip" 
 # Release folder contents
 $template = Get-Content -Raw -LiteralPath (Join-Path $repo 'docs\release\SEND-TO-TESTERS.template.txt')
 Set-Content -LiteralPath (Join-Path $release 'SEND-TO-TESTERS.txt') ($template.Replace('{{VERSION}}', $version).Replace('{{SHA256}}', $hash)) -NoNewline
-Copy-Item (Join-Path $repo 'docs\testing\mam-chronicles-phase1-tester-checklist.md') (Join-Path $release 'TESTER-CHECKLIST.md') -Force
 Copy-Item (Join-Path $repo 'docs\manuals\mam-chronicles-user-manual.md') (Join-Path $release 'USER-MANUAL.md') -Force
-Copy-Item (Join-Path $repo 'docs\manuals\mom-medals-catalogue.md') (Join-Path $release 'MOM-MEDALS-CATALOGUE.md') -Force
+# The checklist and the medal catalogue ship as standalone HTML pages (interactive checklist, searchable catalogue built from the addon's own medal definitions)
+foreach ($old in @('TESTER-CHECKLIST.md', 'MOM-MEDALS-CATALOGUE.md')) { Remove-Item -LiteralPath (Join-Path $release $old) -Force -ErrorAction SilentlyContinue }
+& node (Join-Path $repo 'tools\mam-chronicles\docs\build-html.mjs') $release
+if ($LASTEXITCODE -ne 0) { throw 'Building the HTML documents failed.' }
 $curseforge = Join-Path $release 'curseforge'
 New-Item -ItemType Directory -Force $curseforge | Out-Null
 Copy-Item (Join-Path $repo 'docs\release\curseforge\*') $curseforge -Force
 Copy-Item (Join-Path $addon 'CHANGELOG.md') (Join-Path $curseforge 'CHANGELOG.md') -Force
+
+# One file to send to friends: the addon ZIP plus the instructions, manual, checklist and catalogue
+$friends = Join-Path $release "MAMChronicles-$version-FOR-FRIENDS.zip"
+if (Test-Path -LiteralPath $friends) { Remove-Item -LiteralPath $friends -Force }
+Compress-Archive -LiteralPath $zip, (Join-Path $release 'SEND-TO-TESTERS.txt'), (Join-Path $release 'USER-MANUAL.md'), (Join-Path $release 'TESTER-CHECKLIST.html'), (Join-Path $release 'MOM-MEDALS-CATALOGUE.html') -DestinationPath $friends -CompressionLevel Optimal
+Write-Output ('Friends bundle: {0} ({1} KB)' -f $friends, [math]::Round((Get-Item -LiteralPath $friends).Length / 1KB))
 
 # Verify the ZIP against the source without extracting it
 Add-Type -AssemblyName System.IO.Compression.FileSystem
