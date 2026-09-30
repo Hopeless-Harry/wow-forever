@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles — User Manual
 
-- **Version:** `0.2.0-alpha4`
+- **Version:** `0.2.0-alpha5`
 - **Current test target:** World of Warcraft Retail 12.1
 - **WoW Forever:** Built with compatibility checks, but live beta testing is still pending.
 
@@ -50,7 +50,21 @@ The Chronicle window should open.
 - Filter and Range open small menus: pick the exact option you want. The active tab is highlighted, and hovering a control shows a short tooltip.
 - Use the mouse wheel, the scrollbar on the right, or Previous/Next to move through the timeline. Previous and Next grey out at the ends.
 
-The window has four tabs.
+The window has five tabs. **Home** is the first tab and opens by default.
+
+### Home
+
+A dashboard for the current character:
+
+- a greeting with realm, level and zone;
+- six headline tiles from the game's own statistics (creatures killed, quests completed, deaths, dungeons entered, flight paths, delves completed), each with "+N this month" when it has changed;
+- **This month**: events, sessions, deaths, quests, discoveries, loot, awards and statistics status;
+- **Recent activity**: the latest entries, colour-coded by type, with **View all** to open the full Chronicle;
+- a **Remember this moment** box at the bottom that pins a manual memory (press Enter or click Remember).
+
+The layout uses two columns on wide windows and one on narrow ones. A tile shows a dash when the client does not report that statistic.
+
+Statistics and Diagnostics text now sits in a scroll area: it follows the window size and scrolls with the mouse wheel or the scrollbar.
 
 ### 1. Chronicle
 

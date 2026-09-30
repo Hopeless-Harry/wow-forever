@@ -73,6 +73,17 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] Statistics tab: headings are gold, changes are green, headline values are readable.
 - [ ] Note anything that looks misaligned, clipped, too dark, too small, or ugly (screenshot please): __________
 
+## Home and scrolling (alpha5)
+
+- [ ] Home opens by default and shows tiles, This month, Recent activity and the remember box.
+- [ ] Enlarging the window widens the cards; shrinking below about 700 wide stacks them in one column without overlap.
+- [ ] Tiles show real numbers (or a dash) and "+N this month" after a change.
+- [ ] Typing in the remember box and pressing Enter adds a pinned memory and it appears in Recent activity.
+- [ ] Statistics text no longer runs outside the window; scrolling works with wheel and scrollbar; resizing re-wraps the text.
+- [ ] Diagnostics text scrolls when long.
+- [ ] Nothing behind the window shows through its background.
+- [ ] Note anything misaligned or unclear (screenshot please): __________
+
 ## Stability
 
 - [ ] No Lua errors during the test.

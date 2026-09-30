@@ -39,6 +39,8 @@ local function formatStat(value, kind)
   return formatNumber(value)
 end
 
+AchievementStats.FormatStat = formatStat
+
 local moneyUnits = { gold = 10000, silver = 100, copper = 1 }
 local timeUnits = { day = 86400, days = 86400, d = 86400, hr = 3600, hrs = 3600, hour = 3600, hours = 3600, h = 3600,
   min = 60, mins = 60, minute = 60, minutes = 60, m = 60, sec = 1, secs = 1, second = 1, seconds = 1, s = 1 }

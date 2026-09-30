@@ -2,12 +2,12 @@ local Addon=MAMChronicles
 Addon.UI=Addon.UI or {}
 local UI=Addon.UI
 
-UI.tabs={"Chronicle","Statistics","Settings","Diagnostics"}
+UI.tabs={"Home","Chronicle","Statistics","Settings","Diagnostics"}
 UI.filters={"All","Deaths","Quests","World","Instances","Loot","Memories"}
 UI.dateRanges={"All","30 Days","This Month"}
-UI.activeTab="Chronicle"; UI.activeFilter="All"; UI.activeRange="All"; UI.search=""; UI.rowPool={}
+UI.activeTab="Home"; UI.activeFilter="All"; UI.activeRange="All"; UI.search=""; UI.rowPool={}
 
-local validTabs={Chronicle=true,Statistics=true,Settings=true,Diagnostics=true}
+local validTabs={Home=true,Chronicle=true,Statistics=true,Settings=true,Diagnostics=true}
 local groups={
   Deaths={ ["character.death"]=true,["character.resurrected"]=true },
   Quests={ ["quest.accepted"]=true,["quest.completed"]=true },
@@ -18,6 +18,7 @@ local groups={
 local function label(event)
   local p=event.payload or {}; return p.text or p.questName or p.itemName or p.achievementName or p.professionName or p.zone or p.instanceName or event.type
 end
+UI.EventLabel=label
 local function safeMethod(object,method,...)
   if object and type(object[method])=="function" then pcall(object[method],object,...) end
 end
@@ -26,7 +27,7 @@ local function clamp(value,minimum,maximum) return math.max(minimum,math.min(max
 
 function UI:SetActiveTab(name)
   if not validTabs[name] then return false end
-  self.activeTab=name
+  self.activeTab=name; self.textOffset=0
   if Addon.db and Addon.db.settings and Addon.db.settings.ui then Addon.db.settings.ui.activeTab=name end
   self:Refresh()
   return true
@@ -141,7 +142,7 @@ function UI:ResetWindow()
   local minimapAngle=Addon.db.settings.ui and Addon.db.settings.ui.minimapAngle
   Addon.Database:ResetUIState()
   if finite(minimapAngle) then Addon.db.settings.ui.minimapAngle=minimapAngle end
-  self.activeTab="Chronicle"; self:RestoreWindowState(); self:Refresh()
+  self.activeTab="Home"; self:RestoreWindowState(); self:Refresh()
   return true
 end
 
@@ -212,11 +213,55 @@ function UI:LayoutRows(availableHeight)
   return pitch
 end
 
+local TEXT_SCROLLBAR = 18
+
+local function estimateTextHeight(text, width)
+  local lines = 0
+  for line in (tostring(text or "") .. "\n"):gmatch("(.-)\n") do lines = lines + math.max(1, math.ceil(#line / math.max(20, width / 7))) end
+  return lines * 14 + 24
+end
+
+function UI:TextViewHeight()
+  local height = self.layoutHeight or (self.frame and self.frame.GetHeight and self.frame:GetHeight()) or 560
+  if not height or height <= 0 then height = 560 end
+  return math.max(40, height - (self.textTop or 84) - FOOTER - 4)
+end
+
+function UI:SetTextScroll(value)
+  local target = clampNumber(tonumber(value) or 0, 0, self.textRange or 0)
+  self.textOffset = target
+  safeMethod(self.textScroll, "SetVerticalScroll", target)
+  self.updatingTextSlider = true; safeMethod(self.textSlider, "SetValue", target); self.updatingTextSlider = false
+end
+
+function UI:ScrollText(delta) self:SetTextScroll((self.textOffset or 0) + delta) end
+
+function UI:UpdateTextScroll()
+  if not self.textScroll then return end
+  local view, width = self:TextViewHeight(), self.textWidth or 700
+  local contentHeight
+  if self.copyShown then
+    contentHeight = estimateTextHeight(self.copyText, width)
+    safeMethod(self.copyBox, "SetSize", width, math.max(view, contentHeight))
+  else
+    local ok, measured = pcall(self.content.GetStringHeight, self.content)
+    contentHeight = (ok and tonumber(measured) or 0) + 16
+  end
+  local range = math.max(0, contentHeight - view)
+  self.textRange = range
+  safeMethod(self.textChild, "SetSize", width, math.max(contentHeight, view))
+  self.updatingTextSlider = true; safeMethod(self.textSlider, "SetMinMaxValues", 0, range); self.updatingTextSlider = false
+  self:SetTextScroll(self.textOffset or 0)
+  safeMethod(self.textSlider, (self.textVisible and range > 0) and "Show" or "Hide")
+end
+
 function UI:ApplyLayout(width, height)
   width = tonumber(width) or 780; height = tonumber(height) or 560
-  safeMethod(self.content, "SetWidth", width - SIDE * 2)
-  safeMethod(self.copyBox, "SetSize", width - SIDE * 2, height - 90 - FOOTER)
+  self.textWidth = width - SIDE * 2 - TEXT_SCROLLBAR; self.layoutHeight = height
+  safeMethod(self.content, "SetWidth", self.textWidth); safeMethod(self.copyBox, "SetWidth", self.textWidth)
   self:LayoutRows(height - ROW_TOP - FOOTER)
+  if self.dashboard then self.dashboard:Layout(width - SIDE * 2, height - 84 - FOOTER - 4) end
+  self:UpdateTextScroll()
 end
 
 function UI:SetDetailsVisible(visible)
@@ -231,8 +276,18 @@ function UI:SetToolbarVisible(visible)
 end
 
 function UI:PlaceContent(belowToolbar)
-  safeMethod(self.content, "ClearAllPoints")
-  safeMethod(self.content, "SetPoint", "TOPLEFT", self.frame, "TOPLEFT", SIDE, belowToolbar and -112 or -84)
+  self.textTop = belowToolbar and 112 or 84
+  safeMethod(self.textScroll, "ClearAllPoints")
+  safeMethod(self.textScroll, "SetPoint", "TOPLEFT", self.frame, "TOPLEFT", SIDE, -self.textTop)
+  safeMethod(self.textScroll, "SetPoint", "BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", -(SIDE + TEXT_SCROLLBAR), FOOTER + 4)
+  safeMethod(self.textSlider, "ClearAllPoints")
+  safeMethod(self.textSlider, "SetPoint", "TOPRIGHT", self.frame, "TOPRIGHT", -SIDE, -self.textTop)
+  safeMethod(self.textSlider, "SetPoint", "BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", -SIDE, FOOTER + 4)
+end
+
+function UI:ShowTextArea(copy)
+  self.copyShown = copy and true or false; self.textVisible = true
+  safeMethod(self.textScroll, "Show"); self:UpdateTextScroll()
 end
 
 function UI:ColouriseStatistics(text)
@@ -302,6 +357,8 @@ function UI:Create()
   if frame.SetResizeBounds then safeMethod(frame, "SetResizeBounds", 620, 440) else safeMethod(frame, "SetMinResize", 620, 440) end
   safeMethod(frame, "SetFrameStrata", "HIGH")
   T:Panel(frame, C.bg, C.border)
+  self.bgFill = frame:CreateTexture(nil, "BACKGROUND", nil, -8)
+  safeMethod(self.bgFill, "SetAllPoints", frame); safeMethod(self.bgFill, "SetColorTexture", C.bg[1], C.bg[2], C.bg[3], 1)
   safeMethod(frame, "SetScript", "OnDragStart", function(f) safeMethod(f, "StartMoving") end)
   safeMethod(frame, "SetScript", "OnDragStop", function(f) safeMethod(f, "StopMovingOrSizing"); UI:SaveWindowState() end)
   if type(UISpecialFrames) == "table" then
@@ -357,10 +414,21 @@ function UI:Create()
   safeMethod(range, "SetScript", "OnClick", function(button) UI:OpenRangeMenu(button) end)
   self.rangeButton = range; attachTooltip(range, "Date range", "Choose how far back to look.")
 
-  -- body text (empty states, statistics)
-  self.content = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-  safeMethod(self.content, "SetPoint", "TOPLEFT", frame, "TOPLEFT", SIDE, -112); safeMethod(self.content, "SetJustifyH", "LEFT"); safeMethod(self.content, "SetJustifyV", "TOP")
+  -- body text (empty states, statistics, diagnostics) lives in a scroll area that follows the window
+  local textScroll = CreateFrame("ScrollFrame", nil, frame)
+  local textChild = CreateFrame("Frame", nil, textScroll)
+  safeMethod(textScroll, "SetScrollChild", textChild); safeMethod(textScroll, "EnableMouseWheel", true)
+  safeMethod(textScroll, "SetScript", "OnMouseWheel", function(_, delta) UI:ScrollText(-delta * 28) end)
+  self.textScroll, self.textChild = textScroll, textChild
+  self.content = textChild:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  safeMethod(self.content, "SetPoint", "TOPLEFT", textChild, "TOPLEFT", 0, 0); safeMethod(self.content, "SetJustifyH", "LEFT"); safeMethod(self.content, "SetJustifyV", "TOP")
   safeMethod(self.content, "SetTextColor", C.text[1], C.text[2], C.text[3], 1); safeMethod(self.content, "SetSpacing", 3)
+  local textSlider = CreateFrame("Slider", nil, frame, "BackdropTemplate")
+  safeMethod(textSlider, "SetOrientation", "VERTICAL"); safeMethod(textSlider, "SetWidth", 10); safeMethod(textSlider, "SetMinMaxValues", 0, 0); safeMethod(textSlider, "SetValueStep", 1)
+  T:Scrollbar(textSlider)
+  safeMethod(textSlider, "SetScript", "OnValueChanged", function(_, value) if UI.updatingTextSlider then return end; UI:SetTextScroll(value) end)
+  safeMethod(textSlider, "Hide")
+  self.textSlider = textSlider
 
   -- footer
   local footerLine = frame:CreateTexture(nil, "BORDER")
@@ -429,10 +497,12 @@ function UI:Create()
   end
 
   -- export / diagnostics text box
-  local copy = CreateFrame("EditBox", nil, frame, "BackdropTemplate")
+  local copy = CreateFrame("EditBox", nil, self.textChild, "BackdropTemplate")
   safeMethod(copy, "SetMultiLine", true); safeMethod(copy, "SetAutoFocus", false)
-  safeMethod(copy, "SetPoint", "TOPLEFT", frame, "TOPLEFT", SIDE, -84); T:Input(copy); safeMethod(copy, "SetTextInsets", 10, 10, 8, 8); safeMethod(copy, "Hide")
+  safeMethod(copy, "SetPoint", "TOPLEFT", self.textChild, "TOPLEFT", 0, 0); T:Input(copy); safeMethod(copy, "SetTextInsets", 10, 10, 8, 8); safeMethod(copy, "Hide")
   self.copyBox = copy
+
+  self.dashboard = Addon.Dashboard and Addon.Dashboard:Create(frame, self) or nil
 
   -- settings tab
   self.settingControls = {}
@@ -501,6 +571,8 @@ function UI:HideAllViews()
   for _, control in ipairs(self.settingControls) do safeMethod(control, "Hide") end
   safeMethod(self.previousButton, "Hide"); safeMethod(self.nextButton, "Hide"); safeMethod(self.scrollFrame, "Hide"); safeMethod(self.slider, "Hide"); safeMethod(self.pageLabel, "Hide")
   self:SetDetailsVisible(false); safeMethod(self.copyBox, "Hide"); safeMethod(self.content, "SetText", "")
+  safeMethod(self.textScroll, "Hide"); safeMethod(self.textSlider, "Hide"); self.textVisible = false; self.copyShown = false
+  if self.dashboard then self.dashboard:Hide() end
 end
 
 function UI:Refresh()
@@ -508,13 +580,15 @@ function UI:Refresh()
   local chronicle = self.activeTab == "Chronicle"
   self:SetToolbarVisible(chronicle); if not chronicle then self:CloseMenu() end
   self:PlaceContent(chronicle)
-  if chronicle then
+  if self.activeTab == "Home" then
+    if self.dashboard then self.dashboard:Show(); self.dashboard:Refresh() end
+  elseif chronicle then
     safeMethod(self.previousButton, "Show"); safeMethod(self.nextButton, "Show"); safeMethod(self.scrollFrame, "Show"); safeMethod(self.slider, "Show"); self:SetDetailsVisible(true); safeMethod(self.pageLabel, "Show")
     local events, total = self:GetVisibleTimeline()
     if total == 0 then
       local unfiltered = self.activeFilter == "All" and self.activeRange == "All" and (self.search or "") == ""
       safeMethod(self.content, "SetText", unfiltered and "No Chronicle entries yet. Play for a while, or use /mam remember to add a memory." or "No entries match this filter, range, or search. Try widening them.")
-      safeMethod(self.pageLabel, "SetText", "")
+      safeMethod(self.pageLabel, "SetText", ""); self:ShowTextArea(false)
     else
       safeMethod(self.pageLabel, "SetText", tostring(self.timelineOffset + 1) .. "-" .. tostring(self.timelineOffset + #events) .. " of " .. tostring(total))
     end
@@ -522,11 +596,11 @@ function UI:Refresh()
   elseif self.activeTab == "Statistics" then
     local fromTime, toTime = self:GetCurrentMonthRange(); local stats = Addon.Statistics:Build(fromTime, toTime)
     local text = Addon.Export:BuildHumanSummary(stats.fromTime, stats.toTime) .. (Addon.AchievementStats and "\n\n" .. Addon.AchievementStats:BuildText(Addon.characterKey) or "")
-    safeMethod(self.content, "SetText", self:ColouriseStatistics(text))
+    safeMethod(self.content, "SetText", self:ColouriseStatistics(text)); self:ShowTextArea(false)
   elseif self.activeTab == "Settings" then
     for _, control in ipairs(self.settingControls) do safeMethod(control, "Show") end
   else
-    self.copyText = Addon.Export:BuildDiagnosticReport(); safeMethod(self.copyBox, "SetText", self.copyText); safeMethod(self.copyBox, "Show")
+    self.copyText = Addon.Export:BuildDiagnosticReport(); safeMethod(self.copyBox, "SetText", self.copyText); safeMethod(self.copyBox, "Show"); self:ShowTextArea(true)
   end
 end
 
@@ -534,7 +608,9 @@ function UI:Show() self:Create(); self:Refresh(); safeMethod(self.frame,"Show") 
 function UI:Hide() if self.frame then safeMethod(self.frame,"Hide") end end
 function UI:ShowCopy(text)
   self:Create(); self:HideAllViews(); self:CloseMenu(); self:SetToolbarVisible(false); self:PlaceContent(false)
-  self.copyText = text or ""; safeMethod(self.copyBox, "SetText", self.copyText); safeMethod(self.copyBox, "Show"); safeMethod(self.copyBox, "SetFocus"); safeMethod(self.copyBox, "HighlightText"); safeMethod(self.frame, "Show")
+  self.copyText = text or ""; self.textOffset = 0
+  safeMethod(self.copyBox, "SetText", self.copyText); safeMethod(self.copyBox, "Show"); self:ShowTextArea(true)
+  safeMethod(self.copyBox, "SetFocus"); safeMethod(self.copyBox, "HighlightText"); safeMethod(self.frame, "Show")
 end
 
 function UI:HandleSlash(command)

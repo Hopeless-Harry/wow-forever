@@ -1,7 +1,7 @@
 # Moms Against Magic Chronicles — Project Handoff
 
 **Last updated:** 30 September 2026  
-**Current addon version:** `0.2.0-alpha4`  
+**Current addon version:** `0.2.0-alpha5`  
 **Current status:** In progress. Proper-addon polish All 7 tasks are complete in automated testing (Chronicles 98/98); live acceptance pending. Live acceptance of the production addon is still required.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
@@ -313,6 +313,14 @@ UI redesign (alpha4, 30 Sep 2026) - AUTOMATED EVIDENCE ONLY, visual result NOT y
 - Known risk: the stubs cannot prove appearance. First live look may show misalignment, clipped text, or wrong colours; user screenshots needed. Blizzard Settings page (`SettingsPanel.lua`) still uses stock templates on purpose.
 - Version `0.2.0-alpha4`. Chronicles **127/127**, Diagnostics **35/35**, Dashboard **39/39**. Installed and hash-verified (15 files, 0 diffs) on BOTH `_retail_` and `_classic_beta_`; backups in addon-backups. Release: `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha4/` ZIP SHA-256 `292049AE52807720664B23F074BB5A7FD53C8EB226E7CF59DE8CE2A019CF586F`.
 
+Home dashboard and scrolling (alpha5, 30 Sep 2026) - AUTOMATED EVIDENCE ONLY; layout not yet seen live:
+
+- User feedback on the alpha4 screenshot (Retail): look approved ("good"); Statistics text overflowed the bottom of the window and did not react to resizing; other UI showed faintly through the panel. User asked for a dashboard/home page.
+- Fixes: Statistics, Diagnostics, export text and empty states now live in a `ScrollFrame` (`UI.textScroll`/`textChild`/`textSlider`) whose width follows the window (`UI:ApplyLayout`, `UpdateTextScroll`, wheel 28px); the window has a fully opaque fill (`UI.bgFill`, alpha 1) in addition to the backdrop.
+- New `Dashboard.lua` and **Home** tab (first tab and new default, `activeTab="Home"`): greeting (realm, level, zone), six headline tiles matched by statistic name (`Creatures killed`, `Quests completed`, `Deaths`, `Dungeons entered`, `Flight paths`, `Delves completed`; dash when absent; "+N this month"), This month card, Recent activity card with View all, quick "Remember this moment" box (uses `/mam remember`). `Dashboard:Build()` is the testable model; `Dashboard:Layout(w,h)` uses 2 columns at width >= 700, else 1.
+- Older tests that assumed Chronicle as default were updated (five tabs, default Home). Real defect caught: dashboard/tab layout assumptions around `frame:GetHeight` (now uses the layout height).
+- Version `0.2.0-alpha5`. Chronicles **135/135**, Diagnostics **35/35**, Dashboard **39/39**. Installed and hash-verified (16 files, 0 diffs) on BOTH `_retail_` and `_classic_beta_`. Release: `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha5/` ZIP SHA-256 `810E7642E8ADEB45A6B81E2359E37D628CA4B97C76150562A84CA58D88F168A5`.
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -372,9 +380,9 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-1. User opens `/mam` on Forever and Retail and sends screenshots of each tab (Chronicle with entries, Statistics, Settings, Diagnostics) at the default size and after resizing. Fix any visual problems (alignment, clipping, colours, contrast, font size).
-2. Also still wanted: Forever `/mam diag` (statistics counts) - the Forever client has never been observed live.
-3. Then build, in order: statistics-driven awards, Characters roster tab, opt-in popups/toasts (off by default, never in combat), Courier export of non-sensitive statistics, Phase 2 sync with the recorded sharing-on-by-default safeguards.
+1. User opens `/mam` (Home) on Retail and Forever and sends screenshots: Home at default size, Home enlarged and shrunk, Statistics with scrolling, Diagnostics. Fix layout problems found.
+2. Still wanted: Forever `/mam diag` and Statistics output (never observed live on Forever).
+3. Then build, in order: statistics-driven awards and milestones, Characters roster tab, opt-in popups/toasts (off by default, never in combat), Courier export of non-sensitive statistics, then Phase 2 sync with the recorded sharing-on-by-default safeguards.
 
 ## 15. Recent history
 

@@ -11,9 +11,9 @@ local function copyTable(value)
 end
 local function finite(value) return type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge end
 local function clamp(value, minimum, maximum) return math.max(minimum, math.min(maximum, value)) end
-local uiDefaults = { point="CENTER", x=0, y=0, width=780, height=560, activeTab="Chronicle", minimapAngle=225 }
+local uiDefaults = { point="CENTER", x=0, y=0, width=780, height=560, activeTab="Home", minimapAngle=225 }
 local validPoints = { CENTER=true, TOP=true, BOTTOM=true, LEFT=true, RIGHT=true, TOPLEFT=true, TOPRIGHT=true, BOTTOMLEFT=true, BOTTOMRIGHT=true }
-local validTabs = { Chronicle=true, Statistics=true, Settings=true, Diagnostics=true }
+local validTabs = { Home=true, Chronicle=true, Statistics=true, Settings=true, Diagnostics=true }
 local function freshSettings()
   return { enabled=true, recordCoordinates=true, recordQuestAccepts=true, notableQuality=4, maxEvents=10000, showMinimapButton=true, recordStatistics=true, recordGoldStatistics=false, ui=copyTable(uiDefaults) }
 end
