@@ -16,7 +16,7 @@ local FEED_MAX = 50
 Comms.prefix = PREFIX
 Comms.queue = {}
 Comms.floods = {}
-Comms.status = { state = "starting", sent = 0, received = 0, dropped = 0 }
+Comms.status = { state = "starting", sent = 0, received = 0, dropped = 0, unknown = 0, otherVersion = 0 }
 
 local function now() return Addon:Now() end
 local function settings() return Addon.db and Addon.db.settings or {} end
@@ -123,13 +123,19 @@ function Comms:OnAddonMessage(prefix, text, channel, sender)
   local parts = {}
   for piece in (text .. "|"):gmatch("([^|]*)|") do table.insert(parts, piece) end
   if #parts ~= 4 or parts[1] ~= "M1" then drop(self); return end
+  if not parts[2]:match("^[%w_]+$") or #parts[2] > 40 then drop(self); return end
   local def = Addon.Medals and Addon.Medals:GetDefinition(parts[2])
-  if not def or tonumber(parts[3]) ~= def.points or tonumber(parts[4]) ~= Addon.Medals.version then drop(self); return end
+  -- A newer or older build may know medals this one does not: count them quietly instead of treating them as attacks.
+  local kind
+  if not def then kind = "unknown"
+  elseif tonumber(parts[4]) ~= Addon.Medals.version then kind = "otherVersion"
+  elseif tonumber(parts[3]) ~= def.points then drop(self); return end
   local stamps = self.floods[sender] or {}
   local kept, current = {}, now()
   for _, stamp in ipairs(stamps) do if current - stamp < FLOOD_WINDOW then table.insert(kept, stamp) end end
   if #kept >= FLOOD_LIMIT then self.floods[sender] = kept; drop(self); return end
   table.insert(kept, current); self.floods[sender] = kept
+  if kind then self.status[kind] = self.status[kind] + 1; return end
   self.status.received = self.status.received + 1
   self:Record(sender, def)
 end

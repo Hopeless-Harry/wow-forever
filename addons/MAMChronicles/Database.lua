@@ -39,6 +39,7 @@ end
 
 function Database:Open(saved)
   local reason
+  local droppedEvents=0
   if type(saved) ~= "table" then if saved~=nil then reason="corrupt root" end
   elseif saved.schemaVersion ~= 1 then reason = "unsupported schema" end
   if not reason and type(saved)=="table" then
@@ -46,18 +47,20 @@ function Database:Open(saved)
       if saved[key]~=nil and type(saved[key])~="table" then reason="corrupt root"; break end
     end
     if not reason and type(saved.events)=="table" then
-      local seen={}
+      -- Keep every valid event and drop only the broken ones, so one bad record cannot erase the history.
+      local seen,kept={},{}
       for _,event in ipairs(saved.events) do
         local valid=type(event)=="table" and event.schemaVersion==1 and type(event.id)=="string" and #event.id>0 and not seen[event.id] and type(event.type)=="string" and type(event.occurredAt)=="number" and event.occurredAt==event.occurredAt and type(event.observedAt)=="number" and event.observedAt==event.observedAt and type(event.payload)=="table"
-        if not valid then reason="corrupt root"; break end
-        seen[event.id]=true
+        if valid then seen[event.id]=true; table.insert(kept,event) else droppedEvents=droppedEvents+1 end
       end
+      if droppedEvents>0 then saved.events=kept end
     end
   end
   local db = reason and self:Fresh(reason) or (type(saved) == "table" and saved or self:Fresh())
   db.meta = tableOr(db.meta); db.settings = tableOr(db.settings)
   for _, key in ipairs({"characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics","statistics","statisticCatalog","medals","guildFeed","counters","medalTallies"}) do db[key] = tableOr(db[key]) end
   db.eventIds={}; for _,event in ipairs(db.events) do db.eventIds[event.id]=true end
+  if droppedEvents>0 and not reason then db.diagnostics.recovery={recoveredAt=now(),reason="dropped "..droppedEvents.." invalid event"..(droppedEvents==1 and "" or "s")} end
   db.schemaVersion = 1; self.db = db; self:NormaliseSettings()
   db.meta.createdAt = db.meta.createdAt or now(); db.meta.updatedAt = now(); db.meta.loadCount = (tonumber(db.meta.loadCount) or 0) + 1
   local previousVersion = db.meta.addonVersion
