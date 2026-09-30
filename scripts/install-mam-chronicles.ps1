@@ -17,12 +17,12 @@ $manifest=Get-Content -Raw -LiteralPath $manifestPath;if($manifest -notmatch '(?
 foreach($required in @('120100','120105','16001')){if($required -notin $interfaces){throw "Addon manifest must target supported interface $required."}}
 foreach($name in $allowlist){if(-not(Test-Path -LiteralPath (Join-Path $source $name) -PathType Leaf)){throw "Required addon file is missing: $name"}}
 if(& $ProcessProbe){throw 'A WoW client is running. Fully exit WoW before installing this addon.'}
-$backup=[IO.Path]::GetFullPath($BackupRoot);if($backup.StartsWith($client+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'BackupRoot must be outside the WoW client directory.'}
+$backup=[IO.Path]::GetFullPath($BackupRoot);if($backup.Equals($client,[StringComparison]::OrdinalIgnoreCase) -or $backup.StartsWith($client+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'BackupRoot must be outside the WoW client directory.'}
 $addOns=Join-Path $client 'Interface\AddOns';New-Item -ItemType Directory -Path $addOns -Force|Out-Null;$addOns=[IO.Path]::GetFullPath($addOns);$target=Join-Path $addOns 'MAMChronicles'
 $token=[Guid]::NewGuid().ToString('N');$stage=Join-Path $addOns ".MAMChronicles-stage-$token";$rollback=Join-Path $addOns ".MAMChronicles-rollback-$token"
 foreach($candidate in @($target,$stage,$rollback)){if(-not([IO.Path]::GetFullPath($candidate)).StartsWith($addOns+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw "Unsafe install path: $candidate"}}
 $backupPath=$null
-if(Test-Path -LiteralPath $target -PathType Container){New-Item -ItemType Directory -Path $backup -Force|Out-Null;$backupPath=Join-Path $backup ("MAMChronicles-"+(Get-Date -Format 'yyyyMMdd-HHmmss')+'.zip');Compress-Archive -LiteralPath $target -DestinationPath $backupPath -CompressionLevel Optimal}
+if(Test-Path -LiteralPath $target -PathType Container){New-Item -ItemType Directory -Path $backup -Force|Out-Null;$backupPath=Join-Path $backup ("MAMChronicles-"+(Get-Date -Format 'yyyyMMdd-HHmmss-fff')+'.zip');Compress-Archive -LiteralPath $target -DestinationPath $backupPath -CompressionLevel Optimal}
 try{
   New-Item -ItemType Directory -Path $stage -Force|Out-Null;foreach($name in $allowlist){Copy-Item -LiteralPath (Join-Path $source $name) -Destination (Join-Path $stage $name)}
   if(Test-Path -LiteralPath $target){Move-Item -LiteralPath $target -Destination $rollback}

@@ -77,7 +77,7 @@ function Collectors:CaptureProfessionSnapshot()
   local first,second,archaeology,fishing,cooking=safe(GetProfessions)
   local indices={first,second,archaeology,fishing,cooking}
   for slot=1,5 do local index=indices[slot]; if type(index)=="number" then
-    local name,_,skill,maxSkill,_,_,_,skillLineID=safe(GetProfessionInfo,index)
+    local name,_,skill,maxSkill,_,_,skillLineID=safe(GetProfessionInfo,index)
     local key=tostring(skillLineID or name or index); local old=Addon.db.professionSnapshots[key]
     if name and (not old or old.skillLevel~=skill or old.maxSkillLevel~=maxSkill) then
       local snapshot={professionID=skillLineID,professionName=name,skillLevel=skill,maxSkillLevel=maxSkill,skillLineID=skillLineID}

@@ -17,6 +17,15 @@ function Statistics:Build(fromTime,toTime,characterKey)
   local result={fromTime=fromTime,toTime=toTime,eventCount=0,sessionCount=0,totals={},byZone={},byType={},awards={},coverage={sourceEventCount=0},sourceEventCounts={totals={},byZone={},byType={}}}
   for _,key in pairs(totalKeys) do result.totals[key]=0; result.sourceEventCounts.totals[key]=0 end
   local zones,falling,murloc= {},0,0
+  local compactedEvents=0
+  for _,bucket in pairs((Addon.db.aggregates and Addon.db.aggregates.monthly) or {}) do
+    if not characterKey and type(bucket)=="table" and type(bucket.firstAt)=="number" and type(bucket.lastAt)=="number" and bucket.firstAt>=fromTime and bucket.lastAt<=toTime then
+      compactedEvents=compactedEvents+(bucket.eventCount or 0); result.eventCount=result.eventCount+(bucket.eventCount or 0); result.coverage.sourceEventCount=result.coverage.sourceEventCount+(bucket.eventCount or 0)
+      for eventType,count in pairs(bucket.byType or {}) do result.byType[eventType]=(result.byType[eventType] or 0)+count; result.sourceEventCounts.byType[eventType]=(result.sourceEventCounts.byType[eventType] or 0)+count; local totalKey=totalKeys[eventType]; if totalKey then result.totals[totalKey]=result.totals[totalKey]+count; result.sourceEventCounts.totals[totalKey]=result.sourceEventCounts.totals[totalKey]+count end; if eventType=="session.login" then result.sessionCount=result.sessionCount+count end end
+      for zone,count in pairs(bucket.byZone or {}) do result.byZone[zone]=(result.byZone[zone] or 0)+count; result.sourceEventCounts.byZone[zone]=(result.sourceEventCounts.byZone[zone] or 0)+count; zones[zone]=true end
+      falling=falling+((bucket.signals and bucket.signals.falling) or 0); murloc=murloc+((bucket.signals and bucket.signals.murloc) or 0)
+    end
+  end
   for _,event in ipairs(Addon.db.events) do
     if event.occurredAt>=fromTime and event.occurredAt<=toTime and (not characterKey or event.characterKey==characterKey) then
       result.eventCount=result.eventCount+1; result.coverage.sourceEventCount=result.coverage.sourceEventCount+1
@@ -38,6 +47,7 @@ function Statistics:Build(fromTime,toTime,characterKey)
   addAward(result.awards,"Quest Machine",result.totals.questsCompleted,result.totals.questsCompleted)
   addAward(result.awards,"Shiny Collector",result.totals.notableLoot,result.totals.notableLoot)
   addAward(result.awards,"Comeback Kid",result.totals.resurrections,result.totals.resurrections)
+  result.coverage.compactedEventCount=compactedEvents
   return result
 end
 

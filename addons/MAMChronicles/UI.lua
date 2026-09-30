@@ -21,6 +21,20 @@ local function safeMethod(object,method,...)
   if object and type(object[method])=="function" then pcall(object[method],object,...) end
 end
 
+function UI:GetCurrentMonthRange()
+  local current=Addon:Now(); local dateFn=date or (os and os.date); local timeFn=time or (os and os.time)
+  if not dateFn or not timeFn then return current-2678400,current end
+  local parts=dateFn("*t",current); return timeFn({year=parts.year,month=parts.month,day=1,hour=0,min=0,sec=0,isdst=parts.isdst}),current
+end
+
+function UI:FormatEventDetails(event)
+  if type(event)~="table" then return "Select an entry to inspect its details." end
+  local lines={event.type or "unknown","Occurred: "..tostring(event.occurredAt or "unknown"),"Event ID: "..tostring(event.id or "unknown")}
+  local fields={"questID","questName","itemID","itemName","quality","quantity","zone","subzone","mapID","x","y","instanceName","instanceType","level","professionID","professionName","skillLevel","maxSkillLevel","achievementID","achievementName","points","text","lastHostileTarget","deathKind"}
+  for _,key in ipairs(fields) do local value=event.payload and event.payload[key]; if value~=nil then table.insert(lines,key..": "..tostring(value)) end end
+  return table.concat(lines,"\n")
+end
+
 function UI:BuildTimeline(options)
   options=options or {}; local filter=options.filter or self.activeFilter or "All"
   local fromTime,toTime=options.fromTime,options.toTime
@@ -33,7 +47,7 @@ function UI:BuildTimeline(options)
 end
 
 function UI:GetVisibleTimeline()
-  local events=self:BuildTimeline(); local offset=math.max(0,math.min(tonumber(self.timelineOffset) or 0,math.max(0,#events-1))); self.timelineOffset=offset
+  local events=self:BuildTimeline(); local maxOffset=#events>0 and math.floor((#events-1)/30)*30 or 0; local offset=math.max(0,math.min(tonumber(self.timelineOffset) or 0,maxOffset)); self.timelineOffset=offset
   local result={}; for index=offset+1,math.min(offset+30,#events) do table.insert(result,events[index]) end return result,#events
 end
 
@@ -72,6 +86,9 @@ function UI:Create()
   local nextPage=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(nextPage,"SetSize",90,22); safeMethod(nextPage,"SetPoint","LEFT",previous,"RIGHT",8,0); safeMethod(nextPage,"SetText","Next"); safeMethod(nextPage,"SetScript","OnClick",function() UI.timelineOffset=(UI.timelineOffset or 0)+30; UI:Refresh() end); self.nextButton=nextPage
   local scroll=CreateFrame("ScrollFrame",nil,frame); safeMethod(scroll,"SetPoint","TOPLEFT",24,-112); safeMethod(scroll,"SetPoint","BOTTOMRIGHT",-24,58); safeMethod(scroll,"EnableMouseWheel",true); safeMethod(scroll,"SetScript","OnMouseWheel",function(_,delta) UI.timelineOffset=math.max(0,(UI.timelineOffset or 0)-(delta*5)); UI:Refresh() end); self.scrollFrame=scroll
   local copy=CreateFrame("EditBox",nil,frame,"InputBoxTemplate"); safeMethod(copy,"SetMultiLine",true); safeMethod(copy,"SetAutoFocus",false); safeMethod(copy,"SetSize",720,360); safeMethod(copy,"SetPoint","TOPLEFT",26,-140); safeMethod(copy,"Hide"); self.copyBox=copy
+  self.details=frame:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall"); safeMethod(self.details,"SetPoint","TOPRIGHT",-28,-138); safeMethod(self.details,"SetWidth",260); safeMethod(self.details,"SetJustifyH","LEFT"); safeMethod(self.details,"SetText","Select an entry to inspect its details.")
+  self.rowButtons={}
+  for index=1,30 do local button=CreateFrame("Button",nil,frame); safeMethod(button,"SetPoint","TOPLEFT",26,-115-index*14); safeMethod(button,"SetSize",430,14); safeMethod(button,"SetScript","OnClick",function(clicked) UI.selectedEvent=clicked.event; safeMethod(UI.details,"SetText",UI:FormatEventDetails(clicked.event)) end); self.rowButtons[index]=button end
   self.settingControls={}
   local settingDefs={{"enabled","Record Chronicle"},{"recordQuestAccepts","Record quest accepts"},{"recordCoordinates","Attach coordinates to events"}}
   for index,definition in ipairs(settingDefs) do
@@ -85,13 +102,13 @@ function UI:Create()
 end
 
 function UI:Refresh()
-  self:Create(); for _,row in ipairs(self.rowPool) do safeMethod(row,"Hide") end; for _,control in ipairs(self.settingControls) do safeMethod(control,"Hide") end; safeMethod(self.previousButton,"Hide"); safeMethod(self.nextButton,"Hide"); safeMethod(self.scrollFrame,"Hide"); safeMethod(self.copyBox,"Hide"); safeMethod(self.content,"SetText","")
+  self:Create(); for _,row in ipairs(self.rowPool) do safeMethod(row,"Hide") end; for _,button in ipairs(self.rowButtons) do button.event=nil; safeMethod(button,"Hide") end; for _,control in ipairs(self.settingControls) do safeMethod(control,"Hide") end; safeMethod(self.previousButton,"Hide"); safeMethod(self.nextButton,"Hide"); safeMethod(self.scrollFrame,"Hide"); safeMethod(self.details,"Hide"); safeMethod(self.copyBox,"Hide"); safeMethod(self.content,"SetText","")
   if self.activeTab=="Chronicle" then
-    safeMethod(self.previousButton,"Show"); safeMethod(self.nextButton,"Show"); safeMethod(self.scrollFrame,"Show")
+    safeMethod(self.previousButton,"Show"); safeMethod(self.nextButton,"Show"); safeMethod(self.scrollFrame,"Show"); safeMethod(self.details,"Show")
     local events,total=self:GetVisibleTimeline(); if total==0 then safeMethod(self.content,"SetText","No Chronicle entries match this view yet.") else safeMethod(self.content,"SetText","Showing "..tostring(self.timelineOffset+1).."-"..tostring(self.timelineOffset+#events).." of "..tostring(total)) end
-    for index=1,#events do local event=events[index]; local stamp=date and date("%d %b %H:%M",event.occurredAt) or tostring(event.occurredAt); safeMethod(self.rowPool[index],"SetText",stamp.."  "..event.type.." — "..tostring(label(event))); safeMethod(self.rowPool[index],"Show") end
+    for index=1,#events do local event=events[index]; local stamp=date and date("%d %b %H:%M",event.occurredAt) or tostring(event.occurredAt); safeMethod(self.rowPool[index],"SetWidth",420); safeMethod(self.rowPool[index],"SetText",stamp.."  "..event.type.." — "..tostring(label(event))); safeMethod(self.rowPool[index],"Show"); self.rowButtons[index].event=event; safeMethod(self.rowButtons[index],"Show") end
   elseif self.activeTab=="Statistics" then
-    local stats=Addon.Statistics:Build(Addon:Now()-2678400,Addon:Now()); safeMethod(self.content,"SetText",Addon.Export:BuildHumanSummary(stats.fromTime,stats.toTime))
+    local fromTime,toTime=self:GetCurrentMonthRange(); local stats=Addon.Statistics:Build(fromTime,toTime); safeMethod(self.content,"SetText",Addon.Export:BuildHumanSummary(stats.fromTime,stats.toTime))
   elseif self.activeTab=="Settings" then
     safeMethod(self.content,"SetText","Privacy and recording controls"); for _,control in ipairs(self.settingControls) do safeMethod(control,"Show") end
   else self.copyText=Addon.Export:BuildDiagnosticReport(); safeMethod(self.copyBox,"SetText",self.copyText); safeMethod(self.copyBox,"Show") end

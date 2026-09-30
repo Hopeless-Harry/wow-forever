@@ -15,17 +15,19 @@ local types = {
   ["achievement.earned"]={achievementID=true,achievementName=true,points=true},
   ["memory.manual"]={text=true,zone=true,subzone=true,mapID=true,x=true,y=true},
 }
+local numericFields={duration=true,level=true,mapID=true,x=true,y=true,difficultyID=true,questID=true,itemID=true,quality=true,quantity=true,professionID=true,skillLevel=true,maxSkillLevel=true,skillLineID=true,achievementID=true,points=true}
 
 local function finite(value) return type(value)=="number" and value==value and value~=math.huge and value~=-math.huge end
 local function cleanValue(key, value)
-  if type(value)=="string" then if #value>512 then return string.sub(value,1,512) end return value end
+  if numericFields[key] and type(value)~="number" then return nil,false end
+  if not numericFields[key] and type(value)~="string" then return nil,false end
+  if type(value)=="string" then if #value>512 then return nil,false end return value,true end
   if type(value)=="number" then
-    if not finite(value) then return nil end
-    if (key=="x" or key=="y") and (value<0 or value>1) then return nil end
-    return value
+    if not finite(value) then return nil,false end
+    if (key=="x" or key=="y") and (value<0 or value>1) then return nil,false end
+    return value,true
   end
-  if type(value)=="boolean" then return value end
-  return nil
+  return nil,false
 end
 local function payloadText(payload)
   local parts={}; for key,value in pairs(payload or {}) do table.insert(parts,string.lower(tostring(key).." "..tostring(value))) end
@@ -43,7 +45,7 @@ end
 
 function Store:Sanitise(eventType, payload)
   local allowed=types[eventType]; if not allowed or type(payload)~="table" then return nil end
-  local result={}; for key in pairs(allowed) do local value=cleanValue(key,payload[key]); if value~=nil then result[key]=value end end
+  local result={}; for key in pairs(allowed) do if payload[key]~=nil then local value,valid=cleanValue(key,payload[key]); if not valid then return nil end; result[key]=value end end
   return result
 end
 
@@ -64,15 +66,15 @@ function Store:Append(eventType,payload,options)
   if not self.db then self:Initialise() end
   options=options or {}; if options.schemaVersion and options.schemaVersion~=1 then return nil,"future schema" end
   local clean=self:Sanitise(eventType,payload or {}); if not clean then return nil,"unsupported event" end
-  local occurredAt=math.floor(tonumber(options.occurredAt) or Addon:Now()); local observedAt=Addon:Now()
-  local id=options.id or self:NextId(eventType,occurredAt); if self.db.eventIds[id] then return nil,"duplicate id" end
+  local occurredAt=options.occurredAt~=nil and options.occurredAt or Addon:Now(); if not finite(occurredAt) or occurredAt<0 then return nil,"invalid timestamp" end; occurredAt=math.floor(occurredAt); local observedAt=Addon:Now()
+  local id=options.id or self:NextId(eventType,occurredAt); if type(id)~="string" or #id<1 or #id>200 or not string.match(id,"^[%w%-%._:]+$") then return nil,"invalid id" end; if self.db.eventIds[id] then return nil,"duplicate id" end
   local semantic=self:BuildSemanticKey(eventType,clean)
   if semantic and self.recentSemantic[semantic] and observedAt-self.recentSemantic[semantic]<=5 then return nil,"duplicate signal" end
   local _,build=Addon:SafeCall(GetBuildInfo)
   local event={id=id,schemaVersion=1,type=eventType,occurredAt=occurredAt,observedAt=observedAt,characterKey=Addon.characterKey,sessionId=Addon.sessionId,provenance="self",clientBuild=build,addonVersion=Addon.version,payload=clean,pinned=options.pinned==true}
   table.insert(self.db.events,event); self.db.eventIds[id]=true; if semantic then self.recentSemantic[semantic]=observedAt end
   self.db.meta.updatedAt=observedAt
-  if #self.db.events>(tonumber(self.db.settings.maxEvents) or 10000)+100 then Addon.Database:Compact() end
+  if #self.db.events>(tonumber(self.db.settings.maxEvents) or 10000) then Addon.Database:Compact() end
   return event
 end
 

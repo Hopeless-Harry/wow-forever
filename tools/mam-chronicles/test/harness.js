@@ -50,7 +50,7 @@ export function createHarness({ globals = {}, savedVariables } = {}) {
   const L = lauxlib.luaL_newstate(); lualib.luaL_openlibs(L);
   const calls = { registered: [], printed: [] };
   const defaults = {
-    GetServerTime: () => 1790704800, time: () => 1790704800,
+    GetServerTime: () => 1790704800, time: value => value && typeof value === 'object' ? Math.floor(new Date(value.year, value.month - 1, value.day, value.hour ?? 0, value.min ?? 0, value.sec ?? 0).getTime() / 1000) : 1790704800,
     GetBuildInfo: () => multi('12.1.0', '69933', 'Sep 2026', 120100),
     UnitGUID: unit => unit === 'player' ? 'Player-1234-ABCDEF' : null,
     UnitName: () => multi('Mumtest', 'Draenor'), GetRealmName: () => 'Draenor',
