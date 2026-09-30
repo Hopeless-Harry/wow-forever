@@ -127,7 +127,8 @@ function Toast:Start(spec)
   local frame = self:CreateFrame()
   local T = Addon.Theme; local C = T.colors
   self.current, self.phase, self.timer = spec, "in", 0
-  local colour = spec.kind == "medal" and C.gold or (spec.kind == "guild" and T.kindColors.instance or C.accent)
+  local styleColour = Addon.Medals and Addon.Medals.GetToastColour and Addon.Medals:GetToastColour()
+  local colour = styleColour or (spec.kind == "medal" and C.gold or (spec.kind == "guild" and T.kindColors.instance or C.accent))
   safeMethod(self.stripe, "SetColorTexture", colour[1], colour[2], colour[3], 1)
   safeMethod(self.title, "SetText", spec.title or ""); safeMethod(self.body, "SetText", spec.text or "")
   safeMethod(self.points, "SetText", spec.points and ("+" .. tostring(spec.points) .. " Mom Money") or "")

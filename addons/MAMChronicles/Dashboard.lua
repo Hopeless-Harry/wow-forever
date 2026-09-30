@@ -255,6 +255,7 @@ function Dashboard:Refresh()
   if model.character.realm then table.insert(parts, tostring(model.character.realm)) end
   if model.character.level then table.insert(parts, "Level " .. tostring(model.character.level)) end
   if model.character.zone and model.character.zone ~= "" then table.insert(parts, tostring(model.character.zone)) end
+  if Addon.Medals then table.insert(parts, Addon.Medals:GetTitle()) end
   safeMethod(self.subtitle, "SetText", table.concat(parts, "  \194\183  "))
   for index, tile in ipairs(self.tileFrames) do
     local data = model.tiles[index]

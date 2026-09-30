@@ -479,6 +479,150 @@ function Medals:OnEvent(event)
   self:Evaluate("event")
 end
 
+-- ---------------------------------------------------------------- Mom titles and the Mom Money shop
+-- The title comes from the medal family that has earned the most Mom Money. Everything here is cosmetic and local:
+-- nothing in it is ever sent to the guild.
+Medals.titles = {
+  wine = "Wine Mom", ale = "Pint Mom", coffee = "Coffee Mom", food = "Clean Plate Mom", cheese = "Cheese Mom", cookie = "Cookie Mom",
+  pie = "Pie Mom", soup = "Soup Mom", fish = "Fishy Mom", juice = "Juice Box Mom", water = "Hydration Mom", bandage = "Nurse Mom",
+  potion = "Medicine Mom", jumps = "Trampoline Mom", mounts = "School Run Mom", afk = "Five Minutes Mom", rest = "Weekend Away Mom",
+  shots = "Paparazzi Mom", outfits = "Wardrobe Mom", repairs = "Seamstress Mom", sales = "Declutter Mom", purchases = "Bargain Mom",
+  groups = "Team Mom", left = "Left-on-Read Mom", ready = "Ready Mom", sit = "Sit-Down Mom", sleep = "Nap Mom", stare = "Stare Mom",
+  facepalm = "Facepalm Mom", no = "Because-I-Said-So Mom", thank = "Thank-You Mom", hugs = "Hug Mom", dances = "Dance Party Mom",
+  kisses = "Smooch Mom", waves = "Neighbourhood Mom", cheers = "Cheer Mom", late = "Night Owl Mom", early = "Early Bird Mom",
+  marathon = "Marathon Mom", streak = "Regular Mom", weekend = "Weekend Warrior Mom", raid = "Raid Night Mom", clean = "Clean Run Mom",
+  quest_machine = "Quest Mom", explorer = "Explorer Mom", dungeon_regular = "Dungeon Mom", slayer = "Slayer Mom", oops = "Oops Mom",
+  gravity = "Gravity Mom", jack = "Jack-of-All-Trades Mom", firestarter = "Campfire Mom", campfire_chef = "Camp Chef Mom",
+  hearth = "Homebody Mom", summons = "Carpool Mom", catmom = "Cat Mom", buyer = "Impulse Mom",
+}
+
+Medals.cosmetics = {
+  { id = "style_gold", kind = "toastStyle", name = "Default toast colours", cost = 0 },
+  { id = "style_rose", kind = "toastStyle", name = "Rose toasts", cost = 50, color = { 0.95, 0.45, 0.60, 1 } },
+  { id = "style_teal", kind = "toastStyle", name = "Teal toasts", cost = 75, color = { 0.25, 0.80, 0.75, 1 } },
+  { id = "style_violet", kind = "toastStyle", name = "Violet toasts", cost = 100, color = { 0.65, 0.45, 0.95, 1 } },
+  { id = "style_sunset", kind = "toastStyle", name = "Sunset toasts", cost = 150, color = { 1.00, 0.55, 0.20, 1 } },
+  { id = "flourish_great", kind = "flourish", name = "Title: the Great", cost = 100, suffix = "the Great" },
+  { id = "flourish_supreme", kind = "flourish", name = "Title: Supreme", cost = 250, suffix = "Supreme" },
+  { id = "flourish_legend", kind = "flourish", name = "Title: of Legend", cost = 500, suffix = "of Legend" },
+}
+Medals.cosmeticsById = {}
+for _, item in ipairs(Medals.cosmetics) do Medals.cosmeticsById[item.id] = item end
+
+local function characterRow() return Addon.db and Addon.db.medals and Addon.db.medals[Addon.characterKey] end
+local function cosmeticSettings()
+  local settings = Addon.db and Addon.db.settings
+  if not settings then return nil end
+  if type(settings.cosmetics) ~= "table" then settings.cosmetics = { unlocked = {}, toastStyle = "style_gold", flourish = "" } end
+  settings.cosmetics.unlocked = tableOr(settings.cosmetics.unlocked)
+  return settings.cosmetics
+end
+
+local function earnedPointsByFamily()
+  local row = characterRow()
+  local points, order = {}, {}
+  if not row then return points, order end
+  for _, def in ipairs(definitions) do
+    local earned = row.earned[def.id]
+    if earned and Medals.titles[def.family] then
+      if not points[def.family] then order[#order + 1] = def.family end
+      points[def.family] = (points[def.family] or 0) + (tonumber(earned.points) or def.points)
+    end
+  end
+  return points, order
+end
+
+function Medals:GetEarnedTitles()
+  local _, order = earnedPointsByFamily()
+  local list = {}
+  for _, family in ipairs(order) do list[#list + 1] = { family = family, title = self.titles[family] } end
+  return list
+end
+
+function Medals:SetTitleChoice(family)
+  local settings = Addon.db and Addon.db.settings
+  if not settings then return false end
+  if family == "auto" then settings.titleChoice = "auto"; return true end
+  local points = earnedPointsByFamily()
+  if not (self.titles[family] and points[family]) then return false end
+  settings.titleChoice = family
+  return true
+end
+
+function Medals:GetTitle()
+  local settings = Addon.db and Addon.db.settings
+  local points, order = earnedPointsByFamily()
+  local family
+  local choice = settings and settings.titleChoice
+  if choice and choice ~= "auto" and points[choice] then family = choice
+  else
+    for _, candidate in ipairs(order) do
+      if not family or points[candidate] > points[family] then family = candidate end
+    end
+  end
+  local title = family and self.titles[family] or "Rookie Mom"
+  local cosmetics = cosmeticSettings()
+  local flourish = cosmetics and self.cosmeticsById[cosmetics.flourish]
+  if flourish and flourish.suffix then title = title .. " " .. flourish.suffix end
+  return title
+end
+
+function Medals:GetMomMoney()
+  local row = characterRow()
+  local summary = self:GetSummary(Addon.characterKey)
+  return math.max(0, summary.total - (row and tonumber(row.spent) or 0))
+end
+
+function Medals:IsOwned(id)
+  local item = self.cosmeticsById[id]
+  if not item then return false end
+  if item.cost == 0 then return true end
+  local cosmetics = cosmeticSettings()
+  return cosmetics ~= nil and cosmetics.unlocked[id] == true
+end
+
+function Medals:Equip(id)
+  local item = self.cosmeticsById[id]
+  local cosmetics = cosmeticSettings()
+  if not item or not cosmetics then return false end
+  if not self:IsOwned(id) then return false end
+  if item.kind == "toastStyle" then cosmetics.toastStyle = id else cosmetics.flourish = id end
+  return true
+end
+
+function Medals:Unequip(kind)
+  local cosmetics = cosmeticSettings()
+  if not cosmetics then return false end
+  if kind == "flourish" then cosmetics.flourish = "" else cosmetics.toastStyle = "style_gold" end
+  return true
+end
+
+function Medals:IsEquipped(id)
+  local item, cosmetics = self.cosmeticsById[id], cosmeticSettings()
+  if not item or not cosmetics then return false end
+  if item.kind == "toastStyle" then return cosmetics.toastStyle == id end
+  return cosmetics.flourish == id
+end
+
+function Medals:Buy(id)
+  local item = self.cosmeticsById[id]
+  if not item or item.cost <= 0 then return false, "That item is not for sale." end
+  local row, cosmetics = characterRow(), cosmeticSettings()
+  if not (row and cosmetics) then return false, "No medal record yet." end
+  if self:IsOwned(id) then return false, "You already own that." end
+  if self:GetMomMoney() < item.cost then return false, "Not enough Mom Money (" .. tostring(item.cost) .. " needed)." end
+  row.spent = (tonumber(row.spent) or 0) + item.cost
+  cosmetics.unlocked[id] = true
+  self:Equip(id)
+  return true
+end
+
+function Medals:GetToastColour()
+  local cosmetics = cosmeticSettings()
+  local item = cosmetics and self.cosmeticsById[cosmetics.toastStyle]
+  return item and item.color or nil
+end
+
 -- Goals: up to three unearned medals the player pins to follow on Home.
 Medals.maxPinned = 3
 

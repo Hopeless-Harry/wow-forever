@@ -409,7 +409,41 @@ function UI:ApplyAppearance()
   safeMethod(self.frame, "SetBackdropColor", C.bg[1], C.bg[2], C.bg[3], alpha)
 end
 
+function UI:SyncShop()
+  if not (self.shopButtons and Addon.Medals) then return end
+  local Medals = Addon.Medals
+  safeMethod(self.shopBalance, "SetText", "Mom Money available: " .. tostring(Medals:GetMomMoney()) .. ". Cosmetic only; never shared.")
+  for _, b in ipairs(self.shopButtons) do
+    local item = Medals.cosmeticsById[b.itemId]
+    local state = Medals:IsEquipped(item.id) and "equipped" or (Medals:IsOwned(item.id) and "owned, click to equip" or (tostring(item.cost) .. " Mom Money"))
+    safeMethod(b, "SetText", item.name .. " - " .. state)
+  end
+  local choice = Addon.db.settings.titleChoice
+  safeMethod(self.titleButton, "SetText", "Title: " .. (choice == "auto" and "Auto" or Medals:GetTitle()))
+end
+
+function UI:ClickShopItem(item)
+  local Medals = Addon.Medals
+  if not Medals:IsOwned(item.id) then
+    local ok, reason = Medals:Buy(item.id)
+    if not ok then Addon:Print(reason) end
+  elseif item.kind == "flourish" and Medals:IsEquipped(item.id) then Medals:Unequip("flourish")
+  else Medals:Equip(item.id) end
+  self:SyncShop()
+end
+
+function UI:CycleTitle()
+  local Medals = Addon.Medals
+  local choices = { "auto" }
+  for _, entry in ipairs(Medals:GetEarnedTitles()) do choices[#choices + 1] = entry.family end
+  local current = 1
+  for index, key in ipairs(choices) do if key == Addon.db.settings.titleChoice then current = index end end
+  Medals:SetTitleChoice(choices[current % #choices + 1])
+  self:SyncShop()
+end
+
 function UI:SyncSettingsControls()
+  self:SyncShop()
   if not (self.settingChecks and Addon.db) then return end
   local settings, T = Addon.db.settings, Addon.Theme
   for key, check in pairs(self.settingChecks) do safeMethod(check, "SetChecked", settings[key] == true) end
@@ -522,6 +556,26 @@ function UI:BuildSettingsPage(frame)
   self.testToastButton = button("Send a test toast", 220, 8, function() if Addon.Toast then Addon.Toast:SendTest() end end)
   attachTooltip(self.testToastButton, "Send a test toast", "Shows a sample toast so you can check they appear. Click again for the medal and guildmate looks.")
   y = y - 34
+
+  if Addon.Medals then
+    heading("Mom Money shop")
+    self.shopBalance = label("")
+    self.shopButtons = {}
+    for _, item in ipairs(Addon.Medals.cosmetics) do
+      if item.cost > 0 then
+        local b = button(item.name, 300, 8, function() UI:ClickShopItem(item) end)
+        b.itemId = item.id
+        self.shopButtons[#self.shopButtons + 1] = b
+        y = y - 34
+      end
+    end
+    self.styleResetButton = button("Default toast colours", 300, 8, function() Addon.Medals:Equip("style_gold"); UI:SyncShop() end)
+    attachTooltip(self.styleResetButton, "Default toast colours", "Go back to the normal toast colours.")
+    y = y - 34
+    self.titleButton = button("Title: Auto", 300, 8, function() UI:CycleTitle() end)
+    attachTooltip(self.titleButton, "Mom title", "Click to cycle through the titles you have earned. Auto uses the medal family you have earned the most Mom Money in.")
+    y = y - 34
+  end
 
   heading("Recording")
   check("enabled", "Record Chronicle")
@@ -784,8 +838,9 @@ function UI:RefreshMedals()
   end)
   self.medalList = order
   local summary = Addon.Medals:GetSummary(Addon.characterKey)
-  safeMethod(self.medalHeader, "SetText", "Mom Money " .. tostring(summary.total))
-  safeMethod(self.medalSub, "SetText", tostring(summary.count) .. " of " .. tostring(summary.possible) .. " Mom Medals earned" .. ((self.medalFilter ~= "All" or needle ~= "") and ("  \194\183  showing " .. tostring(#order)) or ""))
+  local available = Addon.Medals:GetMomMoney()
+  safeMethod(self.medalHeader, "SetText", "Mom Money " .. tostring(available) .. (available ~= summary.total and (" (" .. tostring(summary.total) .. " earned)") or ""))
+  safeMethod(self.medalSub, "SetText", tostring(summary.count) .. " of " .. tostring(summary.possible) .. " Mom Medals earned  \194\183  " .. Addon.Medals:GetTitle() .. ((self.medalFilter ~= "All" or needle ~= "") and ("  \194\183  showing " .. tostring(#order)) or ""))
   for index, name in ipairs(self.medalFilters) do
     local b = self.medalFilterButtons[index]
     safeMethod(b, "SetText", name .. " (" .. tostring(counts[name]) .. ")")

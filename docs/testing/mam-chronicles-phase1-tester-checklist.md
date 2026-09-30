@@ -156,6 +156,15 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] Settings > Alerts: click Toast sound repeatedly; each click plays a different sound and the label changes. Note any that are silent on your client: __________
 - [ ] Tick Play a sound with toasts, pick Quest complete, then /mam toast: the chosen sound plays with the toast.
 
+## Titles, shop, halls and recaps (alpha15)
+
+- [ ] Medals tab: the Next up button shows one medal per family and its count is sensible. All five filter buttons fit in the window at its smallest size.
+- [ ] Home shows your Mom title after your zone. Settings > Mom Money shop: the Title button cycles through titles you have earned.
+- [ ] With enough Mom Money, buy a toast colour: it equips, your total on the Medals tab shows the spending, and a toast (`/mam toast`) uses the colour. Buying twice does not charge twice.
+- [ ] Statistics tab shows Hall of Shame and Hall of Fame with believable numbers for your character.
+- [ ] After a previous session with activity, Home shows a Last session line; logging straight back in within five minutes does not.
+- [ ] `/mam recap week` shows a weekly summary with your title and no character name.
+
 ## Stability
 
 - [ ] No Lua errors during the test.

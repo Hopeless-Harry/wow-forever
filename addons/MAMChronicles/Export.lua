@@ -55,6 +55,7 @@ function Export:BuildRecap(fromTime,toTime,options)
   local dateFn=date or (os and os.date)
   local title=options.title or (dateFn and dateFn("%B %Y",fromTime) or "This month")
   local lines={"Moms Against Magic Chronicles - "..title.." recap"}
+  if Addon.Medals then table.insert(lines,"Title: "..Addon.Medals:GetTitle()) end
   local medals=Addon.EventStore:Query({type="medal.earned",fromTime=fromTime,toTime=toTime})
   table.sort(medals,function(a,b) if a.occurredAt==b.occurredAt then return a.id<b.id end return a.occurredAt<b.occurredAt end)
   local changes={}

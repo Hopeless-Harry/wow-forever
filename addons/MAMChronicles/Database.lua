@@ -83,6 +83,21 @@ function Database:NormaliseSettings()
   if not finite(settings.windowAlpha) then settings.windowAlpha = 1 else settings.windowAlpha = clamp(settings.windowAlpha, 0.3, 1) end
   if not validThemes[settings.theme] then settings.theme = "midnight" end
   if settings.welcomeVersion ~= nil and type(settings.welcomeVersion) ~= "string" then settings.welcomeVersion = nil end
+  -- Cosmetics bought with Mom Money (account wide), and the chosen title.
+  local known = Addon.Medals and Addon.Medals.cosmeticsById
+  local cosmetics = type(settings.cosmetics) == "table" and settings.cosmetics or {}
+  local unlocked = {}
+  if type(cosmetics.unlocked) == "table" then
+    for id, value in pairs(cosmetics.unlocked) do if value == true and type(id) == "string" and (not known or (known[id] and known[id].cost > 0)) then unlocked[id] = true end end
+  end
+  local function ownedKind(id, kind) return type(id) == "string" and known and known[id] and known[id].kind == kind and (known[id].cost == 0 or unlocked[id]) end
+  settings.cosmetics = {
+    unlocked = unlocked,
+    toastStyle = ownedKind(cosmetics.toastStyle, "toastStyle") and cosmetics.toastStyle or "style_gold",
+    flourish = ownedKind(cosmetics.flourish, "flourish") and cosmetics.flourish or "",
+  }
+  local titles = Addon.Medals and Addon.Medals.titles
+  if type(settings.titleChoice) ~= "string" or (settings.titleChoice ~= "auto" and titles and not titles[settings.titleChoice]) then settings.titleChoice = "auto" end
   local soundKeys = Addon.Toast and Addon.Toast.soundKeys
   if type(settings.toastSoundChoice) ~= "string" or (soundKeys and not soundKeys[settings.toastSoundChoice]) then settings.toastSoundChoice = "chime" end
   -- Up to three pinned medal ids; anything else is discarded.

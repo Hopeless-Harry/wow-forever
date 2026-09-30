@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0-alpha15
+
+- **Next up** filter on the Medals tab: one medal per family, the next tier to aim for, so the long list becomes short. The filter buttons now sit on their own row.
+- **Mom titles:** you get a title from the medal family you have earned the most Mom Money in (Wine Mom, Trampoline Mom, Night Owl Mom and more), shown on Home, the Medals tab and recaps. Settings has a button to pick any title you have earned.
+- **Mom Money shop** (Settings): spend Mom Money on toast colours (Rose, Teal, Violet, Sunset) and title flourishes (the Great, Supreme, of Legend). Purely cosmetic and local; nothing is sent to the guild. Your Mom Money total shows what is left and what you earned.
+- **Hall of Shame and Fame** on the Statistics tab: most dangerous place, worst day, falls, busiest day, longest session, time played, favourite place and highest level, worked out from your recorded events.
+- **Last session** line on Home: levels, quests, discoveries, deaths and medals from your previous session and how long ago it was.
+- **Weekly recap:** `/mam recap week` for the last seven days. Recaps now include your title.
+
 ## 0.2.0-alpha14
 
 - **Toast sound choices:** nine stock game sounds (Chime, Quest complete, Fanfare, Loot toast, Ready check, Raid warning, Map ping, Whisper, Coins). Settings > Alerts > "Toast sound" plays each one as you click through and keeps your choice. Sounds still only play when "Play a sound with toasts" is ticked.
