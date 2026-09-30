@@ -19,7 +19,7 @@ Retail is a shared-behaviour smoke test. These results do not establish WoW Fore
 | SavedVariables persistence | PASS | The exact current marker remained present across `/reload` and a full client restart. |
 | Loaded-marker diagnostic | PASS | On `0.1.4-phase0`, Current marker and Loaded marker both reported the exact value `1790708096-4` at load count 7. |
 | Map APIs | PASS (outdoors) | Map ID, normalised map position, and outdoor world position were all available in the sampled outdoor state. Restricted-instance behaviour remains untested. |
-| Guild roster | INCONCLUSIVE | The API was available, but the sampled character exposed zero members and zero online members. |
+| Guild roster | DEFERRED | The API was available, but no guilded Retail character was available for a live roster test. This does not block the other Phase 0 results. |
 | Professions | PASS | Retail `0.1.6-phase0` reported one secondary profession and `Cooking learned: yes`. Opening Cooking fired `TRADE_SKILL_SHOW` and exposed 185 recipes in the current window. |
 | Addon messaging | RESTRICTED (confirmed) | Prefix registration succeeded with `duplicate-prefix`; outgoing addon messages were restricted while chat lockdown was not active. Version `0.1.5-phase0` visibly reported that the self ping was not sent, and all ping counters correctly remained zero. |
 | Privacy | PASS | The copied report contained no character name, sender name, BattleTag, account path, or chat content. |
@@ -94,6 +94,6 @@ Blizzard's generated API documentation treats outgoing-addon-message restriction
 
 ## Next live check
 
-1. Use a guilded Retail character, if available, and refresh the guild roster.
-2. Check map capability inside an instance or another naturally restricted area.
-3. Leave quest, level, death, and resurrection checks until they occur naturally.
+1. Check map capability inside an instance or another naturally restricted area.
+2. Leave quest, level, death, and resurrection checks until they occur naturally.
+3. Test the guild roster later when a guilded Retail or Forever character becomes available.
