@@ -64,7 +64,8 @@ On `0.1.4-phase0`, `/mamdiag ping self` produced no visible response when the re
 - Diagnostic tests: 33/33 passed.
 - Package: `MAMChroniclesDiagnostics-0.1.5-phase0.zip`
 - Package SHA-256: `C4A51EDD0BE30907D919612F412AD4B3E6828433680A0B8A7A688A7547DC9635`
-- Installation: pending because `Wow.exe` was running during packaging.
+- Installation: installed into Retail after `Wow.exe` stopped; installed files matched tested source 6/6.
+- Previous addon backup: `MAMChroniclesDiagnostics-20260930-095449.zip`
 
 ## Messaging research note
 
