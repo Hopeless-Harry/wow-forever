@@ -1,7 +1,7 @@
 # Moms Against Magic Chronicles — Project Handoff
 
 **Last updated:** 30 September 2026  
-**Current addon version:** `0.2.0-alpha12`  
+**Current addon version:** `0.2.0-alpha13`  
 **Current status:** alpha11 (recap, goals, safer data) complete in AUTOMATED testing (Chronicles 322/322; alpha10 polish before it) and published to both clients and the CurseForge package. Nothing new has been observed live; Forever and two-player guild sharing are still unproven.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
@@ -406,6 +406,15 @@ Nearly-there goal toast (alpha12, 30 Sep 2026) - AUTOMATED EVIDENCE ONLY:
 - Suites: Chronicles **326/326**, Diagnostics **35/35**, Dashboard **39/39** (total **400**). Published on BOTH clients (21 files, 0 differences). Release `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha12/`, ZIP SHA-256 `7ED952EE1006BF08514C82FA05D402F1765A4306B1CEF5AB34273B0A97A87747`. Not uploaded to CurseForge.
 - Still cut: medal description wrapping (layout cannot be verified without a live look), non-English consumable keywords, guild medal board, Characters roster, Pi export.
 
+First live look at alpha12 and alpha13 fixes (30 Sep 2026):
+
+- **LIVE RETAIL EVIDENCE (user screenshots, alpha12, build 69933, interface 120100, level 90 character):** Home (Getting started card, What's new line, tiles, goals hint, Copy recap), Medals tab (filters with counts All 222 / Earned 39 / In progress 40 / Locked 143, search box, header `39 of 222`, Mom Money 990), Chronicle timeline, Statistics tab and Diagnostics tab (Copy diagnostics button and note, `Handler errors: 0`, `SavedVariables: events 81, medals 39, feed 0`, `Guild sharing: ready, sent 0, received 0, dropped 0, unknown 0, other version 0`, `Level cap: 90`, hooks installed: UseAction, UseContainerItem, JumpOrAscendStart, PerformEmote, DoEmote, RepairAllItems, BuyMerchantItem, SellAllJunkItems) all render and work on Retail. Settings tab and two-player sharing were not shown.
+- **Live finding: the statistics scan took 2747 ms** for 441 statistics (the alpha10 split only paused between categories). Fixed in alpha13: the scan now yields after every single statistic once 6 ms of a frame is used. Needs a live re-check of `Statistics: ok, ... scan N ms` (N is total work across frames now, not one hitch).
+- **Live findings fixed in alpha13 (automated tests only):** timeline and Home rows showed raw `session.login`, `session.logout`, `medal.earned` (now "Logged in", "Logged out after 1h 1m", "Reached level N", medal name with Mom Money); Statistics header showed raw timestamps (now dates); count statistics such as "Gold Challenge ratings earned" and "Goldie ... kills" were classified as Gold and money (now only coin-unit values are money).
+- Not fixed, cosmetic: Chronicle tab has an empty band between the toolbar and the first row; Home tile numbers look pixelated because `SetTextHeight(22)` scales a bitmap font.
+- Commit `cfa9f66`. Suites: Chronicles **330/330**, Diagnostics **35/35**, Dashboard **39/39** (total **404**). Published on BOTH clients (21 files, 0 differences). Release `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha13/`, ZIP SHA-256 `D0CE5A06B92808298C38BE59BC1333D344E32BBEDC6BFF05948FF028D568AE14`. Not uploaded to CurseForge.
+- Idea rejected this session: a WoW-free visual preview renderer (layout-solving Lua stub plus HTML). Started and removed; live screenshots from the user are a better check. A future agent can still build one if the user wants layout checks without the game.
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -465,7 +474,7 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-0. alpha12 is installed on BOTH clients and packaged (SHA-256 in the alpha12 block of section 9). The alpha10 instructions below still apply. If any later change is made, run `scripts/publish-build.ps1` again from the PowerShell tool.
+0. alpha13 is installed on BOTH clients and packaged (SHA-256 in the section 9 block "First live look"). The alpha10 instructions below still apply. If any later change is made, run `scripts/publish-build.ps1` again from the PowerShell tool.
 1. **Next action (user):** log in on the WoW Forever client with alpha10 and (a) type `/mam diag`, click Copy diagnostics and send the pasted report (look at `Handler errors:`, `Medals:`, `Camp spells seen:`, `Statistics:` and `scan N ms`); (b) open the Medals tab, try the filters and search, hover a few medals and send a screenshot; (c) do the campfire test: complete The Great Outdoors, craft and light a campfire, place a camp object, then send `/mam diag` again. Continue with the alpha9 confirmations below. Confirm live: The Great Outdoors gives Happy Camper; lighting a campfire and placing an object moves Firestarter / Camp Decorator; entering the new dungeons, raids, Darkspear Islands and new zones moves their medals; Plot Twist for a new race-class combo; which statistic-based medals appear.
 2. Fix whatever the live check disproves (exact spell names, instance names, quest name, Statistics availability on Forever).
 3. User decides: the licence text, CurseForge project name/category, and then uploads `docs/release/curseforge` material with the ZIP following `UPLOAD-CHECKLIST.md`.
