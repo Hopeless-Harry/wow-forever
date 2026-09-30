@@ -171,6 +171,16 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] The line under Mom Money shows a title count such as `3 of 90 titles`.
 - [ ] Earn the first medal of a new family (for example your first wine): a "New title" toast appears once. Later medals of that family do not repeat it.
 
+## Quests, holidays, characters, book and quiet mode (alpha18)
+
+- [ ] Home shows "Week N Mom Quests" with three lines and progress; `/mam quests` prints the same. Complete one (for example eat the requested meals): a "Mom Quest done" toast appears and your Mom Money rises once.
+- [ ] The three quests look doable for where your character is. Note any that are too hard or impossible: __________
+- [ ] During a holiday window (or by changing the date) a "<holiday> is on!" toast appears once and Holidays medals show progress.
+- [ ] Characters tab lists your alts with level, class and title; a character you have never logged in on after updating is missing until you log in on it.
+- [ ] `/mam book` and the Memory Book button open a readable book with your firsts and memories.
+- [ ] Zone into a dungeon and earn something (or use `/mam toast`): no toast shows until you leave; with the setting off it shows at once.
+- [ ] All seven tabs fit in the window at its smallest size.
+
 ## Stability
 
 - [ ] No Lua errors during the test.

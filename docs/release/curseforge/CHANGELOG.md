@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0-alpha18
+
+- **Weekly Mom Quests:** three small tasks a week (adventure, Mom life and a stretch goal) that pay extra Mom Money, plus a bonus for finishing all three. Week one counts from the WoW Forever launch (4 November 2026) and is gentle: a few quests, a few meals, a level 10 goal. Difficulty ramps up every two weeks to about week twelve (level goals follow the usual Forever pace and never pass 60). Every guildmate on the same version gets the same quests without any messages. They show on Home and with `/mam quests`.
+- **Holiday medals:** Brewfest, Hallow's End, Winter Veil, Lunar Festival, Love Is in the Air and Midsummer each have a "log in on days" series and a themed activity series that only counts while the holiday runs, plus a toast when a holiday starts. Holiday dates are approximate and may differ on Forever. New Holidays category.
+- **Characters tab:** all your characters on the account with level, class, title, medals, Mom Money, professions and when you last played. Local only.
+- **Memory Book:** `/mam book` or the Memory Book button on Home: your firsts (quest, death, dungeon, loot, medal), level milestones, best medals, pinned memories and close calls.
+- **Quiet mode:** toasts are held in dungeons, raids, scenarios and battlegrounds and shown when you are back in the open world (Settings > Alerts, on by default).
+- Mom Money now includes quest rewards; the Medals tab shows what you have earned and what is left.
+
 ## 0.2.0-alpha17
 
 - **Medal categories:** every medal is now in one of Progress, Kitchen & Bar, Mom Habits, Emotes, Play Pattern or WoW Forever. A **Category** button on the Medals tab cycles through them and works together with the filters, Next up and search. Empty categories (for example WoW Forever on Retail) are skipped.

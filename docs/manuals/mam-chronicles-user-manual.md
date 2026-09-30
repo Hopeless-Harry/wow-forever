@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles — User Manual
 
-- **Version:** `0.2.0-alpha17`
+- **Version:** `0.2.0-alpha18`
 - **Primary test target:** WoW Forever (interface 16001, level cap 60)
 - **Secondary test target:** World of Warcraft Retail 12.1
 - **Live evidence:** Retail has been observed live for the window and statistics. Forever, guild sharing between two real players, and most detection (campfires, emotes, consumables, vendor, group, ready checks, fall deaths) are not yet proven live.
@@ -80,6 +80,16 @@ There are **264 medals in 96 families worth 7,985 Mom Money** across both client
 
 A small counter module watches what you do and stores **only whole numbers per category on this computer**: never item names, chat, or locations. Consumables (wine, ale, coffee and tea, food, bandages, potions) are counted when you press an item **and** the game confirms a successful cast within two seconds, so mashing a key while an item is on cooldown does not count. Item names are matched against keywords as whole words, so a "Whale" item is not an ale. Emotes, jumps, mounting, going AFK, resting, screenshots, groups, ready checks, vendor sales and purchases, repairs and equipment changes are counted the same way: only the number is kept. Death by falling is detected by remembering when you were last falling. One known limit: using the very last item of a stack from your bags may not be counted. Counters are cleared by Erase Chronicle Data.
 
+### Weekly Mom Quests
+
+Every week the addon sets **three Mom Quests** that pay extra Mom Money: one adventure (complete quests, discover areas, reach a level, enter dungeons), one piece of Mom life (eat meals, drink coffee or wine, jump, hug, take screenshots, sell to vendors) and one stretch goal (light campfires on Forever, log in on several days, dance, join groups). Finishing one pays 10 to 25 Mom Money and finishing all three pays a further 10. They appear on Home and `/mam quests` lists them with your progress.
+
+Weeks count from the WoW Forever launch on 4 November 2026 (before that you see week one). Week one is deliberately easy: a handful of quests, a few meals, level 10 at most. The targets step up every two weeks until about week twelve, and level goals follow a normal Forever levelling pace and never go past 60. The quests depend only on the week number and your client, so guildmates on the same version see the same ones without any messages. Progress is counted from when a week first starts for that character, and a new week starts fresh.
+
+### Holiday medals
+
+Brewfest, Hallow's End, Winter Veil, Lunar Festival, Love Is in the Air and Midsummer each have two medal series (log in on different days during the holiday, and a themed activity such as drinking at Brewfest or dancing at Midsummer) in the **Holidays** category. The activity only counts while the holiday runs, and a toast tells you when one starts. The dates are approximate fixed windows and may not match Forever's own calendar.
+
 ### Mom titles and the Mom Money shop
 
 Every medal family has its own title (about 96 in all), and the Medals tab shows how many you have earned. The first medal you earn in a family unlocks its title with a **New title** toast. Your **Mom title** comes from the medal family you have earned the most Mom Money in: Wine Mom, Pint Mom, Trampoline Mom, Night Owl Mom, Quest Mom and so on, or **Rookie Mom** at the start. It shows under the greeting on Home, on the Medals tab and in recaps. In **Settings > Mom Money shop** the **Title** button cycles through every title you have earned (Auto picks the best).
@@ -87,6 +97,8 @@ Every medal family has its own title (about 96 in all), and the Medals tab shows
 The same section is a small shop. **Mom Money** you have earned can be spent on cosmetics: toast colours (Rose 50, Teal 75, Violet 100, Sunset 150) and title flourishes (the Great 100, Supreme 250, of Legend 500). Click an item to buy it (it equips automatically), click again to equip or unequip later. The Medals tab shows what is left and what you earned, for example `Mom Money 890 (990 earned)`. Purchases are cosmetic and local: only medal ids, points and the addon version are ever sent to the guild. Erasing your Chronicle resets spending but keeps what you bought.
 
 ### Alerts (toasts)
+
+Toasts are also held in dungeons, raids, scenarios and battlegrounds and shown when you are back in the open world (Settings > Alerts > **Hold toasts in dungeons, raids and battlegrounds**, on by default).
 
 Pick the toast sound in **Settings > Alerts > Toast sound**: each click plays the next of nine stock game sounds (Chime, Quest complete, Fanfare, Loot toast, Ready check, Raid warning, Map ping, Whisper, Coins) and keeps it. It only plays with toasts when **Play a sound with toasts** is ticked. A sound the client does not have plays nothing.
 
@@ -161,6 +173,14 @@ Every summary states its date window and source-event coverage. A missing event 
 
 The Statistics tab also has a **Hall of Shame** and **Hall of Fame** section above the lifetime statistics: your most dangerous place and worst day, falls, busiest day, longest session, time played, favourite place and highest level. They are worked out from the events still in your journal, so very old history that was compacted away is not included.
 
+### Characters
+
+The **Characters** tab lists every character of your account that has used the addon: name, realm, level and class, Mom title, medals, Mom Money, professions and when you last played. It is built from the addon's own saved data, so a character appears after you have logged in on it once. Nothing on this tab is shared.
+
+### Memory Book
+
+`/mam book` (or **Memory Book** on Home) opens a scrapbook of your character: firsts (first quest, death, dungeon, notable loot, medal), level milestones, your best medals, your pinned memories (newest first) and recent close calls, with a mark for falls. It is text you can select and copy.
+
 ### 3. Settings
 
 The settings apply to the local Chronicle database.
@@ -201,6 +221,8 @@ Click **Copy diagnostics**, press `Ctrl+C`, and paste the report into your messa
 | `/mam medals` | Opens the Medals tab. |
 | `/mam settings` | Opens the Settings tab. |
 | `/mam recap` | Shows a short summary of this month to copy and share: your title, sessions, deaths, quests, medals earned, top statistic changes and Mom Money. It has no character name, realm or gold. |
+| `/mam quests` | Lists this week's Mom Quests with your progress. |
+| `/mam book` | Opens your Memory Book. |
 | `/mam recap week` | The same for the last seven days (without statistic changes, which are tracked monthly). |
 | `/mam toast` | Shows a sample toast so you can check alerts (click again for the medal and guildmate looks). |
 | `/mam export` | Opens and selects the copyable Courier export. Press `Ctrl+C` to copy it. |
