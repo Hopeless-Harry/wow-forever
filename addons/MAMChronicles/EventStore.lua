@@ -39,7 +39,7 @@ function Store:Initialise()
   local now=Addon:Now()
   for index=#self.db.events,math.max(1,#self.db.events-100),-1 do
     local event=self.db.events[index]
-    if event and event.observedAt and now-event.observedAt<=5 then local key=self:BuildSemanticKey(event.type,event.payload or {}); if key then self.recentSemantic[key]=event.observedAt end end
+    if event and event.observedAt and now-event.observedAt<=5 then local key=self:BuildSemanticKey(event.type,event.payload or {},event.characterKey); if key then self.recentSemantic[key]=event.observedAt end end
     if event and event.occurredAt==now and type(event.id)=="string" then local sequence=tonumber(string.match(event.id,":(%d+)$")); if sequence and sequence>self.sequence then self.sequence=sequence; self.sequenceSecond=now end end
   end
 end
@@ -50,11 +50,11 @@ function Store:Sanitise(eventType, payload)
   return result
 end
 
-function Store:BuildSemanticKey(eventType,payload)
+function Store:BuildSemanticKey(eventType,payload,characterKey)
   if eventType=="memory.manual" then return nil end
   local identity=payload.questID or payload.itemID or payload.achievementID or payload.mapID or payload.instanceName or payload.level or ""
   if eventType=="profession.changed" then identity=tostring(payload.professionID or payload.skillLineID or payload.professionName or "")..":"..tostring(payload.skillLevel or "") end
-  return eventType..":"..tostring(identity)
+  return tostring(characterKey or Addon.characterKey or "unknown")..":"..eventType..":"..tostring(identity)
 end
 
 function Store:NextId(eventType, occurredAt)
@@ -69,7 +69,7 @@ function Store:Append(eventType,payload,options)
   local clean=self:Sanitise(eventType,payload or {}); if not clean then return nil,"unsupported event" end
   local occurredAt=options.occurredAt~=nil and options.occurredAt or Addon:Now(); if not finite(occurredAt) or occurredAt<0 then return nil,"invalid timestamp" end; occurredAt=math.floor(occurredAt); local observedAt=Addon:Now()
   local id=options.id or self:NextId(eventType,occurredAt); if type(id)~="string" or #id<1 or #id>200 or not string.match(id,"^[%w%-%._:]+$") then return nil,"invalid id" end; if self.db.eventIds[id] then return nil,"duplicate id" end
-  local semantic=self:BuildSemanticKey(eventType,clean)
+  local semantic=self:BuildSemanticKey(eventType,clean,Addon.characterKey)
   if semantic and self.recentSemantic[semantic] and observedAt-self.recentSemantic[semantic]<=5 then return nil,"duplicate signal" end
   local _,build=Addon:SafeCall(GetBuildInfo)
   local event={id=id,schemaVersion=1,type=eventType,occurredAt=occurredAt,observedAt=observedAt,characterKey=Addon.characterKey,sessionId=Addon.sessionId,provenance="self",clientBuild=build,addonVersion=Addon.version,payload=clean,pinned=options.pinned==true}

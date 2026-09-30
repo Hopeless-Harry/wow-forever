@@ -79,14 +79,17 @@ end
 
 function Collectors:CaptureProfessionSnapshot()
   if not GetProfessions or not GetProfessionInfo then return end
+  local characterKey=Addon.characterKey or "unknown"
+  local characterSnapshots=Addon.db.professionSnapshots[characterKey]
+  if type(characterSnapshots)~="table" then characterSnapshots={}; Addon.db.professionSnapshots[characterKey]=characterSnapshots end
   local first,second,archaeology,fishing,cooking=safe(GetProfessions)
   local indices={first,second,archaeology,fishing,cooking}
   for slot=1,5 do local index=indices[slot]; if type(index)=="number" then
     local name,_,skill,maxSkill,_,_,skillLineID=safe(GetProfessionInfo,index)
-    local key=tostring(skillLineID or name or index); local old=Addon.db.professionSnapshots[key]
+    local key=tostring(skillLineID or name or index); local old=characterSnapshots[key]
     if name and (not old or old.skillLevel~=skill or old.maxSkillLevel~=maxSkill) then
       local snapshot={professionID=skillLineID,professionName=name,skillLevel=skill,maxSkillLevel=maxSkill,skillLineID=skillLineID}
-      Addon.db.professionSnapshots[key]=snapshot; Addon.EventStore:Append("profession.changed",snapshot)
+      characterSnapshots[key]=snapshot; Addon.EventStore:Append("profession.changed",snapshot)
     end
   end end
 end
@@ -112,7 +115,9 @@ function Collectors:HandleEvent(eventName,...)
       Addon.EventStore:Append("character.death",payload); self.isDeadObserved=true
     elseif (eventName=="PLAYER_ALIVE" or eventName=="PLAYER_UNGHOST") and self.isDeadObserved then Addon.EventStore:Append("character.resurrected",self:CaptureLocation()); self.isDeadObserved=false
     elseif eventName=="QUEST_ACCEPTED" and Addon.db.settings.recordQuestAccepts then local questID=type(args[2])=="number" and args[2] or args[1]; Addon.EventStore:Append("quest.accepted",{questID=questID,questName=self:QuestName(questID)})
-    elseif eventName=="QUEST_TURNED_IN" then local questID=args[1]; Addon.EventStore:Append("quest.completed",{questID=questID,questName=self:QuestName(questID)}); Addon.db.questCompletion[questID]=Addon:Now()
+    elseif eventName=="QUEST_TURNED_IN" then
+      local questID=args[1]; Addon.EventStore:Append("quest.completed",{questID=questID,questName=self:QuestName(questID)})
+      if type(questID)=="number" then local completed=Addon.db.questCompletion[Addon.characterKey]; if type(completed)~="table" then completed={}; Addon.db.questCompletion[Addon.characterKey]=completed end; completed[questID]=Addon:Now() end
     elseif eventName=="ZONE_CHANGED" or eventName=="ZONE_CHANGED_INDOORS" or eventName=="ZONE_CHANGED_NEW_AREA" then Addon.EventStore:Append("world.zone_discovered",self:CaptureLocation())
     elseif eventName=="PLAYER_ENTERING_WORLD" then self:CaptureInstance()
     elseif eventName=="CHAT_MSG_LOOT" then self:CaptureLoot(args[1])

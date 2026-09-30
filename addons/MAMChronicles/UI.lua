@@ -69,6 +69,9 @@ function UI:Create()
   local title=frame:CreateFontString(nil,"OVERLAY","GameFontNormalLarge"); safeMethod(title,"SetPoint","TOP",0,-18); safeMethod(title,"SetText","Moms Against Magic Chronicles")
   self.title=title
   local close=CreateFrame("Button",nil,frame,"UIPanelCloseButton"); safeMethod(close,"SetPoint","TOPRIGHT",-7,-7)
+  local resize=CreateFrame("Button",nil,frame); safeMethod(resize,"SetSize",18,18); safeMethod(resize,"SetPoint","BOTTOMRIGHT",-8,8)
+  safeMethod(resize,"SetNormalTexture","Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up"); safeMethod(resize,"SetPushedTexture","Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down"); safeMethod(resize,"SetHighlightTexture","Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+  safeMethod(resize,"SetScript","OnMouseDown",function(_,button) if button=="LeftButton" then safeMethod(frame,"StartSizing","BOTTOMRIGHT") end end); safeMethod(resize,"SetScript","OnMouseUp",function() safeMethod(frame,"StopMovingOrSizing") end); self.resizeHandle=resize
   self.tabButtons={}
   for index,name in ipairs(self.tabs) do
     local button=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(button,"SetSize",120,24); safeMethod(button,"SetPoint","TOPLEFT",20+(index-1)*125,-48); safeMethod(button,"SetText",name)
@@ -116,7 +119,11 @@ end
 
 function UI:Show() self:Create(); self:Refresh(); safeMethod(self.frame,"Show") end
 function UI:Hide() if self.frame then safeMethod(self.frame,"Hide") end end
-function UI:ShowCopy(text) self:Create(); self.copyText=text or ""; safeMethod(self.copyBox,"SetText",self.copyText); safeMethod(self.copyBox,"Show"); safeMethod(self.frame,"Show") end
+function UI:ShowCopy(text)
+  self:Create(); for _,row in ipairs(self.rowPool) do safeMethod(row,"Hide") end; for _,button in ipairs(self.rowButtons) do button.event=nil; safeMethod(button,"Hide") end; for _,control in ipairs(self.settingControls) do safeMethod(control,"Hide") end
+  safeMethod(self.previousButton,"Hide"); safeMethod(self.nextButton,"Hide"); safeMethod(self.scrollFrame,"Hide"); safeMethod(self.details,"Hide"); safeMethod(self.content,"SetText","")
+  self.copyText=text or ""; safeMethod(self.copyBox,"SetText",self.copyText); safeMethod(self.copyBox,"Show"); safeMethod(self.copyBox,"SetFocus"); safeMethod(self.copyBox,"HighlightText"); safeMethod(self.frame,"Show")
+end
 
 function UI:HandleSlash(command)
   command=(command or ""):match("^%s*(.-)%s*$"); local verb,rest=command:match("^(%S+)%s*(.-)$"); verb=string.lower(verb or "")
