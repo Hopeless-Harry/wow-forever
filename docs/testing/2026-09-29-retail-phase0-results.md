@@ -1,11 +1,11 @@
 # Moms Against Magic Chronicles — Retail Phase 0 Results
 
-**Date:** 29 September 2026  
+**Dates tested:** 29–30 September 2026  
 **Client:** WoW Retail `12.1.0.69933`  
 **Interface:** `120100`  
 **Locale:** `enUS`  
-**Diagnostic version exercised:** `0.1.1-phase0`  
-**Fixed diagnostic installed for next run:** `0.1.4-phase0`
+**Diagnostic versions exercised:** `0.1.1-phase0`, `0.1.4-phase0`  
+**Latest diagnostic installed:** `0.1.4-phase0`
 
 Retail is a shared-behaviour smoke test. These results do not establish WoW Forever compatibility.
 
@@ -15,22 +15,24 @@ Retail is a shared-behaviour smoke test. These results do not establish WoW Fore
 |---|---|---|
 | Addon loading | PASS | The report opened and identified build `69933`, client `12.1.0`, and interface `120100`. |
 | Event registration | PASS | Every allowlisted diagnostic event reported `available`. |
-| Event observation | PASS (sampled) | Login, alive, new-area, entering-world, and skill-line events were observed. |
+| Event observation | PASS (sampled) | Login, logout, alive, zone, new-area, entering-world, and skill-line events were observed. |
 | SavedVariables persistence | PASS | The exact current marker remained present across `/reload` and a full client restart. |
-| Loaded-marker diagnostic | FIX PENDING RETEST | Version `0.1.1-phase0` displayed `Loaded marker: none` even though the current marker persisted. A load-order regression reproduced the issue; the installed `0.1.4-phase0` build contains the correction. |
-| Map APIs | PARTIAL | Map ID and outdoor world position were available; normalised map position was unavailable in the sampled state. |
+| Loaded-marker diagnostic | PASS | On `0.1.4-phase0`, Current marker and Loaded marker both reported the exact value `1790708096-4` at load count 7. |
+| Map APIs | PASS (outdoors) | Map ID, normalised map position, and outdoor world position were all available in the sampled outdoor state. Restricted-instance behaviour remains untested. |
 | Guild roster | INCONCLUSIVE | The API was available, but the sampled character exposed zero members and zero online members. |
 | Professions | INCONCLUSIVE | The API was available, but no primary professions or recipes were visible in the sampled state. |
-| Addon messaging | UNAVAILABLE IN SAMPLE | Prefix registration succeeded with `duplicate-prefix`, but Retail reported outgoing addon messages restricted. No ping was sent. |
+| Addon messaging | RESTRICTED IN SAMPLE | Prefix registration succeeded with `duplicate-prefix`; outgoing addon messages were restricted while chat lockdown was not active. No ping was sent. |
 | Privacy | PASS | The copied report contained no character name, sender name, BattleTag, account path, or chat content. |
 
 ## Observed counters
 
-- `PLAYER_LOGIN`: 1
-- `PLAYER_ALIVE`: 1
-- `ZONE_CHANGED_NEW_AREA`: 1
-- `PLAYER_ENTERING_WORLD`: 1
-- `SKILL_LINES_CHANGED`: 2
+- `PLAYER_LOGIN`: 6
+- `PLAYER_LOGOUT`: 5
+- `PLAYER_ALIVE`: 5
+- `ZONE_CHANGED`: 1
+- `ZONE_CHANGED_NEW_AREA`: 5
+- `PLAYER_ENTERING_WORLD`: 6
+- `SKILL_LINES_CHANGED`: 295
 
 ## Persistence defect and correction
 
@@ -42,9 +44,9 @@ The persisted marker `1790707868-3` appeared as the current marker after restart
 
 Code inspection showed that event registration could call database initialization while addon files were loading. The automated harness reproduced the live symptom by loading the Lua files before making the SavedVariables table available and then firing `ADDON_LOADED`.
 
-### Automated correction; live retest pending
+### Automated correction; live retest passed
 
-When the SavedVariables global is not yet available, versions `0.1.2-phase0` and later keep pre-load event-registration results in temporary memory and merge them during database initialization. Automated coverage requires the loaded marker to match the restored marker after `ADDON_LOADED`. Live Retail confirmation remains pending.
+When the SavedVariables global is not yet available, versions `0.1.2-phase0` and later keep pre-load event-registration results in temporary memory and merge them during database initialization. Automated coverage requires the loaded marker to match the restored marker after `ADDON_LOADED`. Retail `0.1.4-phase0` then confirmed the exact marker `1790708096-4` in both report fields.
 
 ## Build and installation evidence
 
@@ -57,15 +59,15 @@ When the SavedVariables global is not yet available, versions `0.1.2-phase0` and
 
 ## Messaging research note
 
-Blizzard's generated API documentation treats outgoing-addon-message restriction and chat messaging lockdown as separate states. The Retail report captured only the former, so the cause of the sampled restriction is not yet established. Tomorrow's test should not infer that all Retail or Forever addon messaging is unavailable from this single result.
+Blizzard's generated API documentation treats outgoing-addon-message restriction and chat messaging lockdown as separate states. Retail `0.1.4-phase0` confirmed `Outgoing restricted: yes` and `Chat lockdown: no`. This rules out chat lockdown as the sampled cause, but it does not establish why this account/session is restricted or whether Forever behaves the same way.
 
 - [Generated ChatInfo API documentation](https://github.com/Gethe/wow-ui-source/blob/live/Interface/AddOns/Blizzard_APIDocumentationGenerated/ChatInfoDocumentation.lua)
 - [Generated CVar resource entry for `addonChatRestrictionsForced`](https://github.com/Ketho/BlizzardInterfaceResources/blob/live/Resources/CVars.lua)
 
 ## Next live check
 
-1. Launch Retail with `0.1.4-phase0`.
-2. Open `/mamdiag` without creating a new marker.
-3. Confirm **Current marker** and **Loaded marker** are identical.
-4. Record both **Outgoing restricted** and **Chat lockdown**.
-5. Continue with an outdoor map check, a guilded character if available, and a character with primary professions.
+1. Use a guilded Retail character, if available, and refresh the guild roster.
+2. Use a character with primary professions and open a profession window.
+3. Run `/mamdiag ping self` once and record the exact printed refusal or counter change.
+4. Check map capability inside an instance or another naturally restricted area.
+5. Leave quest, level, death, resurrection, and trade-skill event checks until they occur naturally.
