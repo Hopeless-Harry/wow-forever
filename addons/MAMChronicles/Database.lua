@@ -22,7 +22,7 @@ end
 
 function Database:Open(saved)
   local reason
-  if type(saved) ~= "table" then reason = saved == nil and nil or "corrupt root"
+  if type(saved) ~= "table" then if saved~=nil then reason="corrupt root" end
   elseif saved.schemaVersion ~= 1 then reason = "unsupported schema" end
   if not reason and type(saved)=="table" then
     for _,key in ipairs({"meta","settings","characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics"}) do
@@ -61,14 +61,20 @@ function Database:EndSession()
   if self.currentSession then self.currentSession.endedAt = now(); self.currentSession = nil; Addon.sessionId = nil end
 end
 
+local function accumulateBucket(bucket,event)
+  bucket.eventCount=(bucket.eventCount or 0)+1; bucket.byType=tableOr(bucket.byType); bucket.byZone=tableOr(bucket.byZone); bucket.signals=tableOr(bucket.signals)
+  bucket.byType[event.type]=(bucket.byType[event.type] or 0)+1; bucket.firstAt=math.min(bucket.firstAt or event.occurredAt,event.occurredAt); bucket.lastAt=math.max(bucket.lastAt or event.occurredAt,event.occurredAt)
+  local zone=event.payload and event.payload.zone; if zone then bucket.byZone[zone]=(bucket.byZone[zone] or 0)+1 end
+  if event.type=="character.death" then local kind=string.lower(tostring(event.payload.deathKind or "")); if string.find(kind,"fall",1,true) then bucket.signals.falling=(bucket.signals.falling or 0)+1 end; local context=string.lower(tostring(event.payload.lastHostileTarget or "").." "..tostring(zone or "")); if string.find(context,"murloc",1,true) then bucket.signals.murloc=(bucket.signals.murloc or 0)+1 end end
+  return bucket
+end
+
 function Database:Accumulate(event)
   local aggregates=self.db.aggregates; aggregates.byType=tableOr(aggregates.byType); aggregates.byZone=tableOr(aggregates.byZone); aggregates.monthly=tableOr(aggregates.monthly)
   aggregates.eventCount=(aggregates.eventCount or 0)+1; aggregates.byType[event.type]=(aggregates.byType[event.type] or 0)+1
   local zone=event.payload and event.payload.zone; if zone then aggregates.byZone[zone]=(aggregates.byZone[zone] or 0)+1 end
-  local key=monthKey(event.occurredAt); local bucket=aggregates.monthly[key] or {eventCount=0,byType={},byZone={},signals={},firstAt=event.occurredAt,lastAt=event.occurredAt}
-  bucket.eventCount=bucket.eventCount+1; bucket.byType[event.type]=(bucket.byType[event.type] or 0)+1; bucket.firstAt=math.min(bucket.firstAt,event.occurredAt); bucket.lastAt=math.max(bucket.lastAt,event.occurredAt)
-  if zone then bucket.byZone[zone]=(bucket.byZone[zone] or 0)+1 end
-  if event.type=="character.death" then local kind=string.lower(tostring(event.payload.deathKind or "")); if string.find(kind,"fall",1,true) then bucket.signals.falling=(bucket.signals.falling or 0)+1 end; local context=string.lower(tostring(event.payload.lastHostileTarget or "").." "..tostring(zone or "")); if string.find(context,"murloc",1,true) then bucket.signals.murloc=(bucket.signals.murloc or 0)+1 end end
+  local key=monthKey(event.occurredAt); local bucket=aggregates.monthly[key] or {eventCount=0,byType={},byZone={},signals={},byCharacter={}}
+  accumulateBucket(bucket,event); bucket.byCharacter=tableOr(bucket.byCharacter); local characterKey=event.characterKey or "unknown"; bucket.byCharacter[characterKey]=accumulateBucket(bucket.byCharacter[characterKey] or {},event)
   aggregates.monthly[key]=bucket
 end
 

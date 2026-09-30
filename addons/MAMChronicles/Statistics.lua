@@ -19,11 +19,14 @@ function Statistics:Build(fromTime,toTime,characterKey)
   local zones,falling,murloc= {},0,0
   local compactedEvents=0
   for _,bucket in pairs((Addon.db.aggregates and Addon.db.aggregates.monthly) or {}) do
-    if not characterKey and type(bucket)=="table" and type(bucket.firstAt)=="number" and type(bucket.lastAt)=="number" and bucket.firstAt>=fromTime and bucket.lastAt<=toTime then
-      compactedEvents=compactedEvents+(bucket.eventCount or 0); result.eventCount=result.eventCount+(bucket.eventCount or 0); result.coverage.sourceEventCount=result.coverage.sourceEventCount+(bucket.eventCount or 0)
-      for eventType,count in pairs(bucket.byType or {}) do result.byType[eventType]=(result.byType[eventType] or 0)+count; result.sourceEventCounts.byType[eventType]=(result.sourceEventCounts.byType[eventType] or 0)+count; local totalKey=totalKeys[eventType]; if totalKey then result.totals[totalKey]=result.totals[totalKey]+count; result.sourceEventCounts.totals[totalKey]=result.sourceEventCounts.totals[totalKey]+count end; if eventType=="session.login" then result.sessionCount=result.sessionCount+count end end
-      for zone,count in pairs(bucket.byZone or {}) do result.byZone[zone]=(result.byZone[zone] or 0)+count; result.sourceEventCounts.byZone[zone]=(result.sourceEventCounts.byZone[zone] or 0)+count; zones[zone]=true end
-      falling=falling+((bucket.signals and bucket.signals.falling) or 0); murloc=murloc+((bucket.signals and bucket.signals.murloc) or 0)
+    local candidate=characterKey and bucket.byCharacter and bucket.byCharacter[characterKey] or (not characterKey and bucket or nil)
+    if type(candidate)=="table" and type(candidate.firstAt)=="number" and type(candidate.lastAt)=="number" then
+      if candidate.firstAt>=fromTime and candidate.lastAt<=toTime then
+        compactedEvents=compactedEvents+(candidate.eventCount or 0); result.eventCount=result.eventCount+(candidate.eventCount or 0); result.coverage.sourceEventCount=result.coverage.sourceEventCount+(candidate.eventCount or 0)
+        for eventType,count in pairs(candidate.byType or {}) do result.byType[eventType]=(result.byType[eventType] or 0)+count; result.sourceEventCounts.byType[eventType]=(result.sourceEventCounts.byType[eventType] or 0)+count; local totalKey=totalKeys[eventType]; if totalKey then result.totals[totalKey]=result.totals[totalKey]+count; result.sourceEventCounts.totals[totalKey]=result.sourceEventCounts.totals[totalKey]+count end; if eventType=="session.login" then result.sessionCount=result.sessionCount+count end end
+        for zone,count in pairs(candidate.byZone or {}) do result.byZone[zone]=(result.byZone[zone] or 0)+count; result.sourceEventCounts.byZone[zone]=(result.sourceEventCounts.byZone[zone] or 0)+count; zones[zone]=true end
+        falling=falling+((candidate.signals and candidate.signals.falling) or 0); murloc=murloc+((candidate.signals and candidate.signals.murloc) or 0)
+      elseif candidate.firstAt<=toTime and candidate.lastAt>=fromTime then result.coverage.compactedRangeIncomplete=true; result.coverage.excludedCompactedEventCount=(result.coverage.excludedCompactedEventCount or 0)+(candidate.eventCount or 0) end
     end
   end
   for _,event in ipairs(Addon.db.events) do

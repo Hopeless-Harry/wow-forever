@@ -34,6 +34,7 @@ function Export:BuildHumanSummary(fromTime,toTime)
   local lines={"Moms Against Magic Chronicles","Reporting window: "..tostring(stats.fromTime).." to "..tostring(stats.toTime),"Events recorded: "..tostring(stats.eventCount),"Sessions: "..tostring(stats.sessionCount),"Deaths: "..tostring(stats.totals.deaths),"Quests completed: "..tostring(stats.totals.questsCompleted),"Discoveries: "..tostring(stats.totals.discoveries),"Notable loot: "..tostring(stats.totals.notableLoot)}
   if #stats.awards>0 then table.insert(lines,"Awards:"); for _,award in ipairs(stats.awards) do table.insert(lines,"- "..award.name..": "..tostring(award.count)) end end
   table.insert(lines,"Coverage: "..tostring(stats.coverage.sourceEventCount).." source events in this local journal.")
+  if stats.coverage.compactedRangeIncomplete then table.insert(lines,"Coverage warning: compacted history overlaps only part of this range; shown totals are a known minimum.") end
   return table.concat(lines,"\n")
 end
 
@@ -42,6 +43,7 @@ function Export:BuildDiagnosticReport()
   local registered,errors=0,0
   if status then for _ in pairs(status.registered or {}) do registered=registered+1 end errors=#(status.errors or {}) end
   local lines={"Moms Against Magic Chronicles Diagnostics","Addon version: "..Addon.version,"Client build: "..tostring(build or "unknown"),"Interface: "..tostring(interface or "unknown"),"Schema: "..tostring(Addon.db.schemaVersion),"Events: "..tostring(#Addon.db.events),"Sessions: "..tostring(#Addon.db.sessions),"Collectors registered: "..tostring(registered),"Collector errors: "..tostring(errors)}
+  if status and errors>0 then for index=math.max(1,errors-2),errors do local item=status.errors[index]; table.insert(lines,"Recent collector error: "..tostring(item.event or "unknown").." ("..tostring(item.message or "handler failed")..")") end end
   if Addon.db.diagnostics.recovery then table.insert(lines,"Recovery: "..tostring(Addon.db.diagnostics.recovery.reason)) end
   return table.concat(lines,"\n")
 end
