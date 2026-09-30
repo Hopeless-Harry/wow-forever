@@ -6,7 +6,7 @@ local GOLD = "Gold and money"
 local SCAN_DELAY, RETRY_DELAY, MONTHS_KEPT = 8, 15, 6
 AchievementStats.groupOrder = {
   "Deaths and combat", "Quests", "Exploration and travel", "Dungeons and raids", "Professions and crafting",
-  "Social", "Loot and items", "Time played", "Player versus player", GOLD, "Other",
+  "Social", "Loot and items", "Time played", "Player versus player", "Character", "World events", "Pet battles", "Legacy", GOLD, "Other",
 }
 
 local function finite(value) return type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge end
@@ -48,6 +48,9 @@ function AchievementStats:ParseValue(text)
   if type(text) ~= "string" then return nil end
   text = text:gsub("^%s+", ""):gsub("%s+$", "")
   if text == "" or text == "--" then return nil end
+  -- Some statistics read "16025 (Humanoid)" or "9 ()": a count followed by a bracketed label.
+  local withLabel = text:match("^([%d,]+)%s*%b()$")
+  if withLabel then text = withLabel end
   if text:match("^[%d,%.]+$") then
     local number = tonumber((text:gsub(",", "")))
     if finite(number) then return number, "count" end
@@ -77,6 +80,7 @@ local rootRules = {
   { "social", "Social" }, { "player vs", "Player versus player" }, { "pvp", "Player versus player" },
   { "battleground", "Player versus player" }, { "arena", "Player versus player" },
   { "loot", "Loot and items" }, { "item", "Loot and items" }, { "consum", "Loot and items" },
+  { "world event", "World events" }, { "pet battle", "Pet battles" }, { "legacy", "Legacy" }, { "character", "Character" },
 }
 
 function AchievementStats:Classify(rootTitle, name, kind)

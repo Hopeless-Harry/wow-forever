@@ -298,6 +298,10 @@ Live Retail result for statistics (user, 30 Sep 2026, alpha3 build 12.1.0.69933)
 
 Post-result improvement (source only; NOT yet installed because WoW was running): statistics text now shows headline lifetime values per group (top 3 by value, durations as `2d 3h`) instead of "N tracked"; `/mam diag` now also prints up to 5 `Unreadable sample: name = raw text` lines and an `Uncategorised: <root category> (n)` list. Chronicles suite **116/116**. Release ZIP in the alpha3 release folder rebuilt with SHA-256 `BC36D243926078EEAF0C44FB47437D616F5A730A3D315E0D2AFEABE1E9C23B3C`. The installed alpha3 on both clients is the previous build (same version string, older files); reinstall after WoW is closed and ask the user for the new `/mam diag` output to fix grouping and parsing.
 
+Second live Retail diagnostics (user, 30 Sep 2026, build 69933, 30 events): unreadable samples were all `count (label)` formats, e.g. `16025 (Humanoid)` and `9 ()`; uncategorised roots were Legacy (19), Character (17), World Events (9), Pet Battles (3). Headline display worked (e.g. Creatures killed 36,717; Quests completed 2,629; Total 5-player dungeons entered 228).
+
+Fix (source, NOT yet installed because WoW was running again): parser now accepts a count followed by a bracketed label; new groups Character, World events, Pet battles, Legacy. Chronicles suite **118/118**. Release ZIP rebuilt, SHA-256 `16DA6614F0878F1AB3800662CB424CC4602E59E999489D65FC1137F9838B43FE`. Still unexplained: no Professions or Time played group on that character (likely none present for that character, unproven); Consumables-type stats should now appear under Loot and items. Bracketed labels (e.g. the creature type) are discarded; showing them is a possible enhancement. The Forever client has still not been tested live.
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -357,8 +361,8 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-1. User closes WoW fully; reinstall the latest source to `_retail_` and `_classic_beta_` with scripts/install-mam-chronicles.ps1 (verify 14 files, 0 hash diffs).
-2. User logs in (Retail and then Forever), waits ~10s, sends `/mam diag` and the Statistics tab text. Use the `Unreadable sample` and `Uncategorised` lines to (a) extend the value parser, (b) fix category grouping (prefer category IDs), (c) explain the missing Professions / Loot / Time played groups.
+1. User closes WoW fully; reinstall latest source to `_retail_` and `_classic_beta_` (scripts/install-mam-chronicles.ps1, verify 14 files and 0 hash diffs).
+2. User logs in on Forever (priority) and Retail, waits ~10s, sends the Statistics tab text and `/mam diag`. Check `Statistics:` counts, Unreadable and Uncategorised lines on Forever specifically.
 3. Then: statistics-driven awards, Characters roster tab, opt-in popups/toasts, Courier export of non-sensitive statistics, then Phase 2 sync with the recorded sharing-on-by-default safeguards.
 
 ## 15. Recent history
