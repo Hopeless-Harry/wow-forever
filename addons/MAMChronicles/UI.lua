@@ -4,7 +4,8 @@ local UI=Addon.UI
 
 UI.tabs={"Chronicle","Statistics","Settings","Diagnostics"}
 UI.filters={"All","Deaths","Quests","World","Instances","Loot","Memories"}
-UI.activeTab="Chronicle"; UI.activeFilter="All"; UI.search=""; UI.rowPool={}
+UI.dateRanges={"All","30 Days","This Month"}
+UI.activeTab="Chronicle"; UI.activeFilter="All"; UI.activeRange="All"; UI.search=""; UI.rowPool={}
 
 local groups={
   Deaths={ ["character.death"]=true,["character.resurrected"]=true },
@@ -22,7 +23,12 @@ end
 
 function UI:BuildTimeline(options)
   options=options or {}; local filter=options.filter or self.activeFilter or "All"
-  local source=Addon.EventStore:Query({text=options.search or self.search,fromTime=options.fromTime,toTime=options.toTime}); if filter=="All" then return source end
+  local fromTime,toTime=options.fromTime,options.toTime
+  if fromTime==nil and toTime==nil then
+    if self.activeRange=="30 Days" then fromTime=Addon:Now()-2678400
+    elseif self.activeRange=="This Month" and date and time then local parts=date("*t",Addon:Now()); parts.day,parts.hour,parts.min,parts.sec=1,0,0,0; fromTime=time(parts) end
+  end
+  local source=Addon.EventStore:Query({text=options.search or self.search,fromTime=fromTime,toTime=toTime}); if filter=="All" then return source end
   local result={}; for _,event in ipairs(source) do if groups[filter] and groups[filter][event.type] then table.insert(result,event) end end return result
 end
 
@@ -53,21 +59,32 @@ function UI:Create()
   safeMethod(search,"SetScript","OnTextChanged",function(box) if box.GetText then UI.search=box:GetText() or ""; UI:Refresh() end end); self.searchBox=search
   local filter=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(filter,"SetSize",120,24); safeMethod(filter,"SetPoint","LEFT",search,"RIGHT",12,0); safeMethod(filter,"SetText","Filter: All")
   safeMethod(filter,"SetScript","OnClick",function(button) local nextIndex=1; for i,v in ipairs(UI.filters) do if v==UI.activeFilter then nextIndex=i%#UI.filters+1 end end; UI.activeFilter=UI.filters[nextIndex]; safeMethod(button,"SetText","Filter: "..UI.activeFilter); UI:Refresh() end); self.filterButton=filter
+  local range=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(range,"SetSize",120,24); safeMethod(range,"SetPoint","LEFT",filter,"RIGHT",12,0); safeMethod(range,"SetText","Range: All")
+  safeMethod(range,"SetScript","OnClick",function(button) local nextIndex=1; for i,v in ipairs(UI.dateRanges) do if v==UI.activeRange then nextIndex=i%#UI.dateRanges+1 end end; UI.activeRange=UI.dateRanges[nextIndex]; safeMethod(button,"SetText","Range: "..UI.activeRange); UI:Refresh() end); self.rangeButton=range
   self.content=frame:CreateFontString(nil,"OVERLAY","GameFontHighlight"); safeMethod(self.content,"SetPoint","TOPLEFT",24,-120); safeMethod(self.content,"SetWidth",730); safeMethod(self.content,"SetJustifyH","LEFT")
   for index=1,30 do local row=frame:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall"); safeMethod(row,"SetPoint","TOPLEFT",30,-115-index*14); safeMethod(row,"SetWidth",710); safeMethod(row,"SetJustifyH","LEFT"); self.rowPool[index]=row end
   local copy=CreateFrame("EditBox",nil,frame,"InputBoxTemplate"); safeMethod(copy,"SetMultiLine",true); safeMethod(copy,"SetAutoFocus",false); safeMethod(copy,"SetSize",720,360); safeMethod(copy,"SetPoint","TOPLEFT",26,-140); safeMethod(copy,"Hide"); self.copyBox=copy
+  self.settingControls={}
+  local settingDefs={{"enabled","Record Chronicle"},{"recordQuestAccepts","Record quest accepts"},{"recordCoordinates","Attach coordinates to events"}}
+  for index,definition in ipairs(settingDefs) do
+    local key,text=definition[1],definition[2]; local check=CreateFrame("CheckButton",nil,frame,"UICheckButtonTemplate"); safeMethod(check,"SetPoint","TOPLEFT",28,-145-(index-1)*30); safeMethod(check,"SetChecked",Addon.db.settings[key]); local caption=check:CreateFontString(nil,"OVERLAY","GameFontHighlight"); safeMethod(caption,"SetPoint","LEFT",check,"RIGHT",4,0); safeMethod(caption,"SetText",text)
+    safeMethod(check,"SetScript","OnClick",function(button) local checked=button.GetChecked and button:GetChecked() or not Addon.db.settings[key]; UI:SetSetting(key,checked); UI:Refresh() end); self.settingControls[#self.settingControls+1]=check; self.settingControls[#self.settingControls+1]=caption
+  end
+  local quality=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(quality,"SetSize",210,24); safeMethod(quality,"SetPoint","TOPLEFT",30,-250); safeMethod(quality,"SetText","Loot: Epic and above"); safeMethod(quality,"SetScript","OnClick",function(button) local nextValue=Addon.db.settings.notableQuality==4 and 5 or 4; UI:SetSetting("notableQuality",nextValue); safeMethod(button,"SetText",nextValue==5 and "Loot: Legendary only" or "Loot: Epic and above") end); self.settingControls[#self.settingControls+1]=quality
+  local history=CreateFrame("Button",nil,frame,"UIPanelButtonTemplate"); safeMethod(history,"SetSize",210,24); safeMethod(history,"SetPoint","TOPLEFT",30,-282); safeMethod(history,"SetText","History: "..tostring(Addon.db.settings.maxEvents)); safeMethod(history,"SetScript","OnClick",function(button) local current=Addon.db.settings.maxEvents; local nextValue=current>=10000 and 1000 or (current>=5000 and 10000 or 5000); UI:SetSetting("maxEvents",nextValue); safeMethod(button,"SetText","History: "..tostring(nextValue)); Addon.Database:Compact() end); self.settingControls[#self.settingControls+1]=history
+  for _,control in ipairs(self.settingControls) do safeMethod(control,"Hide") end
   safeMethod(frame,"Hide"); return frame
 end
 
 function UI:Refresh()
-  self:Create(); for _,row in ipairs(self.rowPool) do safeMethod(row,"Hide") end; safeMethod(self.copyBox,"Hide"); safeMethod(self.content,"SetText","")
+  self:Create(); for _,row in ipairs(self.rowPool) do safeMethod(row,"Hide") end; for _,control in ipairs(self.settingControls) do safeMethod(control,"Hide") end; safeMethod(self.copyBox,"Hide"); safeMethod(self.content,"SetText","")
   if self.activeTab=="Chronicle" then
     local events=self:BuildTimeline(); if #events==0 then safeMethod(self.content,"SetText","No Chronicle entries match this view yet.") end
     for index=1,math.min(30,#events) do local event=events[index]; local stamp=date and date("%d %b %H:%M",event.occurredAt) or tostring(event.occurredAt); safeMethod(self.rowPool[index],"SetText",stamp.."  "..event.type.." — "..tostring(label(event))); safeMethod(self.rowPool[index],"Show") end
   elseif self.activeTab=="Statistics" then
     local stats=Addon.Statistics:Build(Addon:Now()-2678400,Addon:Now()); safeMethod(self.content,"SetText",Addon.Export:BuildHumanSummary(stats.fromTime,stats.toTime))
   elseif self.activeTab=="Settings" then
-    local s=Addon.db.settings; safeMethod(self.content,"SetText","Recording: "..tostring(s.enabled).."\nQuest accepts: "..tostring(s.recordQuestAccepts).."\nEvent coordinates: "..tostring(s.recordCoordinates).."\nNotable quality: "..(s.notableQuality==5 and "Legendary" or "Epic and above").."\nMaximum history: "..tostring(s.maxEvents).."\n\nUse /mam help for commands. Settings controls will expand during the tester pass.")
+    safeMethod(self.content,"SetText","Privacy and recording controls"); for _,control in ipairs(self.settingControls) do safeMethod(control,"Show") end
   else self.copyText=Addon.Export:BuildDiagnosticReport(); safeMethod(self.copyBox,"SetText",self.copyText); safeMethod(self.copyBox,"Show") end
 end
 
