@@ -60,11 +60,16 @@ function Collectors:CaptureLoot(message)
   if type(message)~="string" then return end
   local link=string.match(message,"(|c%x+|Hitem:.-|h%[.-%]|h|r)") or string.match(message,"(|Hitem:.-|h%[.-%]|h)")
   if not link then return end
-  local quantity=1; local isSelf=type(LOOT_ITEM_SELF)=="string" and string.format(LOOT_ITEM_SELF,link)==message
+  local function escapePattern(value) return value:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])","%%%1") end
+  local function matchSelfFormat(formatString,multiple)
+    if type(formatString)~="string" then return nil end
+    local pattern=formatString:gsub("%%1%$s","\001"):gsub("%%2%$d","\002"):gsub("%%s","\001"):gsub("%%d","\002")
+    pattern=escapePattern(pattern):gsub("\001",function() return escapePattern(link) end):gsub("\002",function() return multiple and "(%d+)" or "%d+" end)
+    local matched=string.match(message,"^"..pattern.."$"); if matched then return multiple and (tonumber(matched) or 1) or 1 end return nil
+  end
+  local quantity=matchSelfFormat(LOOT_ITEM_SELF,false); local isSelf=quantity~=nil
   if not isSelf and type(LOOT_ITEM_SELF_MULTIPLE)=="string" then
-    local pattern=LOOT_ITEM_SELF_MULTIPLE:gsub("%%s","\001"):gsub("%%d","\002"):gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])","%%%1"):gsub("\001","(.+)"):gsub("\002","(%%d+)")
-    local capturedLink,capturedQuantity=string.match(message,"^"..pattern.."$")
-    if capturedLink==link then isSelf=true; quantity=tonumber(capturedQuantity) or 1 end
+    quantity=matchSelfFormat(LOOT_ITEM_SELF_MULTIPLE,true); isSelf=quantity~=nil
   end
   if not isSelf then return end
   local id=link and tonumber(string.match(link,"item:(%d+)"))

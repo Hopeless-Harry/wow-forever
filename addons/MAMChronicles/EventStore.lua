@@ -40,6 +40,7 @@ function Store:Initialise()
   for index=#self.db.events,math.max(1,#self.db.events-100),-1 do
     local event=self.db.events[index]
     if event and event.observedAt and now-event.observedAt<=5 then local key=self:BuildSemanticKey(event.type,event.payload or {}); if key then self.recentSemantic[key]=event.observedAt end end
+    if event and event.occurredAt==now and type(event.id)=="string" then local sequence=tonumber(string.match(event.id,":(%d+)$")); if sequence and sequence>self.sequence then self.sequence=sequence; self.sequenceSecond=now end end
   end
 end
 

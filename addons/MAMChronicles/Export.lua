@@ -40,9 +40,11 @@ end
 
 function Export:BuildDiagnosticReport()
   local _,build,_,interface=Addon:SafeCall(GetBuildInfo); local status=Addon.Collectors and Addon.Collectors:GetCollectorStatus() or nil
-  local registered,errors=0,0
+  local registered,errors=0,0; local unavailable={}
   if status then for _ in pairs(status.registered or {}) do registered=registered+1 end errors=#(status.errors or {}) end
+  if status then for eventName in pairs(status.unavailable or {}) do table.insert(unavailable,eventName) end; table.sort(unavailable) end
   local lines={"Moms Against Magic Chronicles Diagnostics","Addon version: "..Addon.version,"Client build: "..tostring(build or "unknown"),"Interface: "..tostring(interface or "unknown"),"Schema: "..tostring(Addon.db.schemaVersion),"Events: "..tostring(#Addon.db.events),"Sessions: "..tostring(#Addon.db.sessions),"Collectors registered: "..tostring(registered),"Collector errors: "..tostring(errors)}
+  table.insert(lines,"Unavailable collectors: "..(#unavailable>0 and table.concat(unavailable,", ") or "none"))
   if status and errors>0 then for index=math.max(1,errors-2),errors do local item=status.errors[index]; table.insert(lines,"Recent collector error: "..tostring(item.event or "unknown").." ("..tostring(item.message or "handler failed")..")") end end
   if Addon.db.diagnostics.recovery then table.insert(lines,"Recovery: "..tostring(Addon.db.diagnostics.recovery.reason)) end
   return table.concat(lines,"\n")

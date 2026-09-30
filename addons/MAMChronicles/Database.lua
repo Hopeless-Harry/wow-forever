@@ -28,13 +28,21 @@ function Database:Open(saved)
     for _,key in ipairs({"meta","settings","characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics"}) do
       if saved[key]~=nil and type(saved[key])~="table" then reason="corrupt root"; break end
     end
-    if not reason and type(saved.events)=="table" then for _,event in ipairs(saved.events) do if type(event)~="table" or type(event.id)~="string" or type(event.type)~="string" or type(event.occurredAt)~="number" or event.occurredAt~=event.occurredAt or type(event.payload)~="table" then reason="corrupt root"; break end end end
+    if not reason and type(saved.events)=="table" then
+      local seen={}
+      for _,event in ipairs(saved.events) do
+        local valid=type(event)=="table" and event.schemaVersion==1 and type(event.id)=="string" and #event.id>0 and not seen[event.id] and type(event.type)=="string" and type(event.occurredAt)=="number" and event.occurredAt==event.occurredAt and type(event.observedAt)=="number" and event.observedAt==event.observedAt and type(event.payload)=="table"
+        if not valid then reason="corrupt root"; break end
+        seen[event.id]=true
+      end
+    end
   end
   local db = reason and self:Fresh(reason) or (type(saved) == "table" and saved or self:Fresh())
   db.meta = tableOr(db.meta); db.settings = tableOr(db.settings)
   local defaults = self:Fresh().settings
   for key, value in pairs(defaults) do if db.settings[key] == nil then db.settings[key] = value end end
   for _, key in ipairs({"characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics"}) do db[key] = tableOr(db[key]) end
+  db.eventIds={}; for _,event in ipairs(db.events) do db.eventIds[event.id]=true end
   db.schemaVersion = 1
   db.meta.createdAt = db.meta.createdAt or now(); db.meta.updatedAt = now(); db.meta.loadCount = (tonumber(db.meta.loadCount) or 0) + 1
   db.meta.addonVersion = Addon.version; db.meta.clientBuild = select(2, Addon:SafeCall(GetBuildInfo))

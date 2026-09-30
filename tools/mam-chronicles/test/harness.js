@@ -63,7 +63,7 @@ export function createHarness({ globals = {}, savedVariables } = {}) {
     __mamCalls={registered={}}
     function CreateFrame()
       local f={scripts={},shown=false}
-      function f:RegisterEvent(e) table.insert(__mamCalls.registered,e) end
+      function f:RegisterEvent(e) if __mamFailEvent==e then error("unsupported event: "..e) end table.insert(__mamCalls.registered,e) end
       function f:SetScript(k,v) self.scripts[k]=v end
       function f:Show() self.shown=true end function f:Hide() self.shown=false end function f:IsShown() return self.shown end
       function f:SetSize() end function f:SetPoint() end function f:SetMovable() end function f:EnableMouse() end
@@ -78,7 +78,7 @@ export function createHarness({ globals = {}, savedVariables } = {}) {
     load(files) { for (const file of files) run(L, readAddonFile(file), file); },
     run(source) { run(L, source, 'test'); },
     get(expression) { lua.lua_settop(L, 0); let s=lauxlib.luaL_loadstring(L,to_luastring(`return ${expression}`)); if(s!==lua.LUA_OK)throw new Error(to_jsstring(lua.lua_tostring(L,-1))); s=lua.lua_pcall(L,0,1,0);if(s!==lua.LUA_OK)throw new Error(to_jsstring(lua.lua_tostring(L,-1)));return toJs(L,-1); },
-    fire(name, ...args) { global(L,'__event',name);global(L,'__args',args);run(L,'MAMChronicles:HandleEvent(__event, table.unpack(__args))','event'); },
+    fire(name, ...args) { global(L,'__event',name);global(L,'__args',args);run(L,'local f=MAMChronicles.eventFrame; if f and f.scripts.OnEvent then f.scripts.OnEvent(f,__event,table.unpack(__args)) else MAMChronicles:HandleEvent(__event,table.unpack(__args)) end','event'); },
     slash(command='') { global(L,'__command',command);run(L,'SlashCmdList.MAMCHRONICLES(__command)','slash'); }, calls,
   };
 }
