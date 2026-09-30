@@ -44,7 +44,8 @@ end
 
 function Store:BuildSemanticKey(eventType,payload)
   if eventType=="memory.manual" then return nil end
-  local identity=payload.questID or payload.itemID or payload.achievementID or payload.professionID or payload.mapID or payload.instanceName or payload.level or ""
+  local identity=payload.questID or payload.itemID or payload.achievementID or payload.mapID or payload.instanceName or payload.level or ""
+  if eventType=="profession.changed" then identity=tostring(payload.professionID or payload.skillLineID or payload.professionName or "")..":"..tostring(payload.skillLevel or "") end
   return eventType..":"..tostring(identity)
 end
 

@@ -13,9 +13,10 @@ end
 
 function Addon:SafeCall(fn, ...)
   if type(fn) ~= "function" then return nil end
-  local results = { pcall(fn, ...) }
+  local function pack(...) return { n = select("#", ...), ... } end
+  local results = pack(pcall(fn, ...))
   if not results[1] then return nil end
-  return (table.unpack or unpack)(results, 2)
+  return (table.unpack or unpack)(results, 2, results.n)
 end
 
 local function normalise(value)
