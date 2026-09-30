@@ -4,6 +4,9 @@
 ## Author: Moms Against Magic
 ## Version: 0.2.0-alpha1
 ## SavedVariables: MAMChroniclesDB
+## AddonCompartmentFunc: MAMChronicles_AddonCompartmentClick
+## AddonCompartmentFuncOnEnter: MAMChronicles_AddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: MAMChronicles_AddonCompartmentLeave
 
 Core.lua
 Database.lua
@@ -12,3 +15,4 @@ Collectors.lua
 Statistics.lua
 Export.lua
 UI.lua
+Launcher.lua

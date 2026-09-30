@@ -49,6 +49,7 @@ function Addon:Boot()
   if self.EventStore and self.EventStore.Initialise then self.EventStore:Initialise() end
   if self.Collectors and self.Collectors.Register then self.Collectors:Register() end
   if self.UI and self.UI.InitialiseSlashCommands then self.UI:InitialiseSlashCommands() end
+  if self.Launcher and self.Launcher.Initialise then self:SafeCall(self.Launcher.Initialise, self.Launcher) end
   return self.db
 end
 

@@ -301,7 +301,7 @@ npm test --prefix tools/mam-chronicles -- --test-name-pattern="launcher|compartm
 
 Expected: FAIL because `Launcher.lua` and manifest load entry are absent.
 
-- [ ] **Step 3: Implement launcher behaviour**
+- [x] **Step 3: Implement launcher behaviour**
 
 Use a 32-pixel button, original icon path `Interface\\AddOns\\MAMChronicles\\MAMChroniclesIcon`, a standard circular border/highlight when those textures exist, and this positioning contract:
 
@@ -318,7 +318,7 @@ end
 
 `HandleClick("LeftButton")` calls `Addon.UI:Toggle()`. `HandleClick("RightButton")` calls `Addon.SettingsPanel:Open()` when available and otherwise opens the Chronicle Settings tab. Drag uses `atan2` or a compatible fallback and never saves a non-finite value.
 
-- [ ] **Step 4: Add TOC module and compartment metadata**
+- [x] **Step 4: Add TOC module and compartment metadata**
 
 Add `Launcher.lua` after `UI.lua`, but do not bump the version until Task 6. Add:
 
@@ -328,7 +328,7 @@ Add `Launcher.lua` after `UI.lua`, but do not bump the version until Task 6. Add
 ## AddonCompartmentFuncOnLeave: MAMChronicles_AddonCompartmentLeave
 ```
 
-- [ ] **Step 5: Run launcher and full tests**
+- [x] **Step 5: Run launcher and full tests**
 
 Run:
 
