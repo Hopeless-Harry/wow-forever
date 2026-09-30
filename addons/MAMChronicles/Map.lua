@@ -280,6 +280,17 @@ function Map:GoTo(name)
   return true
 end
 
+-- Opens the game's world map at the player's own position (with the guildmate markers).
+function Map:OpenMyMap()
+  local mapID = self:GetPosition()
+  if OpenWorldMap and mapID then pcall(OpenWorldMap, mapID)
+  elseif ToggleWorldMap then pcall(ToggleWorldMap)
+  elseif WorldMapFrame and WorldMapFrame.Show then pcall(WorldMapFrame.Show, WorldMapFrame) end
+  self:HookWorldMap()
+  self:ShowPins()
+  return true
+end
+
 function Map:Describe()
   local on = settings().shareLocation == true
   return "Location sharing: " .. (on and "on" or "off") .. ", sent " .. tostring(self.status.sent) .. ", received " .. tostring(self.status.received)

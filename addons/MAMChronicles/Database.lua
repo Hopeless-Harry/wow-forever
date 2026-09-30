@@ -16,7 +16,7 @@ local uiDefaults = { point="CENTER", x=0, y=0, width=780, height=560, activeTab=
 local validPoints = { CENTER=true, TOP=true, BOTTOM=true, LEFT=true, RIGHT=true, TOPLEFT=true, TOPRIGHT=true, BOTTOMLEFT=true, BOTTOMRIGHT=true }
 local validThemes = { modern=true, midnight=true, parchment=true, crimson=true, slate=true }
 local booleanDefaults = { toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, gettingStartedDismissed=false, quietInstances=true, animations=true, shareLocation=false, showGuildMap=true }
-local validTabs = { Home=true, Chronicle=true, Medals=true, Statistics=true, Characters=true, Settings=true, Diagnostics=true }
+local validTabs = { Home=true, Chronicle=true, Medals=true, Statistics=true, Characters=true, Map=true, Settings=true, Diagnostics=true }
 local function freshSettings()
   return { enabled=true, recordCoordinates=true, recordQuestAccepts=true, notableQuality=4, maxEvents=10000, showMinimapButton=true, recordStatistics=true, recordGoldStatistics=false,
     windowAlpha=1, theme="modern", toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, pinnedMedals={}, toastSoundChoice="chime", ui=copyTable(uiDefaults) }

@@ -2,12 +2,12 @@ local Addon=MAMChronicles
 Addon.UI=Addon.UI or {}
 local UI=Addon.UI
 
-UI.tabs={"Home","Chronicle","Medals","Statistics","Characters","Settings","Diagnostics"}
+UI.tabs={"Home","Chronicle","Medals","Statistics","Characters","Map","Settings","Diagnostics"}
 UI.filters={"All","Deaths","Quests","World","Instances","Loot","Memories","Medals"}
 UI.dateRanges={"All","30 Days","This Month"}
 UI.activeTab="Home"; UI.activeFilter="All"; UI.activeRange="All"; UI.search=""; UI.rowPool={}
 
-local validTabs={Home=true,Chronicle=true,Medals=true,Statistics=true,Characters=true,Settings=true,Diagnostics=true}
+local validTabs={Home=true,Chronicle=true,Medals=true,Statistics=true,Characters=true,Map=true,Settings=true,Diagnostics=true}
 local groups={
   Deaths={ ["character.death"]=true,["character.resurrected"]=true },
   Quests={ ["quest.accepted"]=true,["quest.completed"]=true },
@@ -215,7 +215,7 @@ function UI:GetVisibleTimeline()
   local result={}; for index=offset+1,math.min(offset+30,#events) do table.insert(result,events[index]) end return result,#events
 end
 
-local booleanSettings={enabled=true,recordCoordinates=true,recordQuestAccepts=true,recordStatistics=true,recordGoldStatistics=true,toastsEnabled=true,toastSound=true,quietInstances=true,animations=true,announceMedals=true,announceGuildChat=true,receiveGuildAlerts=true}
+local booleanSettings={enabled=true,recordCoordinates=true,recordQuestAccepts=true,recordStatistics=true,recordGoldStatistics=true,toastsEnabled=true,toastSound=true,quietInstances=true,animations=true,shareLocation=true,showGuildMap=true,announceMedals=true,announceGuildChat=true,receiveGuildAlerts=true}
 function UI:SetSetting(key,value)
   if key=="showMinimapButton" and Addon.SettingsPanel then return Addon.SettingsPanel:ApplySetting(key,value==true) end
   local settings=Addon.db.settings
@@ -230,6 +230,7 @@ function UI:SetSetting(key,value)
     settings.toastSoundChoice=value; Addon.db.meta.updatedAt=Addon:Now(); return true
   elseif key=="notableQuality" then value=math.max(4,math.min(5,tonumber(value) or 4))
   elseif key=="maxEvents" then value=math.max(100,math.min(10000,math.floor(tonumber(value) or 10000)))
+  elseif key=="shareLocation" then value=value==true; if Addon.Map then Addon.Map:SetShare(value) end; Addon.db.meta.updatedAt=Addon:Now(); return true
   elseif booleanSettings[key] then value=value==true
   else return false end
   settings[key]=value; Addon.db.meta.updatedAt=Addon:Now()
@@ -306,6 +307,11 @@ function UI:ApplyLayout(width, height)
   self:LayoutRows(height - ROW_TOP - FOOTER)
   if self.dashboard then self.dashboard:Layout(width - SIDE * 2, height - 84 - FOOTER - 4) end
   self:UpdateTextScroll(); self:UpdateSettingsScroll(); self:UpdateMedalsScroll()
+  if self.mapIntro then
+    local leftWidth = math.max(200, width - SIDE * 2 - (self.mapRightWidth or 290) - 8 - 32)
+    safeMethod(self.mapIntro, "SetWidth", leftWidth); safeMethod(self.mapWhere, "SetWidth", leftWidth)
+    if self:MapVisible() then self:RefreshMap() end
+  end
 end
 
 function UI:SetDetailsVisible(visible)
@@ -602,6 +608,11 @@ function UI:BuildSettingsPage(frame)
     attachTooltip(self.titleButton, "Mom title", "Click to cycle through the titles you have earned. Auto uses the medal family you have earned the most Mom Money in.")
     y = y - 34
   end
+
+  heading("Guild map")
+  check("shareLocation", "Share my location with the guild (live map)", "Sends your zone, position, level and class to guildmates who run the addon, about every 20 seconds while you are in the open world. Never saved, never sent in instances. Off by default.")
+  check("showGuildMap", "Show guildmates on the map", "Receive location updates from guildmates and mark them on the world map.")
+  y = y - 4
 
   heading("Recording")
   check("enabled", "Record Chronicle")
@@ -979,6 +990,186 @@ function UI:ShowMedalsPage()
   self:RefreshMedals(); self:UpdateMedalsScroll(); self:AnimateMedalBars()
 end
 
+-- ---------------------------------------------------------------- Map page (live guild map)
+-- Left: how it works, the sharing switches, where you are and where everyone is. Right: the roster of guildmates who share
+-- their location; click a name to open the world map at their position.
+local MAP_ROW, MAP_RIGHT = 48, 290
+UI.mapRightWidth = MAP_RIGHT
+
+local function classColour(classFile)
+  local colours = RAID_CLASS_COLORS
+  local colour = colours and classFile and colours[classFile]
+  if colour then return colour.r, colour.g, colour.b end
+  return 1, 0.82, 0
+end
+
+local function ageText(entry)
+  local seconds = math.max(0, math.floor(entry.age or 0))
+  local text = seconds < 60 and (tostring(seconds) .. "s ago") or (tostring(math.floor(seconds / 60)) .. "m ago")
+  return entry.stale and (text .. " (stale)") or text
+end
+
+function UI:BuildMapPage(frame)
+  local T = Addon.Theme; local C = T.colors
+  local area = CreateFrame("Frame", nil, frame)
+  safeMethod(area, "SetPoint", "TOPLEFT", frame, "TOPLEFT", SIDE, -84); safeMethod(area, "SetPoint", "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -SIDE, FOOTER + 4)
+  safeMethod(area, "Hide")
+  self.mapArea = { frame = area }
+  local left = CreateFrame("Frame", nil, area, "BackdropTemplate")
+  T:Panel(left, C.panel, C.border)
+  safeMethod(left, "SetPoint", "TOPLEFT", area, "TOPLEFT", 0, 0); safeMethod(left, "SetPoint", "BOTTOMRIGHT", area, "BOTTOMRIGHT", -(MAP_RIGHT + 8), 0)
+  self.mapLeft = left
+  local title = T:Text(left, "GameFontNormalLarge"); safeMethod(title, "SetPoint", "TOPLEFT", left, "TOPLEFT", 16, -14); safeMethod(title, "SetText", "Guild map")
+  self.mapIntro = T:Text(left, "GameFontHighlight")
+  safeMethod(self.mapIntro, "SetPoint", "TOPLEFT", left, "TOPLEFT", 16, -42); safeMethod(self.mapIntro, "SetJustifyH", "LEFT"); safeMethod(self.mapIntro, "SetJustifyV", "TOP"); safeMethod(self.mapIntro, "SetWidth", 380)
+  safeMethod(self.mapIntro, "SetText", "Guildmates who share their location appear on the right. Click a name to open the world map at their position, with a tracking arrow to follow. Pin a guildmate to keep them on your goal tracker.")
+  local share, shareCaption = T:Check(left, "Share my location with the guild")
+  safeMethod(share, "SetPoint", "TOPLEFT", left, "TOPLEFT", 16, -112)
+  safeMethod(share, "SetScript", "OnClick", function(b) UI:SetSetting("shareLocation", b.GetChecked and b:GetChecked() or false); UI:RefreshMap() end)
+  attachTooltip(share, "Share my location", "Sends your zone, position, level and class to guildmates who run the addon, about every 20 seconds while you are in the open world. Never saved and never sent in instances. Off by default.")
+  self.mapShareCheck = share
+  local show, showCaption = T:Check(left, "Show guildmates on my map")
+  safeMethod(show, "SetPoint", "TOPLEFT", left, "TOPLEFT", 16, -142)
+  safeMethod(show, "SetScript", "OnClick", function(b) UI:SetSetting("showGuildMap", b.GetChecked and b:GetChecked() or false); UI:RefreshMap() end)
+  attachTooltip(show, "Show guildmates", "Receive location updates from guildmates and mark them on the world map.")
+  self.mapShowCheck = show
+  self.mapMe = T:Text(left, "GameFontHighlight"); safeMethod(self.mapMe, "SetPoint", "TOPLEFT", left, "TOPLEFT", 16, -178); safeMethod(self.mapMe, "SetJustifyH", "LEFT")
+  local open = T:Button(left, "Open world map", 150, 26)
+  safeMethod(open, "SetPoint", "TOPLEFT", left, "TOPLEFT", 16, -204)
+  safeMethod(open, "SetScript", "OnClick", function() if Addon.Map then Addon.Map:OpenMyMap() end end)
+  attachTooltip(open, "Open world map", "Open the game's world map at your position, with guildmate markers.")
+  self.mapOpenButton = open
+  local whereTitle = T:Text(left, "GameFontNormal"); safeMethod(whereTitle, "SetPoint", "TOPLEFT", left, "TOPLEFT", 16, -248); safeMethod(whereTitle, "SetText", "Where everyone is")
+  self.mapWhere = T:Text(left, "GameFontHighlight")
+  safeMethod(self.mapWhere, "SetPoint", "TOPLEFT", left, "TOPLEFT", 16, -270); safeMethod(self.mapWhere, "SetJustifyH", "LEFT"); safeMethod(self.mapWhere, "SetJustifyV", "TOP"); safeMethod(self.mapWhere, "SetWidth", 380)
+  self.mapCount = T:Text(left, "GameFontDisable"); safeMethod(self.mapCount, "SetPoint", "BOTTOMLEFT", left, "BOTTOMLEFT", 16, 14)
+  -- roster
+  local right = CreateFrame("Frame", nil, area, "BackdropTemplate")
+  T:Panel(right, C.panel, C.border)
+  safeMethod(right, "SetWidth", MAP_RIGHT); safeMethod(right, "SetPoint", "TOPRIGHT", area, "TOPRIGHT", 0, 0); safeMethod(right, "SetPoint", "BOTTOMRIGHT", area, "BOTTOMRIGHT", 0, 0)
+  self.mapRight = right
+  local rosterTitle = T:Text(right, "GameFontNormal"); safeMethod(rosterTitle, "SetPoint", "TOPLEFT", right, "TOPLEFT", 12, -12); safeMethod(rosterTitle, "SetText", "Guildmates")
+  local scroll = T:ScrollArea(right)
+  safeMethod(scroll.scroll, "ClearAllPoints"); safeMethod(scroll.scroll, "SetPoint", "TOPLEFT", right, "TOPLEFT", 6, -36); safeMethod(scroll.scroll, "SetPoint", "BOTTOMRIGHT", right, "BOTTOMRIGHT", -20, 6)
+  safeMethod(scroll.slider, "ClearAllPoints"); safeMethod(scroll.slider, "SetPoint", "TOPRIGHT", right, "TOPRIGHT", -6, -36); safeMethod(scroll.slider, "SetPoint", "BOTTOMRIGHT", right, "BOTTOMRIGHT", -6, 6)
+  self.mapScroll = scroll
+  self.mapRows, self.mapList = {}, {}
+  self.mapEmpty = T:Text(right, "GameFontDisable")
+  safeMethod(self.mapEmpty, "SetPoint", "TOPLEFT", right, "TOPLEFT", 14, -44); safeMethod(self.mapEmpty, "SetWidth", MAP_RIGHT - 28); safeMethod(self.mapEmpty, "SetJustifyH", "LEFT"); safeMethod(self.mapEmpty, "SetJustifyV", "TOP")
+  safeMethod(self.mapEmpty, "SetText", "Nobody is sharing their location yet. Tick Share my location with the guild, and ask your guildmates to do the same on their Map tab.")
+end
+
+function UI:GetMapRow(index)
+  local row = self.mapRows[index]
+  if row then return row end
+  local T = Addon.Theme; local C = T.colors
+  row = CreateFrame("Frame", nil, self.mapScroll.child, "BackdropTemplate")
+  T:Panel(row, C.panel, C.border); safeMethod(row, "SetHeight", MAP_ROW - 4); safeMethod(row, "EnableMouse", true)
+  row.name = T:Text(row, "GameFontNormal"); safeMethod(row.name, "SetPoint", "TOPLEFT", row, "TOPLEFT", 10, -6); safeMethod(row.name, "SetJustifyH", "LEFT")
+  row.info = T:Text(row, "GameFontDisableSmall"); safeMethod(row.info, "SetPoint", "LEFT", row.name, "RIGHT", 8, 0)
+  row.zone = T:Text(row, "GameFontHighlightSmall"); safeMethod(row.zone, "SetPoint", "BOTTOMLEFT", row, "BOTTOMLEFT", 10, 6); safeMethod(row.zone, "SetJustifyH", "LEFT"); safeMethod(row.zone, "SetWordWrap", false); safeMethod(row.zone, "SetWidth", 130)
+  row.age = T:Text(row, "GameFontDisableSmall"); safeMethod(row.age, "SetPoint", "BOTTOMRIGHT", row, "BOTTOMRIGHT", -8, 6)
+  row.star = T:Button(row, "Pin", 44, 18)
+  safeMethod(row.star, "SetPoint", "TOPRIGHT", row, "TOPRIGHT", -6, -5)
+  safeMethod(row.star, "SetScript", "OnClick", function()
+    local entry = row.entry
+    if not (entry and Addon.Map) then return end
+    if not Addon.Map:SetPinned(entry.name, not Addon.Map:IsPinned(entry.name)) and not Addon.Map:IsPinned(entry.name) then Addon:Print("You can pin 5 guildmates. Unpin one first.") end
+    UI:RefreshMap(); if Addon.Tracker and Addon.Tracker.Request then Addon.Tracker:Request() end
+  end)
+  safeMethod(row, "SetScript", "OnMouseUp", function(r, button)
+    if button == "LeftButton" and r.entry and Addon.Map then
+      if not Addon.Map:GoTo(r.entry.name) then Addon:Print("Could not open the map for " .. tostring(r.entry.name) .. ".") end
+    end
+  end)
+  safeMethod(row, "SetScript", "OnEnter", function(r)
+    T:PanelHover(r, true)
+    if GameTooltip and r.entry then
+      safeMethod(GameTooltip, "SetOwner", r, "ANCHOR_LEFT"); safeMethod(GameTooltip, "SetText", r.entry.name)
+      safeMethod(GameTooltip, "AddLine", r.entry.zone .. string.format("  (%.1f, %.1f)", r.entry.x * 100, r.entry.y * 100), 1, 1, 1, true)
+      safeMethod(GameTooltip, "AddLine", "Click to open the world map at this position.", 0.7, 0.85, 1, true); safeMethod(GameTooltip, "Show")
+    end
+  end)
+  safeMethod(row, "SetScript", "OnLeave", function(r) T:PanelHover(r, false); if GameTooltip then safeMethod(GameTooltip, "Hide") end end)
+  self.mapRows[index] = row
+  return row
+end
+
+function UI:RefreshMap()
+  if not (self.mapArea and Addon.Map) then return end
+  local T = Addon.Theme; local C = T.colors
+  local map = Addon.Map
+  local list = map:GetList()
+  self.mapList = list
+  self.mapRefreshes = (self.mapRefreshes or 0) + 1
+  self.mapLastRefresh = Addon:Now()
+  local settings = Addon.db.settings
+  safeMethod(self.mapShareCheck, "SetChecked", settings.shareLocation == true); safeMethod(self.mapShowCheck, "SetChecked", settings.showGuildMap ~= false)
+  for index, entry in ipairs(list) do
+    local row = self:GetMapRow(index)
+    row.entry = entry
+    safeMethod(row, "ClearAllPoints"); safeMethod(row, "SetPoint", "TOPLEFT", self.mapScroll.child, "TOPLEFT", 0, -(index - 1) * MAP_ROW); safeMethod(row, "SetPoint", "TOPRIGHT", self.mapScroll.child, "TOPRIGHT", 0, -(index - 1) * MAP_ROW)
+    safeMethod(row.name, "SetText", entry.name); safeMethod(row.name, "SetTextColor", classColour(entry.classFile))
+    safeMethod(row.info, "SetText", "Lv " .. tostring(entry.level) .. (entry.className and (" " .. entry.className) or ""))
+    safeMethod(row.zone, "SetText", entry.zone); safeMethod(row.age, "SetText", ageText(entry))
+    safeMethod(row.star, "SetText", entry.pinned and "Unpin" or "Pin")
+    safeMethod(row, "SetAlpha", entry.stale and 0.6 or 1)
+    safeMethod(row, "Show")
+  end
+  for index = #list + 1, #self.mapRows do self.mapRows[index].entry = nil; safeMethod(self.mapRows[index], "Hide") end
+  safeMethod(self.mapEmpty, #list == 0 and "Show" or "Hide")
+  local view = math.max(60, (self.layoutHeight or 560) - 84 - FOOTER - 4 - 42)
+  self.mapScroll:Update(#list * MAP_ROW, view, MAP_RIGHT - 26)
+  -- left card
+  local mapID, x, y = map:GetPosition()
+  safeMethod(self.mapMe, "SetText", mapID and ("You: " .. map:ZoneName(mapID) .. string.format(" (%.1f, %.1f)", x * 100, y * 100)) or "You: position unknown here (instances and some areas hide it).")
+  local counts, order = {}, {}
+  for _, entry in ipairs(list) do
+    if not counts[entry.zone] then counts[entry.zone] = 0; order[#order + 1] = entry.zone end
+    counts[entry.zone] = counts[entry.zone] + 1
+  end
+  table.sort(order, function(a, b) if counts[a] ~= counts[b] then return counts[a] > counts[b] end return a < b end)
+  local parts = {}
+  for _, zone in ipairs(order) do parts[#parts + 1] = zone .. " (" .. tostring(counts[zone]) .. ")" end
+  safeMethod(self.mapWhere, "SetText", #parts > 0 and table.concat(parts, "  \194\183  ") or "Nobody is sharing yet.")
+  safeMethod(self.mapCount, "SetText", #list == 0 and "Nobody sharing yet" or (tostring(#list) .. " guildmate" .. (#list == 1 and "" or "s") .. " sharing"))
+end
+
+function UI:MapVisible()
+  return self.activeTab == "Map" and self.frame and self.frame.IsShown and self.frame:IsShown() and true or false
+end
+
+-- Called when a location arrives: refreshes at most every couple of seconds.
+function UI:RefreshMapIfVisible()
+  if not self:MapVisible() then return end
+  local t = Addon:Now()
+  if self.mapLastRefresh and t - self.mapLastRefresh < 2 then
+    if not self.mapPending and C_Timer and C_Timer.After then
+      self.mapPending = true
+      C_Timer.After(2, function() UI.mapPending = false; if UI:MapVisible() then UI:RefreshMap() end end)
+    end
+    return
+  end
+  self:RefreshMap()
+end
+
+function UI:MapLoop()
+  if self.mapLoop or not (C_Timer and C_Timer.After) then return end
+  self.mapLoop = true
+  local function tick()
+    if not UI:MapVisible() then UI.mapLoop = false; return end
+    UI:RefreshMap()
+    C_Timer.After(10, tick)
+  end
+  C_Timer.After(10, tick)
+end
+
+function UI:ShowMapPage()
+  if not self.mapArea then return end
+  safeMethod(self.mapArea.frame, "Show"); self.mapScroll:Show()
+  self:RefreshMap(); self:MapLoop()
+end
+
 function UI:Create()
   if self.frame then return self.frame end
   local T = Addon.Theme; local C = T.colors
@@ -1023,8 +1214,8 @@ function UI:Create()
   -- tabs
   self.tabButtons = {}
   for index, name in ipairs(self.tabs) do
-    local tab = T:Tab(frame, name, 84, 28)
-    safeMethod(tab, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 12 + (index - 1) * 86, -38)
+    local tab = T:Tab(frame, name, 74, 28)
+    safeMethod(tab, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 12 + (index - 1) * 75, -38)
     safeMethod(tab, "SetScript", "OnClick", function() UI:SetActiveTab(name) end)
     self.tabButtons[index] = tab
   end
@@ -1154,6 +1345,7 @@ function UI:Create()
 
   self:BuildSettingsPage(frame)
   if Addon.Medals then self:BuildMedalsPage(frame) end
+  if Addon.Map then self:BuildMapPage(frame) end
 
   safeMethod(frame, "SetScript", "OnSizeChanged", function(_, width, height)
     if Addon:InCombat() then
@@ -1176,6 +1368,7 @@ function UI:HideAllViews()
   if self.dashboard then self.dashboard:Hide() end
   if self.settingsArea then self.settingsArea:Hide() end
   if self.medalsArea then self.medalsArea:Hide() end
+  if self.mapArea then safeMethod(self.mapArea.frame, "Hide"); self.mapScroll:Hide() end
   self:SetDiagBarVisible(false)
 end
 
@@ -1202,6 +1395,8 @@ function UI:Refresh()
     local halls = Addon.Statistics:DescribeHighlights(Addon.Statistics:BuildHighlights())
     local text = Addon.Export:BuildHumanSummary(stats.fromTime, stats.toTime) .. (halls and "\n\n" .. halls or "") .. (Addon.AchievementStats and "\n\n" .. Addon.AchievementStats:BuildText(Addon.characterKey) or "")
     safeMethod(self.content, "SetText", self:ColouriseStatistics(text)); self:ShowTextArea(false)
+  elseif self.activeTab == "Map" then
+    self:ShowMapPage()
   elseif self.activeTab == "Characters" then
     safeMethod(self.content, "SetText", self:ColouriseCharacters(Addon.Statistics:DescribeCharacters())); self:ShowTextArea(false)
   elseif self.activeTab == "Medals" then
@@ -1226,7 +1421,7 @@ end
 function UI:FadeActivePage()
   local T = Addon.Theme; local tab = self.activeTab
   local page = (tab == "Home" and self.dashboard and self.dashboard.frame) or (tab == "Medals" and self.medalsArea and self.medalsArea.scroll)
-    or (tab == "Settings" and self.settingsArea and self.settingsArea.scroll) or ((tab == "Statistics" or tab == "Characters" or tab == "Diagnostics") and self.textScroll) or nil
+    or (tab == "Settings" and self.settingsArea and self.settingsArea.scroll) or (tab == "Map" and self.mapArea and self.mapArea.frame) or ((tab == "Statistics" or tab == "Characters" or tab == "Diagnostics") and self.textScroll) or nil
   if T and page then T:FadeIn(page, 0.12) end
 end
 
@@ -1256,6 +1451,7 @@ UI.helpLines={
   "/mam export - show the Courier export text to copy",
   "/mam diag - show the diagnostics report to paste into a bug report",
   "/mam quests - show this week's Mom Quests and your progress",
+  "/mam map - open the live guild map",
   "/mam toast - show a sample toast (test alerts)",
   "/mam help - show this list",
 }
@@ -1278,6 +1474,7 @@ function UI:HandleSlash(command)
     if string.lower(rest or "")=="week" then self:ShowCopy(Addon.Export:BuildWeeklyRecap())
     else local from,to=self:GetCurrentMonthRange(); self:ShowCopy(Addon.Export:BuildMonthlyRecap(from,to)) end
   elseif verb=="book" then self:ShowCopy(Addon.Statistics:DescribeMemoryBook())
+  elseif verb=="map" then self.activeTab="Map"; Addon.db.settings.ui.activeTab="Map"; self:Show()
   elseif verb=="quests" then
     local week,questLines=Addon.Medals:DescribeQuests()
     Addon:Print("Week "..tostring(week).." Mom Quests (extra Mom Money, new ones every week):")

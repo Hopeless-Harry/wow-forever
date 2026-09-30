@@ -27,9 +27,9 @@ test('the description lists names, levels, titles and how long ago, and never th
   const h=setup(); h.run(seedAlt+'; __t=MAMChronicles.Statistics:DescribeCharacters(MAMChronicles.Statistics:BuildCharacters())');
   const t=h.get('__t'); assert.match(t,/Altmom/); assert.match(t,/Level 37 Priest/); assert.match(t,/Wine Mom/); assert.match(t,/Cooking 120/); assert.match(t,/2 days ago/); assert.match(t,/this character/); assert.ok(!/SECRET|Player-/.test(t));
 });
-test('Characters is the fifth of seven tabs and all tabs fit the narrowest window',()=>{
-  const h=setup(); h.run('MAMChronicles.UI:Create(); __n=#MAMChronicles.UI.tabs; __five=MAMChronicles.UI.tabs[5]; __last=MAMChronicles.UI.tabs[7]; local right=0; for i,b in ipairs(MAMChronicles.UI.tabButtons) do local p=b.point; right=math.max(right,(p[4] or 0)+b.width) end __right=right');
-  assert.equal(h.get('__n'),7); assert.equal(h.get('__five'),'Characters'); assert.equal(h.get('__last'),'Diagnostics'); assert.ok(h.get('__right')<=620,`tabs reach ${h.get('__right')}`);
+test('Characters is the fifth of eight tabs and all tabs fit the narrowest window',()=>{
+  const h=setup(); h.run('MAMChronicles.UI:Create(); __n=#MAMChronicles.UI.tabs; __five=MAMChronicles.UI.tabs[5]; __last=MAMChronicles.UI.tabs[8]; local right=0; for i,b in ipairs(MAMChronicles.UI.tabButtons) do local p=b.point; right=math.max(right,(p[4] or 0)+b.width) end __right=right');
+  assert.equal(h.get('__n'),8); assert.equal(h.get('__five'),'Characters'); assert.equal(h.get('__last'),'Diagnostics'); assert.ok(h.get('__right')<=620,`tabs reach ${h.get('__right')}`);
 });
 test('the Characters tab shows the list in a scrolling text view and is remembered',()=>{
   const h=setup(); h.run(seedAlt+'; local UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Characters"); __c=UI.content.text; __saved=MAMChroniclesDB.settings.ui.activeTab');
