@@ -15,7 +15,7 @@ test('manifest targets Retail and Forever and loads the four diagnostic modules'
   const interfaceLine = toc.match(/^## Interface:\s*(.+)$/mu)?.[1];
   const interfaces = interfaceLine?.split(',').map((value) => Number.parseInt(value.trim(), 10)).sort((a, b) => a - b);
   assert.deepEqual(interfaces, [16001, 120100, 120105]);
-  assert.match(toc, /^## Version: 0\.1\.5-phase0$/mu);
+  assert.match(toc, /^## Version: 0\.1\.6-phase0$/mu);
   assert.match(toc, /^## SavedVariables: MAMChroniclesDiagnosticsDB$/mu);
   assert.deepEqual(luaFiles(toc), ['Core.lua', 'Capabilities.lua', 'Events.lua', 'UI.lua']);
 });

@@ -66,21 +66,29 @@ function addon.ProbeProfessions()
         return unavailable("profession-api-missing")
     end
 
-    local ok, profession1, profession2 = addon.SafeCall(GetProfessions)
+    local ok, profession1, profession2, archaeology, fishing, cooking = addon.SafeCall(GetProfessions)
     if not ok then
         return unavailable("profession-query-error")
     end
 
     local result = {
         available = true,
+        archaeologyLearned = type(archaeology) == "number",
+        cookingLearned = type(cooking) == "number",
+        fishingLearned = type(fishing) == "number",
         primaryCount = 0,
+        recipeEnumerationAvailable = false,
+        secondaryCount = 0,
         skillInfoCount = 0,
-        recipeCount = 0,
     }
 
-    local function recordProfession(index)
+    local function recordProfession(index, isPrimary)
         if type(index) == "number" then
-            result.primaryCount = result.primaryCount + 1
+            if isPrimary then
+                result.primaryCount = result.primaryCount + 1
+            else
+                result.secondaryCount = result.secondaryCount + 1
+            end
             local infoOk, _, _, skillLevel, maxSkillLevel = addon.SafeCall(GetProfessionInfo, index)
             if not infoOk then
                 return unavailable("profession-query-error")
@@ -90,16 +98,29 @@ function addon.ProbeProfessions()
             end
         end
     end
-    local professionError = recordProfession(profession1)
+    local professionError = recordProfession(profession1, true)
     if professionError then
         return professionError
     end
-    professionError = recordProfession(profession2)
+    professionError = recordProfession(profession2, true)
+    if professionError then
+        return professionError
+    end
+    professionError = recordProfession(archaeology, false)
+    if professionError then
+        return professionError
+    end
+    professionError = recordProfession(fishing, false)
+    if professionError then
+        return professionError
+    end
+    professionError = recordProfession(cooking, false)
     if professionError then
         return professionError
     end
 
     if type(C_TradeSkillUI) == "table" and type(C_TradeSkillUI.GetAllRecipeIDs) == "function" then
+        result.recipeEnumerationAvailable = true
         local recipeOk, recipeIDs = addon.SafeCall(C_TradeSkillUI.GetAllRecipeIDs)
         if not recipeOk then
             return unavailable("profession-query-error")

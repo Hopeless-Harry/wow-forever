@@ -2,7 +2,11 @@ local addon = MAMChroniclesDiagnostics or {}
 MAMChroniclesDiagnostics = addon
 local unpackValues = unpack or table.unpack
 
-addon.VERSION = "0.1.5-phase0"
+local function packValues(...)
+    return { n = select("#", ...), ... }
+end
+
+addon.VERSION = "0.1.6-phase0"
 addon.MESSAGE_PREFIX = "MAMChronDiag"
 addon.ADDON_NAME = "MAMChroniclesDiagnostics"
 
@@ -26,12 +30,11 @@ local function safeCall(callable, ...)
     if type(callable) ~= "function" then
         return false, "missing"
     end
-    local results = { pcall(callable, ...) }
+    local results = packValues(pcall(callable, ...))
     if not results[1] then
         return false, "error"
     end
-    table.remove(results, 1)
-    return true, unpackValues(results)
+    return true, unpackValues(results, 2, results.n)
 end
 
 addon.Now = now

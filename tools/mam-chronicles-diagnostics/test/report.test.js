@@ -11,6 +11,16 @@ function reportHarness() {
       events: { PLAYER_DEAD: { count: 3, lastSeenAt: 1790704800, private: 'PRIVATE_EVENT' } },
       capabilities: {
         private: 'PRIVATE_CAPABILITY',
+        professions: {
+          available: true,
+          archaeologyLearned: false,
+          cookingLearned: true,
+          fishingLearned: false,
+          primaryCount: 0,
+          recipeEnumerationAvailable: false,
+          secondaryCount: 1,
+          skillInfoCount: 1,
+        },
         messaging: {
           available: true,
           prefixRegistered: true,
@@ -35,13 +45,17 @@ test('report contains deterministic diagnostic sections and no private markers',
     assert.match(report, new RegExp(`(^|\\n)${heading}($|\\n)`, 'u'));
   }
   assert.match(report, /Build: 70009/u);
-  assert.match(report, /Addon version: 0\.1\.5-phase0/u);
+  assert.match(report, /Addon version: 0\.1\.6-phase0/u);
   assert.match(report, /Client version: 1\.60\.1/u);
   assert.match(report, /Current marker: 1790704800-1/u);
   assert.match(report, /Loaded marker: 1790704800-1/u);
   assert.match(report, /Outgoing restricted: yes/u);
   assert.match(report, /Chat lockdown: no/u);
   assert.match(report, /PLAYER_DEAD: 3/u);
+  assert.match(report, /Secondary professions visible: 1/u);
+  assert.match(report, /Cooking learned: yes/u);
+  assert.match(report, /Recipe enumeration available: no/u);
+  assert.doesNotMatch(report, /Recipes visible in current window: 0/u);
   assert.doesNotMatch(report, /PRIVATE_|SavedVariables|C:\\/u);
 });
 

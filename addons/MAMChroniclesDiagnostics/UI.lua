@@ -127,7 +127,14 @@ function addon.GetReportLines()
     table.insert(lines, "Status: " .. capabilityStatus(professions))
     if professions and professions.available then
         table.insert(lines, "Primary professions visible: " .. string.format("%d", integer(professions.primaryCount)))
-        table.insert(lines, "Recipes visible in current window: " .. string.format("%d", integer(professions.recipeCount)))
+        table.insert(lines, "Secondary professions visible: " .. string.format("%d", integer(professions.secondaryCount)))
+        table.insert(lines, "Cooking learned: " .. yesNo(professions.cookingLearned))
+        table.insert(lines, "Fishing learned: " .. yesNo(professions.fishingLearned))
+        table.insert(lines, "Archaeology learned: " .. yesNo(professions.archaeologyLearned))
+        table.insert(lines, "Recipe enumeration available: " .. yesNo(professions.recipeEnumerationAvailable))
+        if professions.recipeEnumerationAvailable then
+            table.insert(lines, "Recipes visible in current window: " .. string.format("%d", integer(professions.recipeCount)))
+        end
     end
 
     table.insert(lines, "")

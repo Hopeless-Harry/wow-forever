@@ -67,3 +67,16 @@ test('runtime build facts are recorded without identity data', () => {
     version: '1.60.1',
   });
 });
+
+test('safe calls preserve return values after nil slots', () => {
+  const harness = createWowHarness();
+  harness.load(['Core.lua']);
+  harness.run(`
+    local ok, first, second, third, fourth, fifth = MAMChroniclesDiagnostics.SafeCall(function()
+      return nil, nil, nil, nil, 5
+    end)
+    __mamSafeCall = { ok = ok, fifth = fifth }
+  `);
+
+  assert.deepEqual(harness.get('__mamSafeCall'), { ok: true, fifth: 5 });
+});

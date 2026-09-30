@@ -20,7 +20,7 @@ Retail is a shared-behaviour smoke test. These results do not establish WoW Fore
 | Loaded-marker diagnostic | PASS | On `0.1.4-phase0`, Current marker and Loaded marker both reported the exact value `1790708096-4` at load count 7. |
 | Map APIs | PASS (outdoors) | Map ID, normalised map position, and outdoor world position were all available in the sampled outdoor state. Restricted-instance behaviour remains untested. |
 | Guild roster | INCONCLUSIVE | The API was available, but the sampled character exposed zero members and zero online members. |
-| Professions | INCONCLUSIVE | The API was available, but no primary professions or recipes were visible in the sampled state. |
+| Professions | RETEST REQUIRED | Learning Cooking raised `SKILL_LINES_CHANGED`, but `0.1.5-phase0` ignored WoW's secondary-profession return slots. The corrected `0.1.6-phase0` package is ready for a live retest. |
 | Addon messaging | RESTRICTED (confirmed) | Prefix registration succeeded with `duplicate-prefix`; outgoing addon messages were restricted while chat lockdown was not active. Version `0.1.5-phase0` visibly reported that the self ping was not sent, and all ping counters correctly remained zero. |
 | Privacy | PASS | The copied report contained no character name, sender name, BattleTag, account path, or chat content. |
 
@@ -69,6 +69,18 @@ The live `0.1.5-phase0` retest displayed the refusal and directed the member to 
 - Installation: installed into Retail after `Wow.exe` stopped; installed files matched tested source 6/6.
 - Previous addon backup: `MAMChroniclesDiagnostics-20260930-095449.zip`
 
+### Prepared Cooking and secondary-profession correction
+
+After the character learned Cooking, `SKILL_LINES_CHANGED` advanced from 583 to 588 while the report still showed zero primary professions. Code inspection found that `0.1.5-phase0` retained only the first two values returned by `GetProfessions`; Cooking is returned in the fifth slot. The shared safe-call wrapper also discarded return values following nil slots.
+
+Version `0.1.6-phase0` preserves all API return positions, checks primary professions plus Archaeology, Fishing, and Cooking, and reports secondary professions explicitly. It also distinguishes an unavailable recipe-enumeration API from a genuine zero recipe count.
+
+- Diagnostic tests: 35/35 passed.
+- Guild Ledger regression tests: 39/39 passed.
+- Package: `MAMChroniclesDiagnostics-0.1.6-phase0.zip`
+- Package SHA-256: `EE737387B9AC6B44CF2A345E76EFD8E9039FD3A9CE814D895F34CB05FD842931`
+- Installation: pending because the Retail client was running when the package was completed.
+
 ## Messaging research note
 
 Blizzard's generated API documentation treats outgoing-addon-message restriction and chat messaging lockdown as separate states. It describes outgoing permission as realm-controlled and receiving permission as separate. Retail `0.1.4-phase0` confirmed `Outgoing restricted: yes` and `Chat lockdown: no`. This rules out chat lockdown as the sampled cause; the addon must respect the realm result rather than try to bypass it, and Forever still needs its own test.
@@ -78,7 +90,8 @@ Blizzard's generated API documentation treats outgoing-addon-message restriction
 
 ## Next live check
 
-1. Use a guilded Retail character, if available, and refresh the guild roster.
-2. Use a character with primary professions and open a profession window.
-3. Check map capability inside an instance or another naturally restricted area.
-4. Leave quest, level, death, resurrection, and trade-skill event checks until they occur naturally.
+1. Fully close Retail, install `0.1.6-phase0`, log back into the character that learned Cooking, and use `/mamdiag run`.
+2. Confirm `Secondary professions visible: 1` and `Cooking learned: yes`.
+3. Use a guilded Retail character, if available, and refresh the guild roster.
+4. Check map capability inside an instance or another naturally restricted area.
+5. Leave quest, level, death, resurrection, and trade-skill event checks until they occur naturally.

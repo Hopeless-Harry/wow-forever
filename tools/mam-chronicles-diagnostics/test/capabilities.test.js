@@ -53,8 +53,13 @@ test('capability probes retain only bounded non-identifying facts', () => {
   });
   assert.deepEqual(capabilities.professions, {
     available: true,
+    archaeologyLearned: false,
+    cookingLearned: false,
+    fishingLearned: false,
     primaryCount: 2,
+    recipeEnumerationAvailable: true,
     recipeCount: 2,
+    secondaryCount: 0,
     skillInfoCount: 2,
   });
   assert.deepEqual(capabilities.guild, { available: true, memberCount: 3, onlineCount: 2 });
@@ -111,11 +116,43 @@ test('profession probe checks a populated second slot when the first is vacant',
   harness.call('MAMChroniclesDiagnostics.Initialize()');
   assert.deepEqual(harness.get('MAMChroniclesDiagnostics.ProbeProfessions()'), {
     available: true,
+    archaeologyLearned: false,
+    cookingLearned: false,
+    fishingLearned: false,
     primaryCount: 1,
-    recipeCount: 0,
+    recipeEnumerationAvailable: false,
+    secondaryCount: 0,
     skillInfoCount: 1,
   });
   assert.deepEqual(queried, [2]);
+});
+
+test('profession probe reports Cooking from the secondary profession slot', () => {
+  const queried = [];
+  const harness = createWowHarness({
+    globals: {
+      GetProfessions: () => multi(null, null, null, null, 5),
+      GetProfessionInfo: (index) => {
+        queried.push(index);
+        return multi('PRIVATE_COOKING', null, 1, 75);
+      },
+    },
+  });
+
+  harness.load(['Core.lua', 'Capabilities.lua']);
+  harness.call('MAMChroniclesDiagnostics.Initialize()');
+
+  assert.deepEqual(harness.get('MAMChroniclesDiagnostics.ProbeProfessions()'), {
+    available: true,
+    archaeologyLearned: false,
+    cookingLearned: true,
+    fishingLearned: false,
+    primaryCount: 0,
+    recipeEnumerationAvailable: false,
+    secondaryCount: 1,
+    skillInfoCount: 1,
+  });
+  assert.deepEqual(queried, [5]);
 });
 
 test('profession probe fails closed when the first profession lookup throws', () => {
