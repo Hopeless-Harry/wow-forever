@@ -59,7 +59,7 @@ When the SavedVariables global is not yet available, versions `0.1.2-phase0` and
 
 ## Messaging research note
 
-Blizzard's generated API documentation treats outgoing-addon-message restriction and chat messaging lockdown as separate states. Retail `0.1.4-phase0` confirmed `Outgoing restricted: yes` and `Chat lockdown: no`. This rules out chat lockdown as the sampled cause, but it does not establish why this account/session is restricted or whether Forever behaves the same way.
+Blizzard's generated API documentation treats outgoing-addon-message restriction and chat messaging lockdown as separate states. It describes outgoing permission as realm-controlled and receiving permission as separate. Retail `0.1.4-phase0` confirmed `Outgoing restricted: yes` and `Chat lockdown: no`. This rules out chat lockdown as the sampled cause; the addon must respect the realm result rather than try to bypass it, and Forever still needs its own test.
 
 - [Generated ChatInfo API documentation](https://github.com/Gethe/wow-ui-source/blob/live/Interface/AddOns/Blizzard_APIDocumentationGenerated/ChatInfoDocumentation.lua)
 - [Generated CVar resource entry for `addonChatRestrictionsForced`](https://github.com/Ketho/BlizzardInterfaceResources/blob/live/Resources/CVars.lua)
