@@ -35,7 +35,7 @@ test('package archive contains only the six allowlisted addon files', () => {
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
 
   const archives = readdirSync(outputRoot).filter((name) => name.endsWith('.zip'));
-  assert.deepEqual(archives, ['MAMChroniclesDiagnostics-0.1.3-phase0.zip']);
+  assert.deepEqual(archives, ['MAMChroniclesDiagnostics-0.1.4-phase0.zip']);
   const extractRoot = join(root, 'extract');
   const expand = runPowerShell(['-Command', `Expand-Archive -LiteralPath '${join(outputRoot, archives[0]).replaceAll("'", "''")}' -DestinationPath '${extractRoot.replaceAll("'", "''")}'`]);
   assert.equal(expand.status, 0, expand.stderr);

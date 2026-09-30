@@ -118,6 +118,43 @@ test('profession probe checks a populated second slot when the first is vacant',
   assert.deepEqual(queried, [2]);
 });
 
+test('profession probe fails closed when the first profession lookup throws', () => {
+  const harness = createWowHarness({
+    globals: {
+      GetProfessions: () => multi(1, 2, null, null, null),
+      GetProfessionInfo: () => { throw new Error('PRIVATE_PROFESSION_FAILURE'); },
+    },
+  });
+
+  harness.load(['Core.lua', 'Capabilities.lua']);
+  harness.call('MAMChroniclesDiagnostics.Initialize()');
+
+  assert.deepEqual(harness.get('MAMChroniclesDiagnostics.ProbeProfessions()'), {
+    available: false,
+    reason: 'profession-query-error',
+  });
+});
+
+test('profession probe fails closed when the second profession lookup throws', () => {
+  const harness = createWowHarness({
+    globals: {
+      GetProfessions: () => multi(1, 2, null, null, null),
+      GetProfessionInfo: (index) => {
+        if (index === 2) throw new Error('PRIVATE_SECOND_PROFESSION_FAILURE');
+        return multi('PRIVATE_PROFESSION', null, 75, 150);
+      },
+    },
+  });
+
+  harness.load(['Core.lua', 'Capabilities.lua']);
+  harness.call('MAMChroniclesDiagnostics.Initialize()');
+
+  assert.deepEqual(harness.get('MAMChroniclesDiagnostics.ProbeProfessions()'), {
+    available: false,
+    reason: 'profession-query-error',
+  });
+});
+
 test('missing capability APIs are reported without throwing', () => {
   const capabilities = loadCapabilities(createWowHarness());
   assert.deepEqual(capabilities.map, { available: false, reason: 'map-api-missing' });

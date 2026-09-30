@@ -5,7 +5,7 @@
 **Interface:** `120100`  
 **Locale:** `enUS`  
 **Diagnostic version exercised:** `0.1.1-phase0`  
-**Fixed diagnostic installed for next run:** `0.1.3-phase0`
+**Fixed diagnostic installed for next run:** `0.1.4-phase0`
 
 Retail is a shared-behaviour smoke test. These results do not establish WoW Forever compatibility.
 
@@ -17,7 +17,7 @@ Retail is a shared-behaviour smoke test. These results do not establish WoW Fore
 | Event registration | PASS | Every allowlisted diagnostic event reported `available`. |
 | Event observation | PASS (sampled) | Login, alive, new-area, entering-world, and skill-line events were observed. |
 | SavedVariables persistence | PASS | The exact current marker remained present across `/reload` and a full client restart. |
-| Loaded-marker diagnostic | FIX PENDING RETEST | Version `0.1.1-phase0` displayed `Loaded marker: none` even though the current marker persisted. A load-order regression reproduced the issue; the installed `0.1.3-phase0` build contains the correction. |
+| Loaded-marker diagnostic | FIX PENDING RETEST | Version `0.1.1-phase0` displayed `Loaded marker: none` even though the current marker persisted. A load-order regression reproduced the issue; the installed `0.1.4-phase0` build contains the correction. |
 | Map APIs | PARTIAL | Map ID and outdoor world position were available; normalised map position was unavailable in the sampled state. |
 | Guild roster | INCONCLUSIVE | The API was available, but the sampled character exposed zero members and zero online members. |
 | Professions | INCONCLUSIVE | The API was available, but no primary professions or recipes were visible in the sampled state. |
@@ -48,12 +48,12 @@ When the SavedVariables global is not yet available, versions `0.1.2-phase0` and
 
 ## Build and installation evidence
 
-- Diagnostic tests: 30/30 passed.
+- Diagnostic tests: 32/32 passed.
 - Guild Ledger regression tests: 39/39 passed.
 - Installed Retail addon files matched the tested source: 6/6.
-- Installed diagnostic: `0.1.3-phase0`
-- Package: `MAMChroniclesDiagnostics-0.1.3-phase0.zip`
-- Package SHA-256: `9508680338B2AF4E58D650D7A62D8DD90BE0CE0CAB815BE38DBDFB07A19EC85D`
+- Installed diagnostic: `0.1.4-phase0`
+- Package: `MAMChroniclesDiagnostics-0.1.4-phase0.zip`
+- Package SHA-256: `F3C6990A3E1CD0DF02EA6B1FB2F7423856CBBD7111501829B48008DB7F1B83D5`
 
 ## Messaging research note
 
@@ -64,7 +64,7 @@ Blizzard's generated API documentation treats outgoing-addon-message restriction
 
 ## Next live check
 
-1. Launch Retail with `0.1.3-phase0`.
+1. Launch Retail with `0.1.4-phase0`.
 2. Open `/mamdiag` without creating a new marker.
 3. Confirm **Current marker** and **Loaded marker** are identical.
 4. Record both **Outgoing restricted** and **Chat lockdown**.

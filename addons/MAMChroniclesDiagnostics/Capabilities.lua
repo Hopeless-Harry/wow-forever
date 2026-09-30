@@ -90,8 +90,14 @@ function addon.ProbeProfessions()
             end
         end
     end
-    recordProfession(profession1)
-    recordProfession(profession2)
+    local professionError = recordProfession(profession1)
+    if professionError then
+        return professionError
+    end
+    professionError = recordProfession(profession2)
+    if professionError then
+        return professionError
+    end
 
     if type(C_TradeSkillUI) == "table" and type(C_TradeSkillUI.GetAllRecipeIDs) == "function" then
         local recipeOk, recipeIDs = addon.SafeCall(C_TradeSkillUI.GetAllRecipeIDs)
