@@ -337,3 +337,32 @@ test('on Parchment every stock-font label gets a readable palette colour',()=>{
   for(const f of fields){const col=h.get(`${f}.textColor`); if(!col){fails.push(`${f}: no colour`);continue;} const r=ratio(arr(col),arr(c.panel)); if(r<4.5)fails.push(`${f}: ${r.toFixed(2)}`);}
   assert.deepEqual(fails,[]);
 });
+
+// ---- commands and polish ----
+test('/mam help lists every command and unknown commands point to it',()=>{
+  const h=combatSetup(); h.slash('help'); const all=h.calls.printed.join('\n');
+  for (const cmd of ['/mam','remember','stats','medals','settings','export','diag','toast','help']) assert.ok(all.includes(cmd),`help misses ${cmd}`);
+  h.calls.printed.length=0; h.slash('bogus'); assert.match(h.calls.printed.join('\n'),/Unknown command "bogus"/); assert.match(h.calls.printed.join('\n'),/\/mam help/);
+});
+test('/mam medals and /mam settings open their tabs',()=>{
+  const h=combatSetup(); h.slash('medals'); assert.equal(h.get('MAMChronicles.UI.activeTab'),'Medals'); assert.equal(h.get('MAMChronicles.UI.frame.shown'),true);
+  h.slash('settings'); assert.equal(h.get('MAMChronicles.UI.activeTab'),'Settings');
+});
+test('every slash verb in the handler is listed in the help text',async()=>{
+  const { readAddonFile } = await import('./harness.js'); const src=readAddonFile('UI.lua');
+  const verbs=[...src.matchAll(/verb=="(\w+)"/g)].map(m=>m[1]); assert.ok(verbs.length>=7);
+  const h=combatSetup(); h.slash('help'); const all=h.calls.printed.join('\n'); for(const v of verbs) assert.ok(all.includes(v),`help misses ${v}`);
+});
+test('the saved window never starts larger than the screen',()=>{
+  const h=createHarness({savedVariables:{schemaVersion:1,settings:{ui:{width:1500,height:1100}}}}); h.load(dashFiles);
+  h.run('UIParent.GetWidth=function() return 1024 end; UIParent.GetHeight=function() return 600 end; MAMChronicles:Boot(); MAMChronicles.UI:Create()');
+  assert.ok(h.get('MAMChronicles.UI.frame.width')<=1024); assert.ok(h.get('MAMChronicles.UI.frame.height')<=600); assert.ok(h.get('MAMChronicles.UI.frame.width')>=620); assert.ok(h.get('MAMChronicles.UI.frame.height')>=440);
+});
+test('the settings page keeps its scroll position across tab changes',()=>{
+  const h=combatSetup(); h.run('local UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Settings"); UI:ApplyLayout(780,300); UI.settingsArea:SetOffset(120); UI:SetActiveTab("Home"); UI:SetActiveTab("Settings"); __off=UI.settingsArea.offset');
+  assert.equal(h.get('__off'),120);
+});
+test('the medals page keeps its scroll position across tab changes',()=>{
+  const h=medalsSetup(); h.run('local UI=MAMChronicles.UI; UI.medalsArea:SetOffset(800); UI:SetActiveTab("Home"); UI:SetActiveTab("Medals"); __off=UI.medalsArea.offset');
+  assert.equal(h.get('__off'),800);
+});

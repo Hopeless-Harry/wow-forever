@@ -132,7 +132,13 @@ function UI:RestoreWindowState()
   if not self.frame or not Addon.db or not Addon.db.settings then return false end
   Addon.Database:NormaliseSettings()
   local ui=Addon.db.settings.ui; self.activeTab=ui.activeTab
-  safeMethod(self.frame,"ClearAllPoints"); safeMethod(self.frame,"SetSize",ui.width,ui.height)
+  -- Keep the saved size inside the screen (high UI scales shrink UIParent), but never below the window minimum.
+  local width,height=ui.width,ui.height
+  local okW,screenW=pcall(function() return UIParent.GetWidth and UIParent:GetWidth() end)
+  local okH,screenH=pcall(function() return UIParent.GetHeight and UIParent:GetHeight() end)
+  if okW and finite(screenW) and screenW>0 then width=clamp(width,620,math.max(620,screenW-20)) end
+  if okH and finite(screenH) and screenH>0 then height=clamp(height,440,math.max(440,screenH-20)) end
+  safeMethod(self.frame,"ClearAllPoints"); safeMethod(self.frame,"SetSize",width,height)
   safeMethod(self.frame,"SetPoint",ui.point,UIParent,ui.point,ui.x,ui.y); safeMethod(self.frame,"SetUserPlaced",true); safeMethod(self.frame,"SetClampedToScreen",true)
   return true
 end
@@ -1005,15 +1011,36 @@ function UI:ShowCopy(text, diagnostics)
   safeMethod(self.copyBox, "SetFocus"); safeMethod(self.copyBox, "HighlightText"); safeMethod(self.frame, "Show")
 end
 
+UI.helpLines={
+  "/mam - open or close the Chronicle",
+  "/mam remember <text> - pin a memory to your Chronicle",
+  "/mam stats - open the Statistics tab",
+  "/mam medals - open the Mom Medals tab",
+  "/mam settings - open the Settings tab",
+  "/mam export - show the Courier export text to copy",
+  "/mam diag - show the diagnostics report to paste into a bug report",
+  "/mam toast - show a sample toast (test alerts)",
+  "/mam help - show this list",
+}
+
+function UI:PrintHelp()
+  self.lastMessage="Commands: /mam, remember, stats, medals, settings, export, diag, toast, help"
+  Addon:Print("Commands:")
+  for _,line in ipairs(self.helpLines) do Addon:Print(line) end
+end
+
 function UI:HandleSlash(command)
   command=(command or ""):match("^%s*(.-)%s*$"); local verb,rest=command:match("^(%S+)%s*(.-)$"); verb=string.lower(verb or "")
   if verb=="" then self:Toggle()
   elseif verb=="remember" then local event,err=Addon.Collectors:RecordManualMemory(rest); self.lastMessage=event and "Memory saved." or err; Addon:Print(self.lastMessage)
   elseif verb=="stats" then self.activeTab="Statistics"; Addon.db.settings.ui.activeTab="Statistics"; self:Show()
+  elseif verb=="medals" then self.activeTab="Medals"; Addon.db.settings.ui.activeTab="Medals"; self:Show()
+  elseif verb=="settings" then self.activeTab="Settings"; Addon.db.settings.ui.activeTab="Settings"; self:Show()
   elseif verb=="export" then local value,err=Addon.Export:BuildCourierPayload(0,Addon:Now()); self:ShowCopy(value or err)
   elseif verb=="toast" then if Addon.Toast then Addon.Toast:SendTest() end
   elseif verb=="diag" then self.activeTab="Diagnostics"; Addon.db.settings.ui.activeTab="Diagnostics"; self:ShowCopy(Addon.Export:BuildDiagnosticReport(), true)
-  else self.lastMessage="Commands: /mam, remember, stats, export, diag, toast, help"; Addon:Print(self.lastMessage) end
+  elseif verb=="help" then self:PrintHelp()
+  else self.lastMessage='Unknown command "'..verb..'". Type /mam help for the list.'; Addon:Print(self.lastMessage) end
 end
 
 function UI:InitialiseSlashCommands()
