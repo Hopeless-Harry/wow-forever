@@ -15,8 +15,18 @@ local groups={
   Instances={ ["instance.entered"]=true,["instance.exited"]=true },
   Loot={ ["loot.notable"]=true }, Memories={ ["memory.manual"]=true }, Medals={ ["medal.earned"]=true },
 }
+local function shortDuration(seconds)
+  seconds=math.floor(tonumber(seconds) or 0)
+  if seconds>=3600 then return math.floor(seconds/3600).."h "..math.floor((seconds%3600)/60).."m" end
+  return math.max(1,math.floor(seconds/60)).."m"
+end
 local function label(event)
-  local p=event.payload or {}; return p.text or p.questName or p.itemName or p.achievementName or p.professionName or p.zone or p.instanceName or event.type
+  local p=event.payload or {}; local kind=event.type
+  if kind=="session.login" then return "Logged in" end
+  if kind=="session.logout" then return p.duration and ("Logged out after "..shortDuration(p.duration)) or "Logged out" end
+  if kind=="character.level_up" and p.level then return "Reached level "..tostring(p.level) end
+  if kind=="medal.earned" and (p.medalName or p.medalId) then return tostring(p.medalName or p.medalId)..(p.points and (" (+"..tostring(p.points).." Mom Money)") or "") end
+  return p.text or p.questName or p.itemName or p.achievementName or p.professionName or p.zone or p.instanceName or (tostring(kind):gsub("[%._]"," "))
 end
 UI.EventLabel=label
 local function safeMethod(object,method,...)

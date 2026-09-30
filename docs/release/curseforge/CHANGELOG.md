@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0-alpha13
+
+Fixes from the first live Retail screenshots of alpha12.
+
+- The statistics scan is now split after every single statistic. It took 2.7 seconds for 441 statistics on Retail, and the previous split only paused between categories, so one large category could still cause a hitch.
+- Chronicle and Home rows show readable text: "Logged in", "Logged out after 1h 1m", "Reached level N" and medal names with their Mom Money, instead of raw event names.
+- The Statistics tab shows the reporting window as dates instead of raw numbers.
+- Statistics that only mention "gold" in their name (for example Gold Challenge ratings) are no longer treated as money.
+
 ## 0.2.0-alpha12
 
 - A pinned medal goal now shows one "Nearly there" toast when you reach 90 percent of its target (targets of 5 or more). It follows your toast settings and waits for combat to end.

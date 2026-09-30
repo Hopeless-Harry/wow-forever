@@ -2,7 +2,7 @@ MAMChronicles = MAMChronicles or {}
 local Addon = MAMChronicles
 
 Addon.name = "MAMChronicles"
-Addon.version = "0.2.0-alpha12"
+Addon.version = "0.2.0-alpha13"
 Addon.schemaVersion = 1
 
 function Addon:Now()
@@ -99,7 +99,7 @@ end
 local WELCOME_VERSION = "personal-chronicle-v3"
 
 -- One line shown on Home after an update; keep it in step with CHANGELOG.md.
-Addon.whatsNewText = "a 'nearly there' toast for pinned medal goals, plus the monthly recap (/mam recap) and safer saved data."
+Addon.whatsNewText = "a much smoother statistics scan, readable Chronicle entries (Logged in, medal names) and dates in the Statistics header."
 
 function Addon:GetWhatsNew()
   local settings = self.db and self.db.settings

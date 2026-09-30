@@ -29,9 +29,14 @@ function Export:BuildCourierPayload(fromTime,toTime)
   return output
 end
 
+function Export.FormatDate(timestamp)
+  local dateFn=date or (os and os.date)
+  return dateFn and dateFn("%d %b %Y",timestamp) or tostring(timestamp)
+end
+
 function Export:BuildHumanSummary(fromTime,toTime)
   local stats=Addon.Statistics:Build(fromTime,toTime)
-  local lines={"Moms Against Magic Chronicles","Reporting window: "..tostring(stats.fromTime).." to "..tostring(stats.toTime),"Events recorded: "..tostring(stats.eventCount),"Sessions: "..tostring(stats.sessionCount),"Deaths: "..tostring(stats.totals.deaths),"Quests completed: "..tostring(stats.totals.questsCompleted),"Discoveries: "..tostring(stats.totals.discoveries),"Notable loot: "..tostring(stats.totals.notableLoot)}
+  local lines={"Moms Against Magic Chronicles","Reporting window: "..Export.FormatDate(stats.fromTime).." to "..Export.FormatDate(stats.toTime),"Events recorded: "..tostring(stats.eventCount),"Sessions: "..tostring(stats.sessionCount),"Deaths: "..tostring(stats.totals.deaths),"Quests completed: "..tostring(stats.totals.questsCompleted),"Discoveries: "..tostring(stats.totals.discoveries),"Notable loot: "..tostring(stats.totals.notableLoot)}
   if #stats.awards>0 then table.insert(lines,"Awards:"); for _,award in ipairs(stats.awards) do table.insert(lines,"- "..award.name..": "..tostring(award.count)) end end
   table.insert(lines,"Coverage: "..tostring(stats.coverage.sourceEventCount).." source events in this local journal.")
   if stats.coverage.compactedRangeIncomplete then table.insert(lines,"Coverage warning: compacted history overlaps only part of this range; shown totals are a known minimum.") end

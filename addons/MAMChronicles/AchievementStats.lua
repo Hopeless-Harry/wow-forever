@@ -88,7 +88,8 @@ local rootRules = {
 
 function AchievementStats:Classify(rootTitle, name, kind)
   local lowerName = tostring(name or ""):lower()
-  if kind == "money" or lowerName:find("gold", 1, true) or lowerName:find("money", 1, true) or lowerName:find("copper", 1, true) then return GOLD end
+  -- Money values are recognised by their coin units. A plain count that only mentions "gold" (Gold Challenge, Goldie) is not money.
+  if kind == "money" then return GOLD end
   if kind == "duration" or lowerName:find("time played", 1, true) then return "Time played" end
   if lowerName:find("death", 1, true) then return "Deaths and combat" end
   local lowerRoot = tostring(rootTitle or ""):lower()
@@ -165,27 +166,24 @@ local function clockMs()
   return finite(value) and value or nil
 end
 
-local function scanCategory(self, state, id)
-  local total = safe(GetCategoryNumAchievements, id, true)
-  local root = rootTitleFor(state.map, id)
-  for index = 1, (finite(total) and total or 0) do
-    local statId, name = safe(GetAchievementInfo, id, index)
-    if statId then
-      local text = safe(GetStatistic, statId)
-      local number, kind, label = self:ParseValue(text)
-      if not number and type(text) == "string" and text:match("%S") and text ~= "--" then
-        state.unparsed = state.unparsed + 1
-        if #state.samples < 8 then table.insert(state.samples, { name = tostring(name or statId), raw = text:sub(1, 40) }) end
-      end
-      if number then
-        local group = self:Classify(root, name, kind)
-        if group == "Other" then state.otherRoots[root or "unknown"] = (state.otherRoots[root or "unknown"] or 0) + 1 end
-        if group ~= GOLD or state.includeGold then
-          state.values[statId] = number; state.count = state.count + 1
-          if label then state.labels[statId] = label:sub(1, 40) end
-          state.catalog[statId] = { name = tostring(name or statId), group = group, kind = kind }
-        end
-      end
+-- Reads one statistic. GetStatistic can cost several milliseconds each (2.7 s for 441 on a live Retail client),
+-- so the scan is resumable after every single statistic, not just every category.
+local function scanStat(self, state, id, index)
+  local statId, name = safe(GetAchievementInfo, id, index)
+  if not statId then return end
+  local text = safe(GetStatistic, statId)
+  local number, kind, label = self:ParseValue(text)
+  if not number and type(text) == "string" and text:match("%S") and text ~= "--" then
+    state.unparsed = state.unparsed + 1
+    if #state.samples < 8 then table.insert(state.samples, { name = tostring(name or statId), raw = text:sub(1, 40) }) end
+  end
+  if number then
+    local group = self:Classify(state.root, name, kind)
+    if group == "Other" then state.otherRoots[state.root or "unknown"] = (state.otherRoots[state.root or "unknown"] or 0) + 1 end
+    if group ~= GOLD or state.includeGold then
+      state.values[statId] = number; state.count = state.count + 1
+      if label then state.labels[statId] = label:sub(1, 40) end
+      state.catalog[statId] = { name = tostring(name or statId), group = group, kind = kind }
     end
   end
 end
@@ -210,27 +208,38 @@ local function finishScan(self, state)
   return true
 end
 
--- Reads categories until the time budget for this frame is used, then continues next frame (when timers exist).
+-- Reads statistics until the time budget for this frame is used, then continues next frame (when timers exist).
 local function runScan(self, state)
   local canSplit = type(C_Timer) == "table" and type(C_Timer.After) == "function" and clockMs() ~= nil
   local sliceStart = clockMs()
   while state.position <= #state.categories do
-    scanCategory(self, state, state.categories[state.position])
-    state.position = state.position + 1
-    if canSplit and state.position <= #state.categories then
-      local spent = clockMs() - sliceStart
-      if spent >= SCAN_BUDGET_MS then
-        state.elapsed = (state.elapsed or 0) + spent
-        self.scanning = true
-        self:SetStatus("pending", "scanning")
-        C_Timer.After(0, function()
-          if InCombatLockdown and InCombatLockdown() then
-            C_Timer.After(RETRY_DELAY, function() runScan(AchievementStats, state) end)
-          else
-            runScan(AchievementStats, state)
-          end
-        end)
-        return false
+    local id = state.categories[state.position]
+    if not state.total then
+      local total = safe(GetCategoryNumAchievements, id, true)
+      state.total = finite(total) and total or 0
+      state.root = rootTitleFor(state.map, id)
+      state.index = 1
+    end
+    if state.index > state.total then
+      state.position = state.position + 1; state.total = nil
+    else
+      scanStat(self, state, id, state.index)
+      state.index = state.index + 1
+      if canSplit and state.position <= #state.categories then
+        local spent = clockMs() - sliceStart
+        if spent >= SCAN_BUDGET_MS then
+          state.elapsed = (state.elapsed or 0) + spent
+          self.scanning = true
+          self:SetStatus("pending", "scanning")
+          C_Timer.After(0, function()
+            if InCombatLockdown and InCombatLockdown() then
+              C_Timer.After(RETRY_DELAY, function() runScan(AchievementStats, state) end)
+            else
+              runScan(AchievementStats, state)
+            end
+          end)
+          return false
+        end
       end
     end
   end
