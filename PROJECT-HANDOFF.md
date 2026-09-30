@@ -2,7 +2,7 @@
 
 **Last updated:** 30 September 2026  
 **Current addon version:** `0.2.0-alpha1`  
-**Current status:** Full proper-addon polish implementation is active. Tasks 1–2 of 7 are complete: validated UI preferences/history reset and durable main-window state are implemented. Live acceptance of the production addon is still required.
+**Current status:** Paused at the user's request. Proper-addon polish Tasks 1–2 of 7 are complete. Task 3 has an intentional, committed RED test checkpoint but no launcher production code yet. Live acceptance of the production addon is still required.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
 This is the first file a new agent should read. Keep it current whenever the version, design, verification status, release location, major decision, or next action changes.
@@ -235,6 +235,16 @@ Completed polish checkpoint:
 - Reset Window deliberately preserves the separately controlled minimap angle.
 - The Task 2 RED run failed for all three missing UI behaviours; the GREEN full Chronicles suite passed **75/75**.
 
+Paused Task 3 checkpoint:
+
+- Added launcher-specific harness support for `Minimap`, `GameTooltip`, cursor position, clicks, and icon textures.
+- Added `tools/mam-chronicles/test/launcher.test.js` with five intended behaviours: saved visibility/angle, click actions, drag/reset, Addon Compartment callbacks, and hidden-button recovery.
+- Updated manifest/package expectations to require `Launcher.lua` as soon as it is implemented.
+- Launcher-focused RED run: **5 expected failures**, all because `addons/MAMChronicles/Launcher.lua` does not exist yet.
+- Package RED run: **1 expected failure**, because the package does not yet contain `Launcher.lua`.
+- No Task 3 production code, TOC metadata, or package-script change has been made.
+- Last fully green production checkpoint: commit `9a6d726`, Chronicles **75/75**.
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -294,7 +304,7 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-Execute Task 3 of `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`: write failing launcher/AddOn Compartment tests, then add the native minimap launcher and capability-gated compartment callbacks.
+Resume Task 3 at Step 3 of `docs/superpowers/plans/2026-09-30-mam-chronicles-proper-addon-polish.md`. Read the committed failing tests, implement `addons/MAMChronicles/Launcher.lua`, initialise it safely from `Core.lua`, add its TOC/AddOn Compartment metadata, and add `Launcher.lua` to `scripts/package-mam-chronicles.ps1`. Run the launcher/manifest/package selection first, then the full Chronicles suite.
 
 ## 15. Recent history
 

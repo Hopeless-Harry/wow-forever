@@ -279,7 +279,7 @@ git commit -m "feat: remember the Chronicles window state"
 - Consumes: `UI:Toggle()`, `SettingsPanel:Open()` when available, `settings.showMinimapButton`, and `settings.ui.minimapAngle`.
 - Produces: `Launcher:Create()`; `Show()`; `Hide()`; `SetAngle(angle)`; `ResetPosition()`; `HandleClick(button)`; `ShowTooltip(owner)`; globals `MAMChronicles_AddonCompartmentClick`, `MAMChronicles_AddonCompartmentEnter`, `MAMChronicles_AddonCompartmentLeave`.
 
-- [ ] **Step 1: Add launcher API stubs to the harness and write failing tests**
+- [x] **Step 1: Add launcher API stubs to the harness and write failing tests**
 
 Stub `Minimap`, `GameTooltip`, `GetCursorPosition`, and `UIParent:GetEffectiveScale()` only as required. Tests must prove:
 
@@ -291,7 +291,7 @@ test('addon compartment callbacks are safe and share launcher actions',()=>{/* i
 test('hidden minimap setting does not remove slash or compartment entry points',()=>{/* showMinimapButton=false, button hidden, callbacks/functions remain */});
 ```
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run:
 
