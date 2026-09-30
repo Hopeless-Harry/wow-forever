@@ -49,20 +49,21 @@ function Export:CountEarnedMedals()
 end
 
 -- A short, shareable summary of the month. It never includes the character name, realm or gold.
-function Export:BuildMonthlyRecap(fromTime,toTime)
+function Export:BuildRecap(fromTime,toTime,options)
+  options=options or {}
   local stats=Addon.Statistics:Build(fromTime,toTime)
   local dateFn=date or (os and os.date)
-  local title=dateFn and dateFn("%B %Y",fromTime) or "This month"
+  local title=options.title or (dateFn and dateFn("%B %Y",fromTime) or "This month")
   local lines={"Moms Against Magic Chronicles - "..title.." recap"}
   local medals=Addon.EventStore:Query({type="medal.earned",fromTime=fromTime,toTime=toTime})
   table.sort(medals,function(a,b) if a.occurredAt==b.occurredAt then return a.id<b.id end return a.occurredAt<b.occurredAt end)
   local changes={}
-  if Addon.AchievementStats then
+  if Addon.AchievementStats and options.statChanges~=false then
     for _,change in ipairs(Addon.AchievementStats:GetTopChanges(Addon.characterKey,50)) do
       if change.group~=Addon.AchievementStats.goldGroup and #changes<3 then table.insert(changes,change.name.." +"..tostring(change.delta)) end
     end
   end
-  if stats.eventCount==0 and #medals==0 and #changes==0 then table.insert(lines,"Quiet month: nothing recorded yet."); return table.concat(lines,"\n") end
+  if stats.eventCount==0 and #medals==0 and #changes==0 then table.insert(lines,options.quiet or "Quiet month: nothing recorded yet."); return table.concat(lines,"\n") end
   table.insert(lines,tostring(stats.sessionCount).." sessions, "..tostring(stats.eventCount).." events")
   table.insert(lines,"Deaths "..tostring(stats.totals.deaths).."  Quests "..tostring(stats.totals.questsCompleted).."  Discoveries "..tostring(stats.totals.discoveries).."  Notable loot "..tostring(stats.totals.notableLoot))
   if #medals>0 then
@@ -76,6 +77,15 @@ function Export:BuildMonthlyRecap(fromTime,toTime)
   local summary=Addon.Medals and Addon.Medals:GetSummary()
   if summary then table.insert(lines,"Mom Money total: "..tostring(summary.total).." ("..tostring(summary.count).." of "..tostring(summary.possible).." medals)") end
   return table.concat(lines,"\n")
+end
+
+function Export:BuildMonthlyRecap(fromTime,toTime) return self:BuildRecap(fromTime,toTime) end
+
+-- Last seven days. Statistic changes are only tracked per month, so the weekly recap leaves them out.
+function Export:BuildWeeklyRecap()
+  local now=Addon:Now(); local from=now-7*86400
+  local dateFn=date or (os and os.date)
+  return self:BuildRecap(from,now,{title="Week of "..(dateFn and dateFn("%d %b",from) or tostring(from)),quiet="Quiet week: nothing recorded yet.",statChanges=false})
 end
 
 function Export:BuildDiagnosticReport()

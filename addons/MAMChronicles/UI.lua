@@ -1054,7 +1054,7 @@ UI.helpLines={
   "/mam stats - open the Statistics tab",
   "/mam medals - open the Mom Medals tab",
   "/mam settings - open the Settings tab",
-  "/mam recap - show a shareable summary of this month to copy",
+  "/mam recap - show a shareable summary of this month to copy (/mam recap week for the last 7 days)",
   "/mam export - show the Courier export text to copy",
   "/mam diag - show the diagnostics report to paste into a bug report",
   "/mam toast - show a sample toast (test alerts)",
@@ -1075,7 +1075,9 @@ function UI:HandleSlash(command)
   elseif verb=="medals" then self.activeTab="Medals"; Addon.db.settings.ui.activeTab="Medals"; self:Show()
   elseif verb=="settings" then self.activeTab="Settings"; Addon.db.settings.ui.activeTab="Settings"; self:Show()
   elseif verb=="export" then local value,err=Addon.Export:BuildCourierPayload(0,Addon:Now()); self:ShowCopy(value or err)
-  elseif verb=="recap" then local from,to=self:GetCurrentMonthRange(); self:ShowCopy(Addon.Export:BuildMonthlyRecap(from,to))
+  elseif verb=="recap" then
+    if string.lower(rest or "")=="week" then self:ShowCopy(Addon.Export:BuildWeeklyRecap())
+    else local from,to=self:GetCurrentMonthRange(); self:ShowCopy(Addon.Export:BuildMonthlyRecap(from,to)) end
   elseif verb=="toast" then if Addon.Toast then Addon.Toast:SendTest() end
   elseif verb=="diag" then self.activeTab="Diagnostics"; Addon.db.settings.ui.activeTab="Diagnostics"; self:ShowCopy(Addon.Export:BuildDiagnosticReport(), true)
   elseif verb=="help" then self:PrintHelp()
