@@ -5,7 +5,7 @@
 **Interface:** `120100`  
 **Locale:** `enUS`  
 **Diagnostic versions exercised:** `0.1.1-phase0`, `0.1.4-phase0`, `0.1.5-phase0`  
-**Latest diagnostic installed:** `0.1.5-phase0`
+**Latest diagnostic installed:** `0.1.6-phase0`
 
 Retail is a shared-behaviour smoke test. These results do not establish WoW Forever compatibility.
 
@@ -79,7 +79,8 @@ Version `0.1.6-phase0` preserves all API return positions, checks primary profes
 - Guild Ledger regression tests: 39/39 passed.
 - Package: `MAMChroniclesDiagnostics-0.1.6-phase0.zip`
 - Package SHA-256: `EE737387B9AC6B44CF2A345E76EFD8E9039FD3A9CE814D895F34CB05FD842931`
-- Installation: pending because the Retail client was running when the package was completed.
+- Installation: installed into Retail after `Wow.exe` stopped; installed files matched tested source 6/6.
+- Previous addon backup: `MAMChroniclesDiagnostics-20260930-104726.zip`
 
 ## Messaging research note
 
