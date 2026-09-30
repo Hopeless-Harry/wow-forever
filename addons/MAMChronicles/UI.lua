@@ -568,8 +568,10 @@ function UI:RefreshMedals()
   safeMethod(self.medalHeader, "SetText", "Mom Money " .. tostring(summary.total))
   safeMethod(self.medalSub, "SetText", tostring(summary.count) .. " of " .. tostring(summary.possible) .. " Mom Medals earned")
   local rowWidth = (self.textWidth or 700) - 4
+  for position = #order + 1, #self.medalRows do safeMethod(self.medalRows[position], "Hide") end
   for position, entry in ipairs(order) do
     local row, def = self.medalRows[position], entry.def
+    safeMethod(row, "Show")
     local tierColour = Addon.Medals.tierColours[def.tier]
     local offset = -(48 + (position - 1) * (MEDAL_ROW_HEIGHT + 4))
     safeMethod(row, "ClearAllPoints"); safeMethod(row, "SetPoint", "TOPLEFT", self.medalsArea.child, "TOPLEFT", 0, offset); safeMethod(row, "SetPoint", "TOPRIGHT", self.medalsArea.child, "TOPRIGHT", 0, offset)

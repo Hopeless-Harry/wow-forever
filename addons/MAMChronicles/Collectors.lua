@@ -107,11 +107,12 @@ function Collectors:HandleEvent(eventName,...)
   local args={...}
   local ok,err=pcall(function()
     if eventName=="PLAYER_LOGIN" then Addon.Database:BeginSession(); Addon.EventStore:Append("session.login",{})
-    elseif eventName=="PLAYER_LOGOUT" then Addon.EventStore:Append("session.logout",{}); Addon.Database:EndSession()
+    elseif eventName=="PLAYER_LOGOUT" then local session=Addon.Database.currentSession; Addon.EventStore:Append("session.logout",{duration=session and session.startedAt and math.max(0,Addon:Now()-session.startedAt) or nil}); Addon.Database:EndSession()
     elseif eventName=="PLAYER_LEVEL_UP" then Addon.EventStore:Append("character.level_up",{level=args[1]})
     elseif eventName=="PLAYER_DEAD" then
       local payload=self:CaptureLocation()
       if UnitCanAttack and safe(UnitCanAttack,"player","target") then payload.lastHostileTarget=safe(UnitName,"target") end
+      if Addon.Counters and Addon.Counters:WasFalling() then payload.deathKind="falling" end
       Addon.EventStore:Append("character.death",payload); self.isDeadObserved=true
     elseif (eventName=="PLAYER_ALIVE" or eventName=="PLAYER_UNGHOST") and self.isDeadObserved then Addon.EventStore:Append("character.resurrected",self:CaptureLocation()); self.isDeadObserved=false
     elseif eventName=="QUEST_ACCEPTED" and Addon.db.settings.recordQuestAccepts then local questID=type(args[2])=="number" and args[2] or args[1]; Addon.EventStore:Append("quest.accepted",{questID=questID,questName=self:QuestName(questID)})

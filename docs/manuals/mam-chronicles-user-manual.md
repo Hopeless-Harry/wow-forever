@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles — User Manual
 
-- **Version:** `0.2.0-alpha7`
+- **Version:** `0.2.0-alpha8`
 - **Current test target:** World of Warcraft Retail 12.1
 - **WoW Forever:** Built with compatibility checks, but live beta testing is still pending.
 
@@ -61,11 +61,17 @@ The window has six tabs: **Home** (opens by default), **Chronicle**, **Medals**,
 - After that, each new medal appears as a **toast**, is added to your Chronicle as a Medal entry, and is announced to your guild (see below).
 - Clicking a toast opens the Medals tab. Below the medal list, **Guildmates** shows medals other players have earned recently.
 
-There are 131 medals in 46 families worth 3,850 Mom Money in total; the full list is in `mom-medals-catalogue.md`. Besides the serious ones (quests, delves, dungeons, levels) there is a Mom-themed set: **Wine O'Clock** (drink wine), **Pint of Courage**, **Second Coffee**, **Clean Plate Club**, **Boo-Boo Fixer** (bandages), **Trampoline Mom** (jumps), **School Run** (mounting up), **Mom Needs Five Minutes** (going AFK), **Weekend Getaway** (resting in inns and cities), **Say Cheese** (screenshots), **Up Past Bedtime** and **Early Bird Special** (login times), **Hugs and Kisses**, **Kitchen Dance Party**, **Commitment Issues** (abandoned quests), **Crazy Cat Mom** (vanity pets) and more.
+There are **235 medals in 83 families worth 7,005 Mom Money** in total; the full list is in `mom-medals-catalogue.md`, and `docs/research/2026-09-30-medal-feasibility.md` records how each one is tracked and what still needs a live check. Besides the serious ones (quests, delves, dungeons, levels) there is a large Mom-themed and silly set, for example:
+
+- **Kitchen and bar:** Wine O'Clock, Pint of Courage, Second Coffee, Clean Plate Club, Cheese Please, Cookie Monster, Pie in the Sky, Soup of the Day, Fishy Business, Juice Box, Stay Hydrated, Boo-Boo Fixer, Medicine Cabinet.
+- **Mom habits:** Trampoline Mom (jumps), School Run (mounting), Mom Needs Five Minutes (AFK), Weekend Getaway (inns), Say Cheese (screenshots), Outfit Change Number Nine, Sewing Circle (repairs), Decluttered (vendor sales), Bargain Hunter, Team Mom (groups joined), Left on Read (groups left), Yes I'm Ready Mom (ready checks).
+- **Emotes:** Sit Down Everyone, Nap Time, Mom Stare, Are You Serious?, Because I Said So, Thank-You Note, Hugs and Kisses, Kitchen Dance Party, Smooches, Friendly Neighbourhood Mom, Cheerleader Mom.
+- **Play-pattern:** Up Past Bedtime, Early Bird Special, Marathon Mom, Just Five More Minutes, Regular Regular (login streaks), Weekend Warrior, Clean Run, Learning Experience, Raid Night, Mom of Many, Long Haul, Jack of All Trades.
+- **WoW Forever only:** The Journey Matters, Ready for the Core (level 60), Old World New Tricks, Beta Testing Mom, Day One Mom (4 November 2026), One Year Later, Skyborne Landing. Level medals only show when the client's level cap allows them, and Forever medals are hidden on Retail.
 
 #### How the silly ones are tracked
 
-A small counter module watches what you do and stores **only whole numbers per category on this computer**: never item names, chat, or locations. Consumables (wine, ale, coffee and tea, food, bandages, potions) are counted when you press an item **and** the game confirms a successful cast within two seconds, so mashing a key while an item is on cooldown does not count. Item names are matched against keywords as whole words, so a "Whale" item is not an ale. One known limit: using the very last item of a stack from your bags may not be counted. Counters are cleared by Erase Chronicle Data.
+A small counter module watches what you do and stores **only whole numbers per category on this computer**: never item names, chat, or locations. Consumables (wine, ale, coffee and tea, food, bandages, potions) are counted when you press an item **and** the game confirms a successful cast within two seconds, so mashing a key while an item is on cooldown does not count. Item names are matched against keywords as whole words, so a "Whale" item is not an ale. Emotes, jumps, mounting, going AFK, resting, screenshots, groups, ready checks, vendor sales and purchases, repairs and equipment changes are counted the same way: only the number is kept. Death by falling is detected by remembering when you were last falling. One known limit: using the very last item of a stack from your bags may not be counted. Counters are cleared by Erase Chronicle Data.
 
 ### Alerts (toasts)
 

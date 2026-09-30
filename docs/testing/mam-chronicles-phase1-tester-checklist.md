@@ -108,6 +108,17 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] Social medals (Hugs and Kisses, Friendly Neighbourhood Mom, Kitchen Dance Party) show progress that matches your Statistics tab; note any that never appear: __________
 - [ ] `/mam` now reopens on the tab you used last (Home by default), not always Chronicle.
 
+## New medals and Forever (alpha8)
+
+- [ ] `/mam diag` shows `Medals: client ..., level cap ..., race ..., hooks ...`. Record it for each client: __________
+- [ ] The hooks list includes `PerformEmote` or `DoEmote`. Type `/sit`, `/dance`, `/hug` (with a target if needed) and check the emote medals move. If not, note which: __________
+- [ ] Fall from a height and die: the Chronicle death entry is followed by a Gravity's Favourite medal.
+- [ ] Join and leave a group, accept a ready check, swap gear, open a vendor and sell or buy something: the matching medal progress moves.
+- [ ] Log out and in again quickly, and stay logged in a long time: Just Five More Minutes and Marathon Mom progress.
+- [ ] **Forever:** the Medals tab shows The Journey Matters and Ready for the Core, hides level 80 and 90 medals, and shows Skyborne Landing. Record the race shown in diag: __________
+- [ ] **Retail:** the Forever-only medals are not shown.
+- [ ] Nothing earned before alpha8 disappeared, and Mom Money total looks sensible.
+
 ## Stability
 
 - [ ] No Lua errors during the test.

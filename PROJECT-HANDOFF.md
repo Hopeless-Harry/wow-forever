@@ -1,7 +1,7 @@
 # Moms Against Magic Chronicles — Project Handoff
 
 **Last updated:** 30 September 2026  
-**Current addon version:** `0.2.0-alpha7`  
+**Current addon version:** `0.2.0-alpha8`  
 **Current status:** In progress. Proper-addon polish All 7 tasks are complete in automated testing (Chronicles 98/98); live acceptance pending. Live acceptance of the production addon is still required.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
@@ -341,6 +341,15 @@ Silly Mom medals, counters and test toast (alpha7, 30 Sep 2026) - AUTOMATED EVID
 - Known limits / unproven live: consumable detection relies on cast events after `UseAction`/bag-use hooks (last item of a bag stack may be missed; if the cast event does not fire for some food/drink kinds they will undercount); keyword lists are English-only; `Medals.version` remains 1 so guildmates on older builds drop announcements for medal ids they do not know (counted as `dropped`).
 - Version `0.2.0-alpha7`. Chronicles **207/207**, Diagnostics **35/35**, Dashboard **39/39** (total 281). Installed and hash-verified (20 files, 0 diffs) on BOTH `_retail_` and `_classic_beta_`. Release: `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha7/` ZIP SHA-256 `DE5B03CE10938A67DB198E2EED499410D17DA646251120694B0DB4960F7FD2E1`.
 
+Feasibility check and full medal catalogue (alpha8, 30 Sep 2026) - AUTOMATED EVIDENCE ONLY; hooks and detection not yet observed live:
+
+- User asked: check every proposed medal can really be earned, then replace the catalogue with the full list (wacky, interesting, WoW Forever). Result: **235 medals, 83 families, 7,005 Mom Money** (`docs/manuals/mom-medals-catalogue.md`, generated from `Medals.lua`); per-family verdicts and evidence in `docs/research/2026-09-30-medal-feasibility.md`.
+- Real defects found by the check and fixed: (1) `deathKind` was never recorded, so Gravity's Favourite could never fire - now set to `falling` when the player was falling within 1.5s (Counters `IsFalling` ticker, live check needed); (2) `session.logout` had no duration, so Marathon Mom could never fire - now recorded; (3) hugs/dances/kisses were statistic-based but the user's Retail Statistics Social group has only Total waves and Total cheers - now emote counters (waves/cheers use max of stat and counter); (4) medal progress was rebuilt from events that compaction deletes - now persisted `db.medalTallies[charKey]` (double-count on first build also fixed); (5) level medals assumed cap 80+ - now hidden when the client's level cap is too low, a level 90 medal added, and Forever cap = 60.
+- Splash Landing (drowning) cut (no reliable signal). Guild-wide medals deferred until sharing is proven. First Raid Ever merged into Raid Night; Master Chef/Angler skipped.
+- New tracking (Counters.lua): emote hooks on `C_ChatInfo.PerformEmote` and `DoEmote` (deprecated in 12.0; debounced 0.3s; only tracked tokens counted); food/drink categories (cheese, cookie, pie, soup, fish, juice, water added); vendor sales/purchases/repairs hooks; `GROUP_JOINED`/`GROUP_LEFT`; `READY_CHECK_CONFIRM` (own confirm only); `PLAYER_EQUIPMENT_CHANGED` (10s login grace); all guarded by pcall and listed in `/mam diag` (`Medals: client ..., level cap ..., race ..., hooks ...`).
+- WoW Forever only (client = interface number < 100000, i.e. 16001): The Journey Matters I-V, Ready for the Core (60), Old World New Tricks, Beta Testing Mom (login before 4 Nov 2026), Day One Mom (login on 4 Nov 2026), One Year Later (365 days since this client's DB was created), Skyborne Landing (race token contains "sky"; token unknown - diag prints it). Launch date and cap come from Blizzard's announcement; interface 16001 from the Warcraft Wiki.
+- Version `0.2.0-alpha8`. Chronicles **226/226**, Diagnostics **35/35**, Dashboard **39/39** (total 300). Installed and hash-verified (20 files, 0 diffs) on BOTH `_retail_` and `_classic_beta_`. Release: `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha8/` ZIP SHA-256 `68EA4989C234C784DA8CF727B0AD7875D50E521499813E4AE7C3C32723D9F75A`.
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -400,9 +409,10 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-1. User tests alpha7: press Settings > Alerts > Send a test toast; drink a wine/ale/coffee, eat food, use a bandage, jump, mount, go AFK and check the Medals tab moves; send screenshots and `/mam diag` from Retail and Forever.
-2. Two-player guild test still REQUIRED before trusting guild sharing (see previous checkpoint). Record both `/mam diag` lines.
-3. Then, per the user's order: Courier export of medals and non-sensitive statistics for the Raspberry Pi and first monthly letter (after cross-user sharing is proven), Characters roster tab, optional pinned-stat tiles, later phases. Possible next content: guild-wide medals (for example "Moms Unite" when several guildmates are online together) once sharing is proven.
+1. User runs alpha8 on Forever first, then Retail: send `/mam diag` (the `Medals:` line shows client, level cap, race token, installed hooks) and screenshots of the Medals tab. Confirm live: emotes count (`/sit`, `/dance`, `/hug`), a fall death yields Gravity's Favourite, group/ready-check/vendor/equipment counters move, Forever shows Journey/Core/Skyborne and hides level 80/90 medals.
+2. Fix whatever the live check disproves (most likely emote routing, consumable cast confirmation, or the Skyborne race token).
+3. Two-player guild test for sharing is still REQUIRED before building guild-wide medals or the Pi export.
+4. Then: Courier export of medals and non-sensitive statistics, Characters roster tab, optional pinned-stat tiles, guild-wide medals.
 
 ## 15. Recent history
 

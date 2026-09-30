@@ -4,20 +4,33 @@ Addon.Counters = Counters
 
 -- Privacy-safe activity counters for the silly Mom Medals. Only integers per category are stored:
 -- never item names, chat, locations or anything else. Counters stay on this computer.
-local ARM_WINDOW = 2       -- seconds between pressing an item and the cast that confirms it
-local REPEAT_WINDOW = 1.5  -- ignore the same item pressed again this quickly
-local EVALUATE_DELAY = 5   -- batch medal checks after counting
+local ARM_WINDOW = 2         -- seconds between pressing an item and the cast that confirms it
+local REPEAT_WINDOW = 1.5    -- ignore the same item pressed again this quickly
+local EVALUATE_DELAY = 5     -- batch medal checks after counting
+local EMOTE_DEBOUNCE = 0.3   -- the server throttles emotes too; DoEmote and PerformEmote may both fire
+local EQUIP_GRACE = 10       -- ignore equipment changes right after entering the world
+local FALL_MEMORY = 1.5      -- how long after falling a death still counts as a fall
 
 Counters.handles = {
   UNIT_SPELLCAST_SUCCEEDED = true, UNIT_SPELLCAST_START = true, UNIT_SPELLCAST_CHANNEL_START = true,
   PLAYER_MOUNT_DISPLAY_CHANGED = true, PLAYER_FLAGS_CHANGED = true, PLAYER_UPDATE_RESTING = true, SCREENSHOT_SUCCEEDED = true,
+  PLAYER_EQUIPMENT_CHANGED = true, PLAYER_ENTERING_WORLD = true, GROUP_JOINED = true, GROUP_LEFT = true, READY_CHECK_CONFIRM = true,
 }
+
+local trackedEmotes = { SIT = true, SLEEP = true, STARE = true, FACEPALM = true, NO = true, THANK = true, HUG = true, DANCE = true, KISS = true, WAVE = true, CHEER = true }
 
 local keywordSets = {
   { "wine", { "wine", "merlot", "chardonnay", "riesling", "pinot", "zinfandel" } },
   { "ale", { "ale", "beer", "lager", "stout", "mead", "grog", "rum", "whiskey", "whisky", "cider", "moonshine", "liquor", "brew" } },
   { "coffee", { "coffee", "tea", "cocoa", "espresso" } },
-  { "food", { "stew", "cake", "pie", "bread", "cheese", "cookie", "cookies", "jerky", "sandwich", "soup", "feast", "roast", "pudding", "pastry", "muffin", "fruit", "apple", "steak", "biscuit", "pancake", "pancakes", "sausage", "fish", "meat", "tart", "pretzel" } },
+  { "food", { "stew", "cake", "pie", "bread", "cheese", "cookie", "cookies", "jerky", "sandwich", "soup", "feast", "roast", "pudding", "pastry", "muffin", "fruit", "apple", "steak", "biscuit", "biscuits", "pancake", "pancakes", "sausage", "fish", "meat", "tart", "pretzel" } },
+  { "cheese", { "cheese" } },
+  { "cookie", { "cookie", "cookies", "biscuit", "biscuits" } },
+  { "pie", { "pie", "tart", "pastry" } },
+  { "soup", { "soup", "chowder", "broth", "stew" } },
+  { "fish", { "fish", "salmon", "trout", "sushi", "eel", "bass" } },
+  { "juice", { "juice", "lemonade", "nectar", "milk" } },
+  { "water", { "water" } },
   { "bandage", { "bandage" } },
   { "potion", { "potion", "elixir", "flask", "tonic" } },
 }
@@ -54,6 +67,16 @@ function Counters:Add(name, amount)
   end
 end
 
+-- Some sources fire twice for one real action; count each key at most once per window.
+function Counters:AddOnce(name, window)
+  local now = clock()
+  self.lastAdd = self.lastAdd or {}
+  if self.lastAdd[name] and now - self.lastAdd[name] < window then return false end
+  self.lastAdd[name] = now
+  self:Add(name, 1)
+  return true
+end
+
 local function itemName(itemID)
   if C_Item and C_Item.GetItemNameByID then return safe(C_Item.GetItemNameByID, itemID) end
   return (safe(GetItemInfo, itemID))
@@ -73,14 +96,23 @@ function Counters:Arm(itemID)
   self.armed = { categories = categories, at = now }
 end
 
+local function merchantOpen() return MerchantFrame and MerchantFrame.IsShown and MerchantFrame:IsShown() and true or false end
+
 function Counters:OnActionUsed(slot)
   local kind, id = safe(GetActionInfo, slot)
   if kind == "item" then self:Arm(id) end
 end
 
 function Counters:OnBagUsed(bag, slot)
+  if merchantOpen() then self:Add("sales", 1); return end  -- right-clicking a bag item at a vendor sells it
   local info = C_Container and C_Container.GetContainerItemInfo and safe(C_Container.GetContainerItemInfo, bag, slot)
   if type(info) == "table" and info.itemID then self:Arm(info.itemID) end
+end
+
+function Counters:OnEmote(token)
+  token = string.upper(tostring(token or "")):gsub("^/", "")
+  if not trackedEmotes[token] then return end
+  self:AddOnce("emote_" .. string.lower(token), EMOTE_DEBOUNCE)
 end
 
 function Counters:OnCast(unit)
@@ -89,6 +121,10 @@ function Counters:OnCast(unit)
   self.armed = nil
   if clock() - armed.at > ARM_WINDOW then return end
   for _, category in ipairs(armed.categories) do self:Add(category, 1) end
+end
+
+function Counters:WasFalling()
+  return self.lastFalling ~= nil and clock() - self.lastFalling < FALL_MEMORY
 end
 
 function Counters:OnEvent(eventName, ...)
@@ -110,31 +146,63 @@ function Counters:OnEvent(eventName, ...)
     self.resting = resting
   elseif eventName == "SCREENSHOT_SUCCEEDED" then
     self:Add("shots", 1)
+  elseif eventName == "PLAYER_ENTERING_WORLD" then
+    self.enteredAt = clock()
+  elseif eventName == "PLAYER_EQUIPMENT_CHANGED" then
+    if self.enteredAt and clock() - self.enteredAt >= EQUIP_GRACE then self:AddOnce("outfits", 0.5) end
+  elseif eventName == "GROUP_JOINED" then
+    self:AddOnce("groups", 2)
+  elseif eventName == "GROUP_LEFT" then
+    self:AddOnce("left", 2)
+  elseif eventName == "READY_CHECK_CONFIRM" then
+    local unit, isReady = ...
+    if isReady and unit and safe(UnitIsUnit, unit, "player") then self:AddOnce("ready", 5) end
   end
 end
 
 function Counters:Initialise()
   if self.initialised then return end
   self.initialised = true
+  self.hooked = {}
   self.mounted = safe(IsMounted) and true or false
   self.away = safe(UnitIsAFK, "player") and true or false
   self.resting = safe(IsResting) and true or false
   if hooksecurefunc then
     pcall(hooksecurefunc, "UseAction", function(slot) Counters:OnActionUsed(slot) end)
+    self.hooked[#self.hooked + 1] = "UseAction"
     if C_Container and C_Container.UseContainerItem then
-      pcall(hooksecurefunc, C_Container, "UseContainerItem", function(bag, slot) Counters:OnBagUsed(bag, slot) end)
+      if pcall(hooksecurefunc, C_Container, "UseContainerItem", function(bag, slot) Counters:OnBagUsed(bag, slot) end) then self.hooked[#self.hooked + 1] = "UseContainerItem" end
     elseif UseContainerItem then
-      pcall(hooksecurefunc, "UseContainerItem", function(bag, slot) Counters:OnBagUsed(bag, slot) end)
+      if pcall(hooksecurefunc, "UseContainerItem", function(bag, slot) Counters:OnBagUsed(bag, slot) end) then self.hooked[#self.hooked + 1] = "UseContainerItem" end
     end
-    if JumpOrAscendStart then pcall(hooksecurefunc, "JumpOrAscendStart", function() Counters:Add("jumps", 1) end) end
+    if JumpOrAscendStart and pcall(hooksecurefunc, "JumpOrAscendStart", function() Counters:Add("jumps", 1) end) then self.hooked[#self.hooked + 1] = "JumpOrAscendStart" end
+    -- DoEmote is deprecated in 12.0 in favour of C_ChatInfo.PerformEmote: hook whichever exist.
+    if C_ChatInfo and C_ChatInfo.PerformEmote and pcall(hooksecurefunc, C_ChatInfo, "PerformEmote", function(token) Counters:OnEmote(token) end) then self.hooked[#self.hooked + 1] = "PerformEmote" end
+    if DoEmote and pcall(hooksecurefunc, "DoEmote", function(token) Counters:OnEmote(token) end) then self.hooked[#self.hooked + 1] = "DoEmote" end
+    if RepairAllItems and pcall(hooksecurefunc, "RepairAllItems", function() if merchantOpen() then Counters:Add("repairs", 1) end end) then self.hooked[#self.hooked + 1] = "RepairAllItems" end
+    if BuyMerchantItem and pcall(hooksecurefunc, "BuyMerchantItem", function() Counters:Add("purchases", 1) end) then self.hooked[#self.hooked + 1] = "BuyMerchantItem" end
+    if C_MerchantFrame and C_MerchantFrame.SellAllJunkItems and pcall(hooksecurefunc, C_MerchantFrame, "SellAllJunkItems", function() Counters:Add("sales", 1) end) then self.hooked[#self.hooked + 1] = "SellAllJunkItems" end
   end
   local frame = Addon.eventFrame
-  if not frame then return end
-  for eventName in pairs(self.handles) do
-    if eventName:find("^UNIT_SPELLCAST") and frame.RegisterUnitEvent then
-      pcall(frame.RegisterUnitEvent, frame, eventName, "player")
-    else
-      pcall(frame.RegisterEvent, frame, eventName)
+  if frame then
+    for eventName in pairs(self.handles) do
+      if eventName:find("^UNIT_SPELLCAST") and frame.RegisterUnitEvent then
+        pcall(frame.RegisterUnitEvent, frame, eventName, "player")
+      else
+        pcall(frame.RegisterEvent, frame, eventName)
+      end
     end
+  end
+  -- Remember when the player was last falling, so a fatal landing can be recorded as a fall.
+  if CreateFrame and IsFalling then
+    local ticker, elapsed = CreateFrame("Frame"), 0
+    ticker:SetScript("OnUpdate", function(_, step)
+      elapsed = elapsed + step
+      if elapsed >= 0.2 then
+        elapsed = 0
+        if IsFalling() then Counters.lastFalling = clock() end
+      end
+    end)
+    self.ticker = ticker
   end
 end
