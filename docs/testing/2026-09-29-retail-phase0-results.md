@@ -4,7 +4,7 @@
 **Client:** WoW Retail `12.1.0.69933`  
 **Interface:** `120100`  
 **Locale:** `enUS`  
-**Diagnostic versions exercised:** `0.1.1-phase0`, `0.1.4-phase0`, `0.1.5-phase0`  
+**Diagnostic versions exercised:** `0.1.1-phase0`, `0.1.4-phase0`, `0.1.5-phase0`, `0.1.6-phase0`  
 **Latest diagnostic installed:** `0.1.6-phase0`
 
 Retail is a shared-behaviour smoke test. These results do not establish WoW Forever compatibility.
@@ -20,19 +20,19 @@ Retail is a shared-behaviour smoke test. These results do not establish WoW Fore
 | Loaded-marker diagnostic | PASS | On `0.1.4-phase0`, Current marker and Loaded marker both reported the exact value `1790708096-4` at load count 7. |
 | Map APIs | PASS (outdoors) | Map ID, normalised map position, and outdoor world position were all available in the sampled outdoor state. Restricted-instance behaviour remains untested. |
 | Guild roster | INCONCLUSIVE | The API was available, but the sampled character exposed zero members and zero online members. |
-| Professions | RETEST REQUIRED | Learning Cooking raised `SKILL_LINES_CHANGED`, but `0.1.5-phase0` ignored WoW's secondary-profession return slots. The corrected `0.1.6-phase0` package is ready for a live retest. |
+| Professions | PASS (Cooking detection) | Retail `0.1.6-phase0` reported one secondary profession and `Cooking learned: yes`. Recipe enumeration was available but returned zero before any profession window had been opened. |
 | Addon messaging | RESTRICTED (confirmed) | Prefix registration succeeded with `duplicate-prefix`; outgoing addon messages were restricted while chat lockdown was not active. Version `0.1.5-phase0` visibly reported that the self ping was not sent, and all ping counters correctly remained zero. |
 | Privacy | PASS | The copied report contained no character name, sender name, BattleTag, account path, or chat content. |
 
 ## Observed counters
 
-- `PLAYER_LOGIN`: 8
-- `PLAYER_LOGOUT`: 7
-- `PLAYER_ALIVE`: 7
-- `ZONE_CHANGED`: 3
-- `ZONE_CHANGED_NEW_AREA`: 7
-- `PLAYER_ENTERING_WORLD`: 8
-- `SKILL_LINES_CHANGED`: 583
+- `PLAYER_LOGIN`: 9
+- `PLAYER_LOGOUT`: 8
+- `PLAYER_ALIVE`: 8
+- `ZONE_CHANGED`: 8
+- `ZONE_CHANGED_NEW_AREA`: 8
+- `PLAYER_ENTERING_WORLD`: 9
+- `SKILL_LINES_CHANGED`: 732
 
 ## Persistence defect and correction
 
@@ -69,11 +69,13 @@ The live `0.1.5-phase0` retest displayed the refusal and directed the member to 
 - Installation: installed into Retail after `Wow.exe` stopped; installed files matched tested source 6/6.
 - Previous addon backup: `MAMChroniclesDiagnostics-20260930-095449.zip`
 
-### Prepared Cooking and secondary-profession correction
+### Cooking and secondary-profession correction; live retest passed
 
 After the character learned Cooking, `SKILL_LINES_CHANGED` advanced from 583 to 588 while the report still showed zero primary professions. Code inspection found that `0.1.5-phase0` retained only the first two values returned by `GetProfessions`; Cooking is returned in the fifth slot. The shared safe-call wrapper also discarded return values following nil slots.
 
 Version `0.1.6-phase0` preserves all API return positions, checks primary professions plus Archaeology, Fishing, and Cooking, and reports secondary professions explicitly. It also distinguishes an unavailable recipe-enumeration API from a genuine zero recipe count.
+
+The live Retail retest at load count 10 reported `Secondary professions visible: 1` and `Cooking learned: yes`, confirming the correction. `Recipe enumeration available: yes` with zero visible recipes is retained as a separate, incomplete check because `TRADE_SKILL_SHOW` remained at zero.
 
 - Diagnostic tests: 35/35 passed.
 - Guild Ledger regression tests: 39/39 passed.
@@ -91,8 +93,7 @@ Blizzard's generated API documentation treats outgoing-addon-message restriction
 
 ## Next live check
 
-1. Fully close Retail, install `0.1.6-phase0`, log back into the character that learned Cooking, and use `/mamdiag run`.
-2. Confirm `Secondary professions visible: 1` and `Cooking learned: yes`.
-3. Use a guilded Retail character, if available, and refresh the guild roster.
-4. Check map capability inside an instance or another naturally restricted area.
-5. Leave quest, level, death, resurrection, and trade-skill event checks until they occur naturally.
+1. Open the Cooking profession window, then use `/mamdiag run` and check `TRADE_SKILL_SHOW` plus the recipe count.
+2. Use a guilded Retail character, if available, and refresh the guild roster.
+3. Check map capability inside an instance or another naturally restricted area.
+4. Leave quest, level, death, and resurrection checks until they occur naturally.
