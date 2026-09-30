@@ -22,6 +22,23 @@ local function copyValues(values)
   return result
 end
 
+local function formatNumber(value)
+  local text = tostring(math.floor(value + 0.5))
+  local formatted = text:reverse():gsub("(%d%d%d)", "%1,"):reverse()
+  return (formatted:gsub("^,", ""))
+end
+local function formatDuration(seconds)
+  local days, hours = math.floor(seconds / 86400), math.floor((seconds % 86400) / 3600)
+  if days > 0 then return tostring(days) .. "d " .. tostring(hours) .. "h" end
+  local minutes = math.floor((seconds % 3600) / 60)
+  if hours > 0 then return tostring(hours) .. "h " .. tostring(minutes) .. "m" end
+  return tostring(minutes) .. "m"
+end
+local function formatStat(value, kind)
+  if kind == "duration" then return formatDuration(value) end
+  return formatNumber(value)
+end
+
 local moneyUnits = { gold = 10000, silver = 100, copper = 1 }
 local timeUnits = { day = 86400, days = 86400, d = 86400, hr = 3600, hrs = 3600, hour = 3600, hours = 3600, h = 3600,
   min = 60, mins = 60, minute = 60, minutes = 60, m = 60, sec = 1, secs = 1, second = 1, seconds = 1, s = 1 }
@@ -127,6 +144,7 @@ function AchievementStats:Scan()
   end
   local includeGold = database.settings.recordGoldStatistics == true
   local values, catalog, count, unparsed = {}, database.statisticCatalog, 0, 0
+  local samples, otherRoots = {}, {}
   for _, id in ipairs(categories) do
     local total = safe(GetCategoryNumAchievements, id, true)
     local root = rootTitleFor(map, id)
@@ -135,9 +153,13 @@ function AchievementStats:Scan()
       if statId then
         local text = safe(GetStatistic, statId)
         local number, kind = self:ParseValue(text)
-        if not number and type(text) == "string" and text:match("%S") and text ~= "--" then unparsed = unparsed + 1 end
+        if not number and type(text) == "string" and text:match("%S") and text ~= "--" then
+          unparsed = unparsed + 1
+          if #samples < 8 then table.insert(samples, { name = tostring(name or statId), raw = text:sub(1, 40) }) end
+        end
         if number then
           local group = self:Classify(root, name, kind)
+          if group == "Other" then otherRoots[root or "unknown"] = (otherRoots[root or "unknown"] or 0) + 1 end
           if group ~= GOLD or includeGold then
             values[statId] = number; count = count + 1
             catalog[statId] = { name = tostring(name or statId), group = group, kind = kind }
@@ -159,6 +181,7 @@ function AchievementStats:Scan()
   for index = MONTHS_KEPT + 1, #keys do row.months[keys[index]] = nil end
   database.statistics[key] = row
   self:SetStatus("ok", nil, count, unparsed)
+  self.status.unparsedSamples, self.status.otherRoots = samples, otherRoots
   return true
 end
 
@@ -214,9 +237,22 @@ function AchievementStats:BuildText(key)
     changes[change.group] = changes[change.group] or {}
     if #changes[change.group] < 3 then table.insert(changes[change.group], change) end
   end
+  local headlines = {}
+  for id, value in pairs(row.latest.values or {}) do
+    local entry = catalog[id]
+    if entry and entry.kind ~= "money" then
+      headlines[entry.group] = headlines[entry.group] or {}
+      table.insert(headlines[entry.group], { name = entry.name, value = value, kind = entry.kind })
+    end
+  end
   for _, group in ipairs(self.groupOrder) do
     if perGroup[group] then
-      table.insert(lines, group .. ": " .. tostring(perGroup[group]) .. " tracked")
+      table.insert(lines, group)
+      local list = headlines[group] or {}
+      table.sort(list, function(a, b) if a.value ~= b.value then return a.value > b.value end return a.name < b.name end)
+      local parts = {}
+      for index = 1, math.min(3, #list) do parts[index] = list[index].name .. " " .. formatStat(list[index].value, list[index].kind) end
+      if #parts > 0 then table.insert(lines, "  " .. table.concat(parts, "  |  ")) end
       for _, change in ipairs(changes[group] or {}) do
         table.insert(lines, "  +" .. tostring(change.delta) .. " " .. change.name .. " (now " .. tostring(change.value) .. ")")
       end

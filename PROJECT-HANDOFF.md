@@ -294,6 +294,10 @@ Achievement Statistics module (alpha3) - AUTOMATED EVIDENCE ONLY, NOT LIVE-TESTE
 - Forever readiness (no live proof yet): TOC lists interface 16001; statistics APIs are listed as available on Forever by the Warcraft Wiki; every optional API (Settings, Addon Compartment, StaticPopup, C_Timer, SetResizeBounds) is capability-gated; fixed `SetMinResize` -> `SetResizeBounds` fallback so the minimum window size is applied on modern clients (2 tests). Forever test needs the user to log in on the Forever client and run the checklist; the Forever install already had an older alpha1 folder, now replaced.
 - **DECISION (user, 30 Sep 2026): guild sharing is ON BY DEFAULT for the whole guild** because it is important to the addon feeling alive. This overrides the earlier opt-in rule for non-sensitive data only. Required safeguards for Phase 2 (keep): a visible first-run notice saying what is shared, a one-click opt-out in Settings, per-category toggles, rate limits and sender volume caps, receive-side plausibility checks, graceful stop when addon messages are restricted, and **gold/money, chat, location trails and other sensitive data never shared by default**. Nothing is shared in alpha3 because no sharing code exists.
 
+Live Retail result for statistics (user, 30 Sep 2026, alpha3 build 12.1.0.69933): `Statistics: ok, 414 read, 15 unreadable`; 27 events, 0 collector errors. Groups shown: Deaths and combat 51, Quests 5, Exploration and travel 3, Dungeons and raids 300, Social 2, Player versus player 5, Other 48. **No Professions, Loot and items, or Time played group appeared** - cause unknown (either classified into Other, unreadable formats, or absent on the client). Forever not yet tested live.
+
+Post-result improvement (source only; NOT yet installed because WoW was running): statistics text now shows headline lifetime values per group (top 3 by value, durations as `2d 3h`) instead of "N tracked"; `/mam diag` now also prints up to 5 `Unreadable sample: name = raw text` lines and an `Uncategorised: <root category> (n)` list. Chronicles suite **116/116**. Release ZIP in the alpha3 release folder rebuilt with SHA-256 `BC36D243926078EEAF0C44FB47437D616F5A730A3D315E0D2AFEABE1E9C23B3C`. The installed alpha3 on both clients is the previous build (same version string, older files); reinstall after WoW is closed and ask the user for the new `/mam diag` output to fix grouping and parsing.
+
 ## 10. Later roadmap
 
 1. **Finish live Phase 1 acceptance and UI polish.**
@@ -353,10 +357,9 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-1. Install alpha3 to `_retail_` when the user agrees (WoW fully closed) using scripts/install-mam-chronicles.ps1 with -ClientRoot "C:/Program Files (x86)/World of Warcraft/_retail_" and -BackupRoot "C:/Users/44750/Documents/ChatGPT/WoW/addon-backups", then read back hashes.
-2. User runs the new "Achievement statistics (alpha3)" checklist section and reports group quality, the `Statistics:` diagnostics line, any hitch, and SavedVariables size.
-3. Fix from live findings (likely: key groups on category IDs, parse extra units, chunk the scan).
-4. Then build, in this order: statistics-driven awards, Characters roster tab, opt-in popups/toasts, Courier export of non-sensitive statistics. Phase 2 sync may now proceed with the recorded sharing-on-by-default decision and its safeguards.
+1. User closes WoW fully; reinstall the latest source to `_retail_` and `_classic_beta_` with scripts/install-mam-chronicles.ps1 (verify 14 files, 0 hash diffs).
+2. User logs in (Retail and then Forever), waits ~10s, sends `/mam diag` and the Statistics tab text. Use the `Unreadable sample` and `Uncategorised` lines to (a) extend the value parser, (b) fix category grouping (prefer category IDs), (c) explain the missing Professions / Loot / Time played groups.
+3. Then: statistics-driven awards, Characters roster tab, opt-in popups/toasts, Courier export of non-sensitive statistics, then Phase 2 sync with the recorded sharing-on-by-default safeguards.
 
 ## 15. Recent history
 
