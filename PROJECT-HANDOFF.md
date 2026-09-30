@@ -341,7 +341,9 @@ Do not write “complete” unless both automated verification and the required 
 
 ## 14. Current next action
 
-Live acceptance of alpha2 on Retail (needs the user): fully exit WoW, run `scripts/install-mam-chronicles.ps1` against the `_retail_` client, read back the installed manifest and file hashes, then work through the "Launcher, window, and settings (alpha2)" section and the rest of `docs/testing/mam-chronicles-phase1-tester-checklist.md`, recording PASS/FAIL/NOT TESTED honestly. Do not start Phase 2 (guild sync) until live Phase 1 acceptance is recorded or the user decides otherwise. Remaining decision for the user: whether to swap the private-testing `LICENSE.txt` for an open-source licence.
+Alpha2 is installed on the user's Retail client and the nine launcher/window/settings checks PASSED live (see `docs/testing/2026-09-30-alpha2-live-results.md`). Still NOT live-tested: event capture (level/death/quest/instance/loot/achievement/profession), two UI scales, minimum window size, full-restart persistence of captured events.
+
+Next: design the **achievement Statistics module** (read the built-in Statistics via `GetStatisticsCategoryList`/`GetCategoryNumAchievements`/`GetAchievementInfo`/`GetStatistic`, discovered at runtime, capability-gated; baseline per character + snapshot deltas for monthly summaries/awards + a Statistics view). Use the brainstorming skill first. **Blocked on two user decisions that conflict with recorded privacy rules:** (1) the user ticked Gold and money; rules currently forbid collecting gold. (2) the user chose whole-guild sharing by default; rules require opt-in, visible, rate-limited sharing. Do not change either rule without an explicit answer. Sharing is not relevant until Phase 2 anyway, so the local module can proceed with gold excluded by default.
 
 ## 15. Recent history
 

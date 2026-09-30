@@ -1,0 +1,246 @@
+<title>Chronicles Next Steps Form</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+/* Layout: single narrow column, numbered only where order matters; summary first, form below, copy-out bar pinned at the bottom. */
+:root{
+  --bg:#eceff4; --panel:#f8f9fb; --ink:#1d2330; --muted:#586174; --line:#cdd3de;
+  --crimson:#8a1c2b; --crimson-ink:#ffffff; --gold:#a8791a; --ok:#1f7a4d; --warn:#a4561a;
+  --display:"Fraunces",Georgia,serif; --body:"Source Sans 3",system-ui,sans-serif; --mono:ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141922; --panel:#1c2230; --ink:#e7eaf1; --muted:#9aa4b8; --line:#33394a;
+  --crimson:#d65a6a; --crimson-ink:#14171f; --gold:#e0b456; --ok:#5fc592; --warn:#e69a57; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141922; --panel:#1c2230; --ink:#e7eaf1; --muted:#9aa4b8; --line:#33394a;
+  --crimson:#d65a6a; --crimson-ink:#14171f; --gold:#e0b456; --ok:#5fc592; --warn:#e69a57; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;padding-inline:16px;padding-block:24px 110px}
+main{max-width:720px;margin-inline:auto;display:grid;gap:20px}
+h1{font-family:var(--display);font-size:clamp(1.7rem,5vw,2.3rem);line-height:1.15;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-size:1.25rem;margin:0 0 4px;text-wrap:balance}
+p{margin:0}
+.lede{color:var(--muted);max-width:62ch}
+section{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px;display:grid;gap:12px;min-width:0}
+.hint{color:var(--muted);font-size:.92rem}
+.tag{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);font-weight:600}
+fieldset{border:0;padding:0;margin:0;display:grid;gap:8px;min-width:0}
+legend{font-weight:600;padding:0;margin-bottom:6px}
+label.opt{display:flex;gap:10px;align-items:flex-start;cursor:pointer;min-width:0}
+label.opt input{margin-top:5px;accent-color:var(--crimson);flex:none}
+label.opt span{min-width:0}
+label.opt small{display:block;color:var(--muted)}
+.rec{color:var(--ok);font-weight:600;font-size:.85rem}
+.priv{color:var(--warn);font-weight:600;font-size:.85rem}
+textarea,input[type=text]{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:10px;box-sizing:border-box}
+textarea{min-height:88px;resize:vertical}
+:focus-visible{outline:2px solid var(--crimson);outline-offset:2px}
+.table{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:520px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.8rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+td.r{white-space:nowrap}
+td.r label{margin-right:12px;cursor:pointer}
+td.r input{accent-color:var(--crimson)}
+code{font-family:var(--mono);font-size:.88em}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
+button{font:inherit;font-weight:600;background:var(--crimson);color:var(--crimson-ink);border:0;border-radius:4px;padding:10px 18px;cursor:pointer}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+#out{font-family:var(--mono);font-size:.82rem;white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:12px;max-height:280px;overflow:auto}
+#status{color:var(--muted);font-size:.9rem}
+</style>
+
+<main>
+  <header style="display:grid;gap:8px">
+    <span class="tag">Moms Against Magic Chronicles · alpha2 loads and runs</span>
+    <h1>What we steal from achievement statistics, and what comes next</h1>
+    <p class="lede">Fill in what you care about, press <b>Copy my answers</b> at the bottom, and paste the result back into our chat. Skip anything you have no view on. Your draft saves in this browser as you type.</p>
+  </header>
+
+  <section>
+    <span class="tag">My reading of your note</span>
+    <h2>The game already counts a lot of what we want</h2>
+    <p>Every character has a built-in <b>Statistics</b> tab in the Achievements window (deaths, quests completed, creatures killed, dungeons entered, distance travelled and so on). The client keeps these numbers for the character's whole life, not just since we installed. An addon reads them with <code>GetStatisticsCategoryList</code>, <code>GetCategoryNumAchievements</code>, <code>GetAchievementInfo</code> and <code>GetStatistic</code>.</p>
+    <p><b>Why it is useful for us:</b> today the Chronicle only knows what happened after install, and it only records the <i>achievement earned</i> event. Reading statistics would give every character a real starting baseline on day one, let monthly summaries show "+14 deaths this month" as a difference between snapshots, and feed the awards.</p>
+    <p class="hint"><b>What I have not done:</b> I have not yet run these calls in your game, so I have not checked which statistics exist on your client or what they return. I would discover them by category and name at runtime instead of hard-coding numbers, since IDs differ between clients. Forever is unverified. If you meant a different addon or list, say so in the first question.</p>
+  </section>
+
+  <form id="f" autocomplete="off">
+
+  <section>
+    <h2>1. Did I read it right?</h2>
+    <fieldset>
+      <label class="opt"><input type="radio" name="reading" value="Yes: the built-in Statistics tab"><span>Yes, the built-in Statistics tab in Achievements</span></label>
+      <label class="opt"><input type="radio" name="reading" value="Partly: something else too"><span>Partly, I also meant something else (say what below)</span></label>
+      <label class="opt"><input type="radio" name="reading" value="No: I meant another addon or list"><span>No, I meant a different addon or list (name it below)</span></label>
+    </fieldset>
+    <textarea id="reading_note" name="reading_note" placeholder="Which addon or screen did you mean?"></textarea>
+  </section>
+
+  <section>
+    <h2>2. Which statistic groups do you want?</h2>
+    <p class="hint">Tick what would make the guild history more fun or useful.</p>
+    <fieldset>
+      <label class="opt"><input type="checkbox" name="cats" value="Deaths and combat"><span>Deaths and combat <small>deaths, kills, biggest hit</small></span></label>
+      <label class="opt"><input type="checkbox" name="cats" value="Quests"><span>Quests <small>total completed, by zone where the game offers it</small></span></label>
+      <label class="opt"><input type="checkbox" name="cats" value="Exploration and travel"><span>Exploration and travel <small>flight paths, zones, distance</small></span></label>
+      <label class="opt"><input type="checkbox" name="cats" value="Dungeons and raids"><span>Dungeons and raids <small>entries, bosses defeated</small></span></label>
+      <label class="opt"><input type="checkbox" name="cats" value="Professions and crafting"><span>Professions and crafting <small>skill levels, items crafted</small></span></label>
+      <label class="opt"><input type="checkbox" name="cats" value="Social"><span>Social <small>only counts the game tracks, never chat content</small></span></label>
+      <label class="opt"><input type="checkbox" name="cats" value="Loot and items"><span>Loot and items</span></label>
+      <label class="opt"><input type="checkbox" name="cats" value="Time played"><span>Time played and logins</span></label>
+      <label class="opt"><input type="checkbox" name="cats" value="Player versus player"><span>Player versus player</span></label>
+      <label class="opt"><input type="checkbox" name="cats" value="Gold and money (privacy rule)"><span>Gold and money <small class="priv">Our privacy rule says no gold. Ticking this asks me to change that rule.</small></span></label>
+    </fieldset>
+  </section>
+
+  <section>
+    <h2>3. How should we use them?</h2>
+    <fieldset>
+      <label class="opt"><input type="checkbox" name="use" value="Starting baseline"><span>Starting baseline per character, so history begins at level one rather than at install <span class="rec">recommended</span></span></label>
+      <label class="opt"><input type="checkbox" name="use" value="Monthly changes"><span>Monthly changes from snapshots, for the guild letter <span class="rec">recommended</span></span></label>
+      <label class="opt"><input type="checkbox" name="use" value="Awards"><span>Fuel for awards such as most deaths or most quests</span></label>
+      <label class="opt"><input type="checkbox" name="use" value="Statistics tab"><span>A new view in our Statistics tab</span></label>
+      <label class="opt"><input type="checkbox" name="use" value="Readiness"><span>Later: dungeon and raid readiness checks</span></label>
+    </fieldset>
+    <fieldset>
+      <legend>Who sees the numbers once guild sharing exists?</legend>
+      <label class="opt"><input type="radio" name="share" value="Only me"><span>Only me, always</span></label>
+      <label class="opt"><input type="radio" name="share" value="Opt-in per category"><span>Shared only for categories each player switches on <span class="rec">recommended</span></span></label>
+      <label class="opt"><input type="radio" name="share" value="Whole guild by default"><span>Whole guild by default, with an opt-out</span></label>
+    </fieldset>
+  </section>
+
+  <section>
+    <h2>4. How did alpha2 go in the game?</h2>
+    <p class="hint">Mark only what you actually tried. Leave the rest as not tested.</p>
+    <div class="table"><table>
+      <thead><tr><th>Check</th><th>Result</th></tr></thead>
+      <tbody id="tests"></tbody>
+    </table></div>
+    <textarea id="bugs" name="bugs" placeholder="Anything that looked wrong, felt clumsy, or threw a Lua error. Include /mam diag output if you have it."></textarea>
+  </section>
+
+  <section>
+    <h2>5. What should I build next?</h2>
+    <fieldset>
+      <legend>Pick the one to do first</legend>
+      <label class="opt"><input type="radio" name="next" value="Finish live acceptance and fix what you found"><span>Fix what you found in live testing, then finish the rest of the checklist <span class="rec">my suggestion for first</span></span></label>
+      <label class="opt"><input type="radio" name="next" value="Statistics baseline and monthly changes"><span>Statistics baseline and monthly changes <span class="rec">my suggestion for second: small, private, no new infrastructure</span></span></label>
+      <label class="opt"><input type="radio" name="next" value="Courier export to a Raspberry Pi archive"><span>Out-of-game bridge: export to the Raspberry Pi archive and the first monthly letter</span></label>
+      <label class="opt"><input type="radio" name="next" value="Guild sync"><span>Guild sync between addon users <small>depends on the realm allowing addon messages, which the sampled Retail realm did not</small></span></label>
+      <label class="opt"><input type="radio" name="next" value="Live map and professions"><span>Live map and professions</span></label>
+      <label class="opt"><input type="radio" name="next" value="Readiness"><span>Dungeon and raid readiness</span></label>
+    </fieldset>
+    <label for="order" class="hint">Your full order if you have one (for example: 1, 3, 2):</label>
+    <input type="text" id="order" name="order" placeholder="Optional">
+  </section>
+
+  <section>
+    <h2>6. Other ideas to steal</h2>
+    <label for="refs" class="hint">Addons or features you liked from the reference list, and the part you liked. I will check each licence before reusing any code.</label>
+    <textarea id="refs" name="refs" placeholder="e.g. Deathlog: death records shared between players"></textarea>
+    <label for="other" class="hint">Anything else: wording, look, names, who the testers are, dates.</label>
+    <textarea id="other" name="other"></textarea>
+  </section>
+  </form>
+
+  <section id="outwrap" hidden>
+    <h2>Your answers</h2>
+    <p class="hint">Copied text appears here too. If the copy button is refused, select this text and copy it yourself.</p>
+    <div id="out" tabindex="0"></div>
+  </section>
+</main>
+
+<div class="bar">
+  <button type="button" id="copy">Copy my answers</button>
+  <button type="button" class="ghost" id="clear">Clear form</button>
+  <span id="status" role="status"></span>
+</div>
+
+<script>
+(function(){
+  var TESTS=[
+    "Minimap button: click, right-click, drag, survives /reload",
+    "Hidden button: /mam still works and it can be brought back",
+    "Settings page under Settings > AddOns",
+    "Window position, size and tab remembered after restart",
+    "Filter and range menus pick the exact option",
+    "Scrollbar, mouse wheel and Previous/Next agree",
+    "Erase Chronicle Data asks first and keeps settings",
+    "Welcome message appeared once",
+    "Icon looks right in the AddOns list and on the minimap"
+  ];
+  var form=document.getElementById('f'), tbody=document.getElementById('tests');
+  TESTS.forEach(function(t,i){
+    var tr=document.createElement('tr');
+    var td=document.createElement('td'); td.textContent=t; tr.appendChild(td);
+    var r=document.createElement('td'); r.className='r';
+    [['Pass','pass'],['Fail','fail'],['Not tested','nt']].forEach(function(o){
+      var l=document.createElement('label'); var inp=document.createElement('input');
+      inp.type='radio'; inp.name='t'+i; inp.value=o[0]; inp.id='t'+i+'_'+o[1]; if(o[1]==='nt')inp.checked=true;
+      l.appendChild(inp); l.appendChild(document.createTextNode(' '+o[0])); r.appendChild(l);
+    });
+    tr.appendChild(r); tbody.appendChild(tr);
+  });
+
+  var KEY='mam-chronicles-next-steps-draft';
+  function state(){
+    var s={};
+    Array.prototype.forEach.call(form.elements,function(e){
+      if(!e.name)return;
+      if(e.type==='checkbox'){ if(!s[e.name])s[e.name]=[]; if(e.checked)s[e.name].push(e.value); }
+      else if(e.type==='radio'){ if(e.checked)s[e.name]=e.value; }
+      else s[e.name]=e.value;
+    });
+    return s;
+  }
+  function save(){ try{localStorage.setItem(KEY,JSON.stringify(state()));}catch(e){} }
+  function load(){
+    var s; try{s=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){}
+    if(!s)return;
+    Array.prototype.forEach.call(form.elements,function(e){
+      if(!e.name||!(e.name in s))return;
+      if(e.type==='checkbox')e.checked=(s[e.name]||[]).indexOf(e.value)>-1;
+      else if(e.type==='radio')e.checked=(s[e.name]===e.value);
+      else e.value=s[e.name];
+    });
+  }
+  function build(){
+    var s=state(), L=[];
+    L.push('MAM CHRONICLES FEEDBACK (alpha2)');
+    L.push('');
+    L.push('1. Reading of "achievements stats": '+(s.reading||'(no answer)')+(s.reading_note?' | '+s.reading_note:''));
+    L.push('2. Statistic groups wanted: '+((s.cats||[]).join('; ')||'(none)'));
+    L.push('3. Use: '+((s.use||[]).join('; ')||'(none)'));
+    L.push('   Sharing: '+(s.share||'(no answer)'));
+    L.push('4. Live test results:');
+    TESTS.forEach(function(t,i){ L.push('   - '+t+': '+(s['t'+i]||'Not tested')); });
+    L.push('   Problems: '+(s.bugs||'(none noted)'));
+    L.push('5. Do first: '+(s.next||'(no answer)'));
+    L.push('   Full order: '+(s.order||'(none)'));
+    L.push('6. Ideas to steal: '+(s.refs||'(none)'));
+    L.push('   Other: '+(s.other||'(none)'));
+    return L.join('\n');
+  }
+  var out=document.getElementById('out'), wrap=document.getElementById('outwrap'), status=document.getElementById('status');
+  function say(m){status.textContent=m;}
+  document.getElementById('copy').addEventListener('click',function(){
+    var text=build(); out.textContent=text; wrap.hidden=false;
+    function fallback(){
+      var r=document.createRange(); r.selectNodeContents(out);
+      var sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      say('Copy was blocked. The text is selected above: copy it with Ctrl+C.');
+      out.scrollIntoView({block:'center'});
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){say('Copied. Paste it into the chat.');},fallback);
+    } else fallback();
+  });
+  document.getElementById('clear').addEventListener('click',function(){
+    form.reset(); try{localStorage.removeItem(KEY);}catch(e){}
+    wrap.hidden=true; say('Cleared.');
+  });
+  form.addEventListener('input',save); form.addEventListener('change',save);
+  form.addEventListener('submit',function(e){e.preventDefault();});
+  load();
+})();
+</script>
