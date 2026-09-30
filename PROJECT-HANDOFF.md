@@ -476,7 +476,7 @@ First live look at the Modern theme and alpha21 fixes (30 Sep 2026):
 
 - **LIVE RETAIL EVIDENCE (user screenshots, alpha20):** the texture sheets LOAD on Retail 12.1 (interface 120100): ornate gold frame, hanging tabs with the crimson selected underline, inset cards, brown and red buttons, tier badges (bronze, silver, gold, platinum), art bars and the gold scrollbar thumb all render correctly and look like modern WoW windows. Forever not yet checked. Diagnostics (alpha20): `Handler errors: 0`, `Collector errors: 0`, `Statistics: ok, 441 read, 0 unreadable, scan 3049 ms`, `Guild sharing: not in guild` (that character is not in a guild, so sharing cannot run there).
 - **Fixed in alpha21 (automated tests only):** medal art progress bar overlapped the description (rows now 54 px, bar 8 px); Home tile numbers looked pixelated (now `GameFontNormalHuge` with a `pcall` fallback in `Theme:Text`); the "Log in on 2 different days" weekly quest showed 0/2 because the preview week started in the future (`Medals:GetWeek` now returns week, start and raw index; quest state is keyed by index so the preview week rolls every real week).
-- Suites: Chronicles **487/487**, Diagnostics **35/35**, Dashboard **39/39** (total **561**). Published on BOTH clients (34 files). ZIP SHA-256 recorded in the release folder `MAMChronicles-0.2.0-alpha21` and in the chat.
+- Suites: Chronicles **487/487**, Diagnostics **35/35**, Dashboard **39/39** (total **561**). Published on BOTH clients (34 files). ZIP SHA-256 `22F34002EEE1CC16155269C54B9C622FC118D4F7553193270792D58886AD440F` (release folder `MAMChronicles-0.2.0-alpha21`, commit `ad5b84e`).
 
 ## 10. Later roadmap
 
