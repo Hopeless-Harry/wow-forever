@@ -27,6 +27,8 @@ local trackingText = {
   counter = "Counted by the addon as you play. Only a number is kept, never item names.",
   statistic = "Read from the game's own Statistics.",
   tally = "Tracked from your Chronicle and kept even after old entries are compacted.",
+  targets = "Counted by the addon when you emote at guildmates. Only their first names and counts stay on this computer, never shared.",
+  verified = "Confirmed by the Guild Lead. The addon cannot track this one, so it is awarded by hand.",
   default = "Worked out from your Chronicle entries and your character.",
 }
 local function tagged(kind, fn) sources[fn] = kind; return fn end
@@ -424,6 +426,14 @@ function Medals:Count(event)
   end
 end
 
+function Medals:EmoteRow(token)
+  local all = Addon.db and Addon.db.emoteTargets
+  local character = all and all[Addon.characterKey]
+  local row = character and character[token]
+  if type(row) == "table" and type(row.names) == "table" then return row end
+  return nil
+end
+
 function Medals:BuildContext()
   local counts = self:EnsureCounts()
   local AS = Addon.AchievementStats
@@ -442,6 +452,8 @@ function Medals:BuildContext()
       local row = database and database.counters and database.counters[Addon.characterKey]
       return row and row[name] or 0
     end,
+    distinctTargets = function(token) local row = Medals:EmoteRow(token); return row and tonumber(row.distinct) or 0 end,
+    targetCount = function(token, name) local row = Medals:EmoteRow(token); return row and tonumber(row.names[string.lower(name)]) or 0 end,
     characters = function()
       local total = 0
       for _ in pairs(database and database.characters or {}) do total = total + 1 end
@@ -548,6 +560,7 @@ Medals.categories = {
   { key = "habits", label = "Mom Habits" },
   { key = "emotes", label = "Emotes" },
   { key = "pattern", label = "Play Pattern" },
+  { key = "guild", label = "Guild" },
   { key = "seasonal", label = "Holidays" },
   { key = "forever", label = "WoW Forever" },
 }
@@ -563,6 +576,26 @@ assignCategory("kitchen", "wine ale coffee food cheese cookie pie soup fish juic
 assignCategory("habits", "jumps mounts afk rest shots outfits repairs sales purchases groups left ready hearth summons abandon daily buyer healthstone catmom playdate treasure auction_goblin battlemaster")
 assignCategory("emotes", "sit sleep stare facepalm no thank hugs dances kisses waves cheers")
 assignCategory("pattern", "late early marathon relog streak weekend learning clean raid oops cooking fishing jack mom_of_many long_haul gravity murloc_magnet")
+-- ---------------------------------------------------------------- guild medals (variety, named, verified)
+-- Edit these two tables to add named-target and guild-verified medals, then release a new build.
+-- Named: an emote aimed at one guild character. `targets` are the tier counts (up to 4); `title` is optional.
+Medals.namedMedals = {
+  { id = "hopeless_spit", name = "Hopeless Case", emote = "SPIT", target = "Hopeless", verb = "Spit at", targets = { 1, 10, 50 }, title = "Hopeless Mom" },
+}
+do
+  local function distinct(token) return tagged("targets", function(ctx) return ctx.distinctTargets(token) end) end
+  local function named(token, name) return tagged("targets", function(ctx) return ctx.targetCount(token, name) end) end
+  series("wave_people", "Hello, Neighbours", "Wave at {n} different guildies.", { 5, 15, 40 }, bts, distinct("WAVE"))
+  series("hug_people", "Group Hug", "Hug {n} different guildies.", { 5, 15, 40 }, bts, distinct("HUG"))
+  series("kiss_people", "Smooch Squad", "Blow kisses at {n} different guildies.", { 5, 15, 40 }, bts, distinct("KISS"))
+  series("cheer_people", "Pep Rally", "Cheer for {n} different guildies.", { 5, 15, 40 }, bts, distinct("CHEER"))
+  for _, entry in ipairs(Medals.namedMedals) do
+    series(entry.id, entry.name, entry.verb .. " " .. entry.target .. " {n} times.", entry.targets, #entry.targets > 3 and btsp or bts, named(entry.emote, entry.target))
+  end
+end
+assignCategory("guild", "wave_people hug_people kiss_people cheer_people")
+for _, entry in ipairs(Medals.namedMedals) do Medals.familyCategory[entry.id] = "guild" end
+
 for _, def in ipairs(definitions) do
   def.category = def.client == "forever" and "forever" or (def.family:find("^season_") and "seasonal") or Medals.familyCategory[def.family] or "progress"
 end
@@ -612,6 +645,8 @@ for family, title in pairs({
   expert_camper = "Expert Camper Mom", camp_decorator = "Camp Decorator Mom", well_stocked = "Well Stocked Mom", unexplored_depths = "Depths Mom",
   summit_seeker = "Summit Mom", into_the_barrow = "Barrow Mom", islander = "Islander Mom", new_horizons = "Horizons Mom", plot_twist = "Plot Twist Mom",
 }) do Medals.titles[family] = title end
+for family, title in pairs({ wave_people = "Welcome Wagon Mom", hug_people = "Group Hug Mom", kiss_people = "Smooch Squad Mom", cheer_people = "Pep Rally Mom" }) do Medals.titles[family] = title end
+for _, entry in ipairs(Medals.namedMedals) do Medals.titles[entry.id] = entry.title or (entry.name .. " Mom") end
 
 Medals.cosmetics = {
   { id = "style_gold", kind = "toastStyle", name = "Default toast colours", cost = 0 },

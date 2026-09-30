@@ -103,3 +103,34 @@ test('emote targets are cleared with the Chronicle and always a table',()=>{
   assert.equal(h.get('type(MAMChroniclesDB.emoteTargets)'),'table');
   assert.equal(h.get('next(MAMChroniclesDB.emoteTargets)'),null);
 });
+
+const visit=(names,token)=>`for _,n in ipairs({${names.map(n=>`"${n}"`).join(',')}}) do __units.target={name=n,guild="Moms",player=true}; __emote("${token}","target") end`;
+
+test('waving at different guildies climbs the variety medal and repeats do not',()=>{
+  const h=setup();
+  h.run(visit(['Alice','Bea','Cat','Dee','Eve'],'WAVE')+'; __emote("WAVE","target"); MAMChronicles.Medals:Evaluate("t")');
+  assert.equal(h.get(targets('WAVE')+'.distinct'),5);
+  assert.ok(h.get(`MAMChroniclesDB.medals["${key}"].earned.wave_people_1`));
+  assert.equal(h.get(`MAMChroniclesDB.medals["${key}"].earned.wave_people_2`),null);
+});
+
+test('the same person waved at fifteen times gives no second tier',()=>{
+  const h=setup();
+  h.run('for i=1,15 do __emote("WAVE","target") end; MAMChronicles.Medals:Evaluate("t")');
+  assert.equal(h.get(`MAMChroniclesDB.medals["${key}"].earned.wave_people_1`),null);
+});
+
+test('a named medal counts emotes at that character only, ignoring case',()=>{
+  const h=setup();
+  h.run('__units.target={name="Hopeless",guild="Moms",player=true}; for i=1,10 do __emote("SPIT","target") end; __units.target={name="Alice",guild="Moms",player=true}; for i=1,50 do __emote("SPIT","target") end; MAMChronicles.Medals:Evaluate("t")');
+  const earned=(id)=>h.get(`MAMChroniclesDB.medals["${key}"].earned.${id}`);
+  assert.ok(earned('hopeless_spit_1')); assert.ok(earned('hopeless_spit_2')); assert.equal(earned('hopeless_spit_3'),null);
+});
+
+test('variety and named medals sit in the guild category and explain how they are tracked',()=>{
+  const h=setup();
+  assert.equal(h.get('MAMChronicles.Medals:GetDefinition("wave_people_1").category'),'guild');
+  assert.equal(h.get('MAMChronicles.Medals:GetDefinition("hopeless_spit_1").category'),'guild');
+  assert.match(h.get('MAMChronicles.Medals:GetDefinition("wave_people_1").tracking'),/guildmates/);
+  assert.match(h.get('MAMChronicles.Medals:GetDefinition("hopeless_spit_1").description'),/Spit at Hopeless/);
+});
