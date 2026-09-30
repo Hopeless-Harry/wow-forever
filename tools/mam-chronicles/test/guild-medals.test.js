@@ -250,6 +250,39 @@ test('test mode does not let a non-lead guild message through',()=>{
   assert.equal(h.get(earnedRow('selfie_squad')),null);
 });
 
+test('an award addressed to Name-Realm reaches the recipient',()=>{
+  const h=setup();
+  msg(h,'A1|Mumtest-Draenor|selfie_squad|1','GUILD','Boss-Draenor');
+  assert.ok(h.get(earnedRow('selfie_squad')));
+});
+
+test('a whispered revoke in test mode leaves a real grant alone',()=>{
+  const h=setup(); h.run('MAMChronicles.Comms.testMode=true');
+  msg(h,'A1|Mumtest|selfie_squad|1','GUILD','Boss-Draenor');
+  const money=h.get('MAMChronicles.Medals:GetEarnedMoney()');
+  msg(h,'R1|Mumtest|selfie_squad|1','WHISPER','Alice-Draenor');
+  assert.ok(h.get(earnedRow('selfie_squad')));
+  assert.equal(h.get('MAMChronicles.Medals:GetEarnedMoney()'),money);
+});
+
+test('a whispered revoke in test mode removes a test grant',()=>{
+  const h=setup(); h.run('MAMChronicles.Comms.testMode=true');
+  msg(h,'A1|Mumtest|selfie_squad|1','WHISPER','Alice-Draenor');
+  assert.equal(h.get(earnedRow('selfie_squad')+'.test'),true);
+  msg(h,'R1|Mumtest|selfie_squad|1','WHISPER','Alice-Draenor');
+  assert.equal(h.get(earnedRow('selfie_squad')),null);
+});
+
+test('a local test-mode revoke removes a test grant but not a real one',()=>{
+  const h=setup(); h.run('MAMChronicles.Comms.testMode=true');
+  msg(h,'A1|Mumtest|selfie_squad|1','WHISPER','Alice-Draenor');
+  assert.equal(h.get('MAMChronicles.Comms:SendAward("R1","Mumtest","selfie_squad")'),true);
+  assert.equal(h.get(earnedRow('selfie_squad')),null);
+  msg(h,'A1|Mumtest|selfie_squad|1','GUILD','Boss-Draenor');
+  assert.equal(h.get('select(1,MAMChronicles.Comms:SendAward("R1","Mumtest","selfie_squad"))'),false);
+  assert.ok(h.get(earnedRow('selfie_squad')));
+});
+
 test('a revoke from rank 0 or 1 removes the award',()=>{
   const h=setup();
   msg(h,'A1|Mumtest|selfie_squad|1','GUILD','Boss-Draenor');

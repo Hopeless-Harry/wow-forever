@@ -1090,12 +1090,13 @@ function Medals:GrantVerified(id, opts)
   return true
 end
 
-function Medals:RevokeVerified(id)
+function Medals:RevokeVerified(id, opts)
   local def = definitionsById[id]
   local row = Addon.db and Addon.db.medals and Addon.db.medals[Addon.characterKey]
   if not (def and def.verified and row) then return false, "unknown" end
   local earned = row.earned[id]
   if not earned then return false, "not earned" end
+  if opts and opts.testOnly == true and not earned.test then return false, "not a test grant" end
   if not earned.test then row.total = math.max(0, (tonumber(row.total) or 0) - (tonumber(earned.points) or def.points)) end
   row.earned[id] = nil
   return true
