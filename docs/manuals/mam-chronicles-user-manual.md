@@ -1,8 +1,8 @@
 # Moms Against Magic Chronicles — User Manual
 
-**Version:** `0.2.0-alpha1`  
-**Current test target:** World of Warcraft Retail 12.1  
-**WoW Forever:** Built with compatibility checks, but live beta testing is still pending.
+- **Version:** `0.2.0-alpha2`
+- **Current test target:** World of Warcraft Retail 12.1
+- **WoW Forever:** Built with compatibility checks, but live beta testing is still pending.
 
 ## What the addon does
 
@@ -31,12 +31,24 @@ This first version stores everything locally on your computer. It does not yet s
 
 The Chronicle window should open.
 
+## Opening the Chronicle
+
+- **Minimap button:** left-click opens or closes the Chronicle, right-click opens Settings, and dragging moves the button around the minimap.
+- **Addon Compartment (Retail):** click the addon list button beside the minimap and choose Moms Against Magic Chronicles.
+- **Blizzard Settings:** the addon has its own page under Settings > AddOns.
+- **Slash command:** `/mam` always works, even if the minimap button is hidden. To bring a hidden button back, tick **Show minimap button** in Settings, or use **Reset Minimap Button** to put it back in its default place.
+- **First run:** the first time you log in with this version a short message explains `/mam` and says that everything stays on your computer. It appears once.
+
 ## The Chronicle window
 
 - Drag the window from its main background to move it.
 - Drag the bottom-right handle to resize it.
 - Use the **X** in the top-right corner to close it.
 - Type `/mam` again whenever you want to reopen it.
+- Press **Escape** to close it.
+- Its position, size, and last-used tab are remembered across `/reload` and restarts. **Reset Window** in Settings puts it back in the centre at its default size.
+- Filter and Range open small menus: pick the exact option you want. The active tab is highlighted, and hovering a control shows a short tooltip.
+- Use the mouse wheel, the scrollbar on the right, or Previous/Next to move through the timeline. Previous and Next grey out at the ends.
 
 The window has four tabs.
 
@@ -80,6 +92,9 @@ The settings apply to the local Chronicle database.
 - **Attach coordinates to events:** Adds coordinates when WoW makes a valid position available.
 - **Loot: Epic and above / Legendary only:** Selects which self-looted items count as notable.
 - **History:** Cycles the raw-history limit through 1,000, 5,000, and 10,000 events.
+- **Show minimap button:** Shows or hides the minimap button.
+- **Reset Window / Reset Minimap Button:** Restore the default window and button positions.
+- **Erase Chronicle Data...:** Permanently deletes recorded history after a confirmation pop-up. Your settings are kept. If the client cannot show the confirmation, nothing is deleted.
 
 When the history limit is reached, older raw events are compacted into monthly totals. Pinned manual memories are preserved. A report covering only part of compacted history is labelled as incomplete rather than pretending it is exact.
 

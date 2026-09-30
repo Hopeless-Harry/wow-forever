@@ -37,6 +37,21 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] Coordinates disappear from export when coordinate recording is disabled.
 - [ ] `/mam diag` is copyable and omits the character name.
 
+## Launcher, window, and settings (alpha2)
+
+- [ ] The AddOns list shows the Moms Against Magic icon.
+- [ ] Minimap button: left-click toggles the Chronicle, right-click opens settings, dragging moves it and the position survives `/reload`.
+- [ ] Hiding the minimap button leaves `/mam` and the Addon Compartment entry working; Show minimap button / Reset Minimap Button brings it back.
+- [ ] Settings > AddOns lists the addon and its controls match the in-window Settings tab.
+- [ ] Window position, size, and active tab survive `/reload` and a full restart; Reset Window recentres it.
+- [ ] Escape closes the window; it opens normally afterwards.
+- [ ] Filter and Range menus choose the exact option clicked; the active tab is highlighted; tooltips appear.
+- [ ] Mouse wheel, scrollbar, and Previous/Next agree and stop at the ends.
+- [ ] Erase Chronicle Data asks for confirmation, clearing keeps settings, and cancelling deletes nothing.
+- [ ] First-run welcome prints once and not again after `/reload`.
+- [ ] Checked at two UI scales and at the minimum window size (layout readable, no overlap).
+- [ ] Note any optional API that was missing (Addon Compartment, Settings panel, popup): __________
+
 ## Stability
 
 - [ ] No Lua errors during the test.

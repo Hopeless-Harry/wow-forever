@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles
 
-Version `0.2.0-alpha1` is the first personal-Chronicle tester build for Retail and WoW Forever.
+Version `0.2.0-alpha2` is the polished personal-Chronicle tester build for Retail and WoW Forever.
 
 ## Install
 
@@ -10,6 +10,12 @@ Version `0.2.0-alpha1` is the first personal-Chronicle tester build for Retail a
 4. Log in and type `/mam`.
 
 The installer accepts `_retail_` and `_classic_beta_` client roots, refuses to run while WoW is open, and backs up an existing Chronicles folder outside the game directory.
+
+## Opening the Chronicle
+
+- Click the minimap button (left-click opens or closes the Chronicle, right-click opens settings, drag moves it).
+- Use the Addon Compartment entry on Retail, or type `/mam`.
+- Settings are also in the game's Settings > AddOns list. If the minimap button is hidden, `/mam` and the Addon Compartment still work; re-enable it in settings.
 
 ## Commands
 
