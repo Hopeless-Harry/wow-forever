@@ -2,13 +2,13 @@ local Addon = MAMChronicles
 local Counters = {}
 Addon.Counters = Counters
 
--- Privacy-safe activity counters for the silly Mom Medals. Only integers per category are stored:
--- never item names, chat, locations or anything else. Counters stay on this computer.
+-- Privacy-safe activity counters for the silly Mom Medals. Counters are integers per category. Emote targets keep only a guildmate's lowercase first name and a count. Everything stays on this computer and is never sent or exported.
 local ARM_WINDOW = 2         -- seconds between pressing an item and the cast that confirms it
 local REPEAT_WINDOW = 1.5    -- ignore the same item pressed again this quickly
 local EVALUATE_DELAY = 5     -- batch medal checks after counting
 local EMOTE_DEBOUNCE = 0.3   -- the server throttles emotes too; DoEmote and PerformEmote may both fire
 local EQUIP_GRACE = 10       -- ignore equipment changes right after entering the world
+local MAX_EMOTE_TARGETS = 1000
 local FALL_MEMORY = 1.5      -- how long after falling a death still counts as a fall
 
 Counters.campSpellNames = {}
@@ -18,7 +18,7 @@ Counters.handles = {
   PLAYER_EQUIPMENT_CHANGED = true, PLAYER_ENTERING_WORLD = true, GROUP_JOINED = true, GROUP_LEFT = true, READY_CHECK_CONFIRM = true,
 }
 
-local trackedEmotes = { SIT = true, SLEEP = true, STARE = true, FACEPALM = true, NO = true, THANK = true, HUG = true, DANCE = true, KISS = true, WAVE = true, CHEER = true }
+local trackedEmotes = { SIT = true, SLEEP = true, STARE = true, FACEPALM = true, NO = true, THANK = true, HUG = true, DANCE = true, KISS = true, WAVE = true, CHEER = true, SPIT = true }
 
 local keywordSets = {
   { "wine", { "wine", "merlot", "chardonnay", "riesling", "pinot", "zinfandel" } },
@@ -76,11 +76,13 @@ function Counters:Add(name, amount)
 end
 
 -- Some sources fire twice for one real action; count each key at most once per window.
-function Counters:AddOnce(name, window)
+-- `before` runs only when the action is counted and before medals are re-evaluated.
+function Counters:AddOnce(name, window, before)
   local now = clock()
   self.lastAdd = self.lastAdd or {}
   if self.lastAdd[name] and now - self.lastAdd[name] < window then return false end
   self.lastAdd[name] = now
+  if before then before() end
   self:Add(name, 1)
   return true
 end
@@ -117,10 +119,48 @@ function Counters:OnBagUsed(bag, slot)
   if type(info) == "table" and info.itemID then self:Arm(info.itemID) end
 end
 
-function Counters:OnEmote(token)
+local function shortName(name) return (tostring(name or ""):match("^[^-]+")) or "" end
+
+-- Who an emote was aimed at: a unit token ("target", "party1") or a character name. Only guildmates count.
+function Counters:ResolveEmoteTarget(target)
+  target = (type(target) == "string" and target ~= "") and target or "target"
+  local name
+  if safe(UnitExists, target) then
+    if not safe(UnitIsPlayer, target) then return nil end
+    local theirs, mine = safe(GetGuildInfo, target), safe(GetGuildInfo, "player")
+    if not (theirs and mine and theirs == mine) then return nil end
+    name = safe(UnitName, target)
+  elseif Addon.Comms and Addon.Comms:IsGuildmate(target) then
+    name = target
+  end
+  name = shortName(name)
+  if name == "" or string.lower(name) == string.lower(shortName(safe(UnitName, "player"))) then return nil end
+  return string.lower(name)
+end
+
+function Counters:RecordEmoteTarget(token, target)
+  local database = Addon.db
+  if not (database and Addon.characterKey) then return false end
+  local name = self:ResolveEmoteTarget(target)
+  if not name then return false end
+  database.emoteTargets = type(database.emoteTargets) == "table" and database.emoteTargets or {}
+  local character = database.emoteTargets[Addon.characterKey] or {}
+  database.emoteTargets[Addon.characterKey] = character
+  local row = type(character[token]) == "table" and character[token] or { distinct = 0, names = {} }
+  character[token] = row
+  row.names = type(row.names) == "table" and row.names or {}
+  if not row.names[name] then
+    if (tonumber(row.distinct) or 0) >= MAX_EMOTE_TARGETS then return false end
+    row.distinct = (tonumber(row.distinct) or 0) + 1
+  end
+  row.names[name] = math.min(1000000, (row.names[name] or 0) + 1)
+  return true
+end
+
+function Counters:OnEmote(token, target)
   token = string.upper(tostring(token or "")):gsub("^/", "")
   if not trackedEmotes[token] then return end
-  self:AddOnce("emote_" .. string.lower(token), EMOTE_DEBOUNCE)
+  self:AddOnce("emote_" .. string.lower(token), EMOTE_DEBOUNCE, function() self:RecordEmoteTarget(token, target) end)
 end
 
 function Counters:OnCast(unit)
@@ -230,8 +270,8 @@ function Counters:Initialise()
     end
     if JumpOrAscendStart and pcall(hooksecurefunc, "JumpOrAscendStart", function() Counters:Add("jumps", 1) end) then self.hooked[#self.hooked + 1] = "JumpOrAscendStart" end
     -- DoEmote is deprecated in 12.0 in favour of C_ChatInfo.PerformEmote: hook whichever exist.
-    if C_ChatInfo and C_ChatInfo.PerformEmote and pcall(hooksecurefunc, C_ChatInfo, "PerformEmote", function(token) Counters:OnEmote(token) end) then self.hooked[#self.hooked + 1] = "PerformEmote" end
-    if DoEmote and pcall(hooksecurefunc, "DoEmote", function(token) Counters:OnEmote(token) end) then self.hooked[#self.hooked + 1] = "DoEmote" end
+    if C_ChatInfo and C_ChatInfo.PerformEmote and pcall(hooksecurefunc, C_ChatInfo, "PerformEmote", function(token, target) Counters:OnEmote(token, target) end) then self.hooked[#self.hooked + 1] = "PerformEmote" end
+    if DoEmote and pcall(hooksecurefunc, "DoEmote", function(token, target) Counters:OnEmote(token, target) end) then self.hooked[#self.hooked + 1] = "DoEmote" end
     if RepairAllItems and pcall(hooksecurefunc, "RepairAllItems", function() if merchantOpen() then Counters:Add("repairs", 1) end end) then self.hooked[#self.hooked + 1] = "RepairAllItems" end
     if BuyMerchantItem and pcall(hooksecurefunc, "BuyMerchantItem", function() Counters:Add("purchases", 1) end) then self.hooked[#self.hooked + 1] = "BuyMerchantItem" end
     if C_MerchantFrame and C_MerchantFrame.SellAllJunkItems and pcall(hooksecurefunc, C_MerchantFrame, "SellAllJunkItems", function() Counters:Add("sales", 1) end) then self.hooked[#self.hooked + 1] = "SellAllJunkItems" end

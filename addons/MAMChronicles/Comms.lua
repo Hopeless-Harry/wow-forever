@@ -31,6 +31,7 @@ function Comms:Initialise()
   if Addon.eventFrame then pcall(function() Addon.eventFrame:RegisterEvent("CHAT_MSG_ADDON") end) end
   if Addon.Medals then Addon.Medals:AddListener(function(def, info) Comms:OnMedal(def, info) end) end
   self.status.state = registered and "ready" or "unavailable"
+  self:RequestRoster()
 end
 
 local function sendFunction()
@@ -97,6 +98,29 @@ function Comms:OnMedal(def, info)
 end
 
 local function shortName(sender) return (tostring(sender):match("^[^-]+")) or tostring(sender) end
+
+-- Guild roster helpers. The rank comes from the roster the client has cached; an empty or stale roster fails closed.
+function Comms:RequestRoster()
+  if C_GuildInfo and C_GuildInfo.GuildRoster then pcall(C_GuildInfo.GuildRoster)
+  elseif GuildRoster then pcall(GuildRoster) end
+end
+
+-- Rank index of a character on the cached roster (0 is the Guild Master), or nil when they are not on it.
+function Comms:RosterRank(name)
+  if not (GetNumGuildMembers and GetGuildRosterInfo) then return nil end
+  local wanted = string.lower(shortName(name))
+  local total = tonumber(Addon:SafeCall(GetNumGuildMembers)) or 0
+  for index = 1, total do
+    local member, _, rank = Addon:SafeCall(GetGuildRosterInfo, index)
+    if member and string.lower(shortName(member)) == wanted then return tonumber(rank) end
+  end
+  return nil
+end
+
+function Comms:IsGuildmate(name) return self:RosterRank(name) ~= nil end
+function Comms:IsGuildLead(name) return self:RosterRank(name) == 0 end
+-- Ranks 0 (Guild Master) and 1 may confirm and award guild-verified medals.
+function Comms:IsAwarder(name) local rank = self:RosterRank(name); return rank ~= nil and rank <= 1 end
 
 function Comms:Record(sender, def)
   local database = Addon.db

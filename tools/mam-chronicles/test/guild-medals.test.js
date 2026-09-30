@@ -1,0 +1,105 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createHarness } from './harness.js';
+
+const files=['Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Counters.lua','Export.lua','Theme.lua','Toast.lua','Comms.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua'];
+const api=`
+__hooks={}
+function hooksecurefunc(a,b,c) if type(a)=="table" then __hooks[b]=c else __hooks[a]=b end end
+function DoEmote() end
+__t=100
+function GetTime() return __t end
+__units={target={name="Alice",guild="Moms",player=true}}
+__myGuild="Moms"
+function UnitName(u) if u=="player" then return "Mumtest","Draenor" end local x=__units[u] return x and x.name end
+function UnitExists(u) return __units[u]~=nil end
+function UnitIsPlayer(u) return __units[u]~=nil and __units[u].player==true end
+function GetGuildInfo(u) if u=="player" then return __myGuild end local x=__units[u] return x and x.guild end
+__roster={{"Mumtest-Draenor","Member",3},{"Alice-Draenor","Member",3},{"Boss-Draenor","Guild Master",0},{"Officer-Draenor","Officer",1}}
+function GetNumGuildMembers() return #__roster end
+function GetGuildRosterInfo(i) local r=__roster[i] return r[1],r[2],r[3] end
+__isLead=false
+function IsGuildLeader() return __isLead end
+__sent={}; __prefixes={}; __guild=true; __timers={}
+IsInGuild=function() return __guild end
+C_Timer={After=function(d,f) table.insert(__timers,f) end}
+C_ChatInfo={RegisterAddonMessagePrefix=function(p) table.insert(__prefixes,p) return true end,SendAddonMessage=function(p,t,c,tgt) table.insert(__sent,{p,t,c,tgt}) return 0 end}
+Enum={SendAddonMessageResult={Success=0}}
+function __emote(token,target) __t=__t+1; MAMChronicles.Counters:OnEmote(token,target) end`;
+function setup(extra=''){const h=createHarness();h.load(files.slice(0,1));h.run(api+'\n'+extra);h.load(files.slice(1));h.run('MAMChronicles:Boot(); MAMChronicles.AchievementStats:Scan(); MAMChronicles.Medals:Evaluate("t"); MAMChronicles.Toast:Advance(60); MAMChronicles.Toast:Advance(60); __sent={}');return h;}
+const key='Player-1234-ABCDEF';
+const targets=(token)=>`MAMChroniclesDB.emoteTargets["${key}"].${token}`;
+
+test('roster helpers read rank by short name and fail closed',()=>{
+  const h=setup();
+  assert.equal(h.get('MAMChronicles.Comms:RosterRank("Boss-Draenor")'),0);
+  assert.equal(h.get('MAMChronicles.Comms:RosterRank("boss")'),0);
+  assert.equal(h.get('MAMChronicles.Comms:RosterRank("Alice")'),3);
+  assert.equal(h.get('MAMChronicles.Comms:RosterRank("Nobody")'),null);
+  assert.equal(h.get('MAMChronicles.Comms:IsGuildLead("Boss")'),true);
+  assert.equal(h.get('MAMChronicles.Comms:IsGuildLead("Alice")'),false);
+  assert.equal(h.get('MAMChronicles.Comms:IsAwarder("Boss")'),true);
+  assert.equal(h.get('MAMChronicles.Comms:IsAwarder("Officer")'),true);
+  assert.equal(h.get('MAMChronicles.Comms:IsAwarder("Alice")'),false);
+  assert.equal(h.get('MAMChronicles.Comms:IsGuildmate("Alice")'),true);
+  assert.equal(h.get('MAMChronicles.Comms:IsGuildmate("Nobody")'),false);
+  h.run('__roster={}');
+  assert.equal(h.get('MAMChronicles.Comms:IsGuildLead("Boss")'),false);
+});
+
+test('an emote at a guildmate records their name and still counts the emote',()=>{
+  const h=setup();
+  h.run('__emote("WAVE","target")');
+  assert.equal(h.get(targets('WAVE')+'.distinct'),1);
+  assert.equal(h.get(targets('WAVE')+'.names.alice'),1);
+  assert.equal(h.get(`MAMChroniclesDB.counters["${key}"].emote_wave`),1);
+  h.run('__emote("WAVE","target")');
+  assert.equal(h.get(targets('WAVE')+'.distinct'),1);
+  assert.equal(h.get(targets('WAVE')+'.names.alice'),2);
+});
+
+test('a double-fired emote is counted once',()=>{
+  const h=setup();
+  h.run('MAMChronicles.Counters:OnEmote("WAVE","target"); MAMChronicles.Counters:OnEmote("WAVE","target")');
+  assert.equal(h.get(targets('WAVE')+'.names.alice'),1);
+  assert.equal(h.get(`MAMChroniclesDB.counters["${key}"].emote_wave`),1);
+});
+
+test('non-guild players, NPCs, yourself and empty targets are not recorded but the emote still counts',()=>{
+  const h=setup();
+  h.run('__units.target={name="Zed",guild="Other",player=true}; __emote("WAVE","target")');
+  h.run('__units.target={name="Guard",guild="Moms",player=false}; __emote("WAVE","target")');
+  h.run('__units.target={name="Mumtest",guild="Moms",player=true}; __emote("WAVE","target")');
+  h.run('__units.target=nil; __emote("WAVE")');
+  assert.equal(h.get(`MAMChroniclesDB.counters["${key}"].emote_wave`),4);
+  assert.equal(h.get(`MAMChroniclesDB.emoteTargets["${key}"]`),null);
+});
+
+test('an emote aimed at a character name is recorded only when they are on the guild roster',()=>{
+  const h=setup();
+  h.run('__units.target=nil; __emote("WAVE","Alice"); __emote("WAVE","Nobody")');
+  assert.equal(h.get(targets('WAVE')+'.distinct'),1);
+  assert.equal(h.get(targets('WAVE')+'.names.alice'),1);
+});
+
+test('the DoEmote hook passes the target through and SPIT is tracked',()=>{
+  const h=setup();
+  h.run('__t=__t+1; __hooks.DoEmote("SPIT","target")');
+  assert.equal(h.get(`MAMChroniclesDB.counters["${key}"].emote_spit`),1);
+  assert.equal(h.get(targets('SPIT')+'.names.alice'),1);
+});
+
+test('the per-emote name list stops growing at 1000 names',()=>{
+  const h=setup();
+  h.run(`MAMChroniclesDB.emoteTargets={["${key}"]={WAVE={distinct=1000,names={}}}}`);
+  h.run('__units.target={name="Newbie",guild="Moms",player=true}; __emote("WAVE","target")');
+  assert.equal(h.get(targets('WAVE')+'.distinct'),1000);
+  assert.equal(h.get(targets('WAVE')+'.names.newbie'),null);
+});
+
+test('emote targets are cleared with the Chronicle and always a table',()=>{
+  const h=setup();
+  h.run('__emote("WAVE","target"); MAMChronicles.Database:ClearHistory()');
+  assert.equal(h.get('type(MAMChroniclesDB.emoteTargets)'),'table');
+  assert.equal(h.get('next(MAMChroniclesDB.emoteTargets)'),null);
+});
