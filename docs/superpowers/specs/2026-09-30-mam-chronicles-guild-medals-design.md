@@ -6,13 +6,13 @@ Date: 2026-09-30. Status: awaiting user review. Addon: `addons/MAMChronicles`.
 
 1. **Variety medals**: "Wave at N different guildies" (also hug, kiss, cheer, spit, dance and other tracked emotes).
 2. **Named medals**: "Spit at Hopeless x times". Targets come from a shipped config table that the guild lead edits and releases. Later weekly quests can draw from the same table.
-3. **Guild-verified medals**: things the addon cannot observe (for example "post 10 selfies in the Moms Discord"). Shown in Mom Medals as locked with the text "See Guild Lead to unlock / award points!". Only the Guild Master can grant them.
+3. **Guild-verified medals**: things the addon cannot observe (for example "post 10 selfies in the Moms Discord"). Shown in Mom Medals as locked with the text "See Guild Lead to unlock / award points!". Guild ranks 0 (Guild Master) and 1 can grant them.
 
 ## Non-goals
 
 - No account-level awards: an award applies to one character.
 - No free-text challenges; counters and events are limited to what the addon already tracks.
-- No pinned character name. Authority is the Guild Master rank.
+- No pinned character name. Authority is guild rank 0 or 1.
 
 ## 1. Emote target capture (`Counters.lua`)
 
@@ -35,9 +35,9 @@ Date: 2026-09-30. Status: awaiting user review. Addon: `addons/MAMChronicles`.
 - Defined in the same config file: `{ id, name, description, points }`, flagged `verified = true`.
 - `Medals:IsAvailable` stays true so they list; the progress and points cells render the locked text instead of `n / target`. They are never earned by `CheckAll`.
 - **Award message** (new, in `Comms.lua`): `A1|<recipientShortName>|<medalId>|<version>`, max 64 characters like today.
-- **Sending** (Guild Master only). `/mam award <name> <medalId>` and an Award button in the Medals tab. Both show only when `IsGuildLeader()` is true (local UI convenience, not a security control). Channel GUILD; WHISPER in test mode.
+- **Sending** (rank 0 or 1 only). `/mam award <name> <medalId>` and an Award button in the Medals tab. Both show only when `IsGuildLeader()` is true (local UI convenience, not a security control). Channel GUILD; WHISPER in test mode.
 - **Receiving checks, all must pass or the message is dropped and counted in `Comms.status.dropped`:**
-  1. Channel is GUILD, and the sender's rank index in the roster is 0 (Guild Master). The sender name is server-supplied, so it cannot be forged.
+  1. Channel is GUILD, and the sender's rank index in the roster is 0 (Guild Master) or 1. The sender name is server-supplied, so it cannot be forged.
   2. Recipient short name equals this character's name.
   3. Medal exists, is `verified`, and the version matches.
   4. Not already earned.

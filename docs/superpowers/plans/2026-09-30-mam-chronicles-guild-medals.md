@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add "wave at N different guildies" variety medals, named-target medals ("Spit at Hopeless x times"), and guild-verified medals that only the Guild Master can award in person, with a test mode for use outside a guild.
+**Goal:** Add "wave at N different guildies" variety medals, named-target medals ("Spit at Hopeless x times"), and guild-verified medals that only guild ranks 0 and 1 can award, with a test mode for use outside a guild.
 
 **Architecture:** `Counters.lua` records which guildmate each emote was aimed at (local only). `Medals.lua` turns that into variety and named medals and adds a `verified` medal kind that tracking never earns. `Comms.lua` gains `A1`/`R1` award messages: a receiver accepts one only from the GUILD channel when the sender is rank 0 in its roster, or over WHISPER when its session-only test mode is on. `UI.lua` shows verified medals as locked and gives the Guild Master slash commands plus a click-to-award action.
 
@@ -18,7 +18,7 @@
 - Only a medal id, a character short name and the version are ever sent. Never chat, location, gold or history.
 - Emote target names stay local in `db.emoteTargets[characterKey][EMOTE]`; never exported, never sent.
 - Every medal needs: a category key in `Medals.categories`, a unique title in `Medals.titles`, `points` in {10,25,50,100}, a positive numeric `target`, a function `value`, a `tracking` string of 10+ characters. Existing tests enforce this.
-- Authority check on receipt: channel `GUILD` and `Comms:RosterRank(sender) == 0`, or channel `WHISPER` with `Comms.testMode == true`. Fail closed.
+- Authority check on receipt: channel `GUILD` and `Comms:IsAwarder(sender)` (roster rank 0 Guild Master or rank 1, so the Guild Master and the next rank can confirm and award), or channel `WHISPER` with `Comms.testMode == true`. Fail closed.
 - Test mode is session-only (`Comms.testMode`, not saved). Test grants are stored with `test = true` and `points = 0`.
 - Deviations from the spec, chosen to keep the change small: the target store is per character; it stops adding new names at 1000 per emote instead of evicting old ones; no roster auto-complete (WoW slash commands cannot do it); test mode resets to off on reload.
 
@@ -50,7 +50,7 @@ const key = 'Player-1234-ABCDEF';
 - Create: `tools/mam-chronicles/test/guild-medals.test.js`
 
 **Interfaces:**
-- Produces: `Comms:RosterRank(name) -> number|nil` (0 = Guild Master), `Comms:IsGuildmate(name) -> bool`, `Comms:IsGuildLead(name) -> bool`, `Comms:RequestRoster()`.
+- Produces: `Comms:RosterRank(name) -> number|nil` (0 = Guild Master), `Comms:IsGuildmate(name) -> bool`, `Comms:IsGuildLead(name) -> bool` (rank 0), `Comms:IsAwarder(name) -> bool` (rank 0 or 1), `Comms:RequestRoster()`.
 - Produces: `Counters:ResolveEmoteTarget(target) -> lowercase short name|nil`, `Counters:RecordEmoteTarget(token, target) -> bool`, `Counters:AddOnce(name, window, before)` (new optional `before` callback).
 - Produces: `db.emoteTargets[characterKey][TOKEN] = { distinct = n, names = { lowername = count } }`.
 
@@ -76,7 +76,7 @@ function UnitName(u) if u=="player" then return "Mumtest","Draenor" end local x=
 function UnitExists(u) return __units[u]~=nil end
 function UnitIsPlayer(u) return __units[u]~=nil and __units[u].player==true end
 function GetGuildInfo(u) if u=="player" then return __myGuild end local x=__units[u] return x and x.guild end
-__roster={{"Mumtest-Draenor","Member",3},{"Alice-Draenor","Member",3},{"Boss-Draenor","Guild Master",0}}
+__roster={{"Mumtest-Draenor","Member",3},{"Alice-Draenor","Member",3},{"Boss-Draenor","Guild Master",0},{"Officer-Draenor","Officer",1}}
 function GetNumGuildMembers() return #__roster end
 function GetGuildRosterInfo(i) local r=__roster[i] return r[1],r[2],r[3] end
 __isLead=false
@@ -99,6 +99,9 @@ test('roster helpers read rank by short name and fail closed',()=>{
   assert.equal(h.get('MAMChronicles.Comms:RosterRank("Nobody")'),null);
   assert.equal(h.get('MAMChronicles.Comms:IsGuildLead("Boss")'),true);
   assert.equal(h.get('MAMChronicles.Comms:IsGuildLead("Alice")'),false);
+  assert.equal(h.get('MAMChronicles.Comms:IsAwarder("Boss")'),true);
+  assert.equal(h.get('MAMChronicles.Comms:IsAwarder("Officer")'),true);
+  assert.equal(h.get('MAMChronicles.Comms:IsAwarder("Alice")'),false);
   assert.equal(h.get('MAMChronicles.Comms:IsGuildmate("Alice")'),true);
   assert.equal(h.get('MAMChronicles.Comms:IsGuildmate("Nobody")'),false);
   h.run('__roster={}');
@@ -193,6 +196,8 @@ end
 
 function Comms:IsGuildmate(name) return self:RosterRank(name) ~= nil end
 function Comms:IsGuildLead(name) return self:RosterRank(name) == 0 end
+-- Ranks 0 (Guild Master) and 1 may confirm and award guild-verified medals.
+function Comms:IsAwarder(name) local rank = self:RosterRank(name); return rank ~= nil and rank <= 1 end
 ```
 
 Also add `self:RequestRoster()` as the last line of `Comms:Initialise()` (before `end`).
@@ -639,12 +644,18 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: `Comms:RosterRank`, `Medals:GrantVerified`, `Medals:RevokeVerified`.
-- Produces: `Comms.testMode` (session flag), `Comms:CanAward() -> bool`, `Comms:SendAward(kind, recipient, medalId) -> ok, reason` with `kind` `"A1"` (award) or `"R1"` (revoke), `Comms.status.awards`, `Comms.status.unverified`.
+- Produces: `Comms.testMode` (session flag), `Comms:CanAward() -> bool` (rank 0/1 or test mode), `Comms:SendAward(kind, recipient, medalId) -> ok, reason` with `kind` `"A1"` (award) or `"R1"` (revoke), `Comms.status.awards`, `Comms.status.unverified`.
 
 - [ ] **Step 1: Write the failing tests** (append)
 
 ```js
 const msg=(h,text,channel,sender)=>h.fire('CHAT_MSG_ADDON','MAMCHR',text,channel,sender);
+
+test('an award from rank 1 over the guild channel is granted too',()=>{
+  const h=setup();
+  msg(h,'A1|Mumtest|selfie_squad|1','GUILD','Officer-Draenor');
+  assert.ok(h.get(earnedRow('selfie_squad')));
+});
 
 test('an award from the Guild Master over the guild channel is granted',()=>{
   const h=setup();
@@ -654,7 +665,7 @@ test('an award from the Guild Master over the guild channel is granted',()=>{
   assert.equal(h.get('MAMChronicles.Comms.status.awards'),1);
 });
 
-test('awards from anyone but the Guild Master are refused and counted',()=>{
+test('awards from anyone below rank 1 are refused and counted',()=>{
   const h=setup();
   msg(h,'A1|Mumtest|selfie_squad|1','GUILD','Alice-Draenor');
   msg(h,'A1|Mumtest|selfie_squad|1','GUILD','Stranger-Draenor');
@@ -696,7 +707,7 @@ test('test mode does not let a non-lead guild message through',()=>{
   assert.equal(h.get(earnedRow('selfie_squad')),null);
 });
 
-test('a revoke from the Guild Master removes the award',()=>{
+test('a revoke from rank 0 or 1 removes the award',()=>{
   const h=setup();
   msg(h,'A1|Mumtest|selfie_squad|1','GUILD','Boss-Draenor');
   msg(h,'R1|Mumtest|selfie_squad|1','GUILD','Alice-Draenor');
@@ -711,11 +722,11 @@ test('existing medal announcements still work next to awards',()=>{
   assert.equal(h.get('MAMChronicles.Comms.status.received'),1);
 });
 
-test('only the Guild Master can send an award, as one guild message',()=>{
+test('only rank 0 or 1 can send an award, as one guild message',()=>{
   const h=setup();
   let r=h.get('select(2,MAMChronicles.Comms:SendAward("A1","Alice","selfie_squad"))');
   assert.match(r,/Guild Master/); assert.equal(h.get('#__sent'),0);
-  h.run('__roster[1][3]=0');
+  h.run('__roster[1][3]=1');
   assert.equal(h.get('MAMChronicles.Comms:SendAward("A1","Alice","selfie_squad")'),true);
   assert.equal(h.get('__sent[1][2]'),'A1|Alice|selfie_squad|1'); assert.equal(h.get('__sent[1][3]'),'GUILD');
   assert.equal(h.get('select(1,MAMChronicles.Comms:SendAward("A1","Alice","wine_1"))'),false);
@@ -746,11 +757,11 @@ Replace `Comms:OnAddonMessage` (lines 114-141) with:
 
 ```lua
 -- Award (A1) and revoke (R1) messages: `<type>|<recipient>|<medalId>|<version>`.
--- Real ones need the sender to be the Guild Master on the guild channel. Test mode also accepts whispers.
+-- Real ones need the sender to be rank 0 or 1 on the guild channel. Test mode also accepts whispers.
 function Comms:HandleAward(kind, channel, sender, parts)
   local test = false
   if channel == "GUILD" then
-    if self:RosterRank(sender) ~= 0 then self.status.unverified = self.status.unverified + 1; self:RequestRoster(); return end
+    if not self:IsAwarder(sender) then self.status.unverified = self.status.unverified + 1; self:RequestRoster(); return end
   elseif channel == "WHISPER" and self.testMode == true then
     test = true
   else
@@ -806,9 +817,10 @@ end
 Append to `Comms.lua`:
 
 ```lua
--- The UI shows award actions to the Guild Master (or in test mode). The real check is on every receiver.
+-- The UI shows award actions to ranks 0 and 1 (or in test mode). The real check is on every receiver.
 function Comms:CanAward()
-  return self.testMode == true or Addon:SafeCall(IsGuildLeader) == true
+  local player = Addon:SafeCall(UnitName, "player")
+  return self.testMode == true or (player ~= nil and self:IsAwarder(player))
 end
 
 function Comms:ApplyLocal(kind, medalId)
@@ -833,7 +845,7 @@ function Comms:SendAward(kind, recipient, medalId)
     return outcome == "sent", outcome
   end
   self:RequestRoster()
-  if not (player and self:IsGuildLead(player)) then return false, "only the Guild Master can award medals (guild roster may still be loading)" end
+  if not (player and self:IsAwarder(player)) then return false, "only the Guild Master or rank 1 can award medals (guild roster may still be loading)" end
   local reason = self:Availability()
   if reason then return false, reason end
   local outcome = classify(pcall(sendFunction(), PREFIX, text, "GUILD"))
@@ -877,7 +889,7 @@ test('/mam award sends for the Guild Master and explains usage and refusals',()=
   const h=setup();
   h.slash('award'); assert.match(said(h),/selfie_squad/);
   h.calls.printed.length=0; h.slash('award Alice selfie_squad'); assert.match(said(h),/Could not send/);
-  h.run('__roster[1][3]=0'); h.calls.printed.length=0; h.slash('award Alice selfie_squad');
+  h.run('__roster[1][3]=1'); h.calls.printed.length=0; h.slash('award Alice selfie_squad');
   assert.match(said(h),/Award sent to Alice/); assert.equal(h.get('__sent[1][2]'),'A1|Alice|selfie_squad|1');
   h.slash('revoke Alice selfie_squad'); assert.equal(h.get('__sent[2][2]'),'R1|Alice|selfie_squad|1');
 });
@@ -893,11 +905,11 @@ test('/mam testmode toggles the session flag, shows the tag and clears test gran
   h.run('MAMChronicles.UI:RefreshMedals()'); assert.doesNotMatch(h.get('MAMChronicles.UI.medalSub.text'),/TEST MODE/);
 });
 
-test('clicking a verified medal awards the targeted player, only for the Guild Master',()=>{
+test('clicking a verified medal awards the targeted player, only for rank 0 or 1',()=>{
   const h=setup();
   h.run('MAMChronicles.UI:Show(); MAMChronicles.UI:SetActiveTab("Medals"); MAMChronicles.UI:SetMedalSearch("selfie squad"); MAMChronicles.UI:RefreshMedals(); __row=MAMChronicles.UI.medalRows[1]');
   h.run('__row.scripts.OnMouseUp(__row,"LeftButton")'); assert.equal(h.get('#__sent'),0);
-  h.run('__isLead=true; __roster[1][3]=0; __row.scripts.OnMouseUp(__row,"LeftButton")');
+  h.run('__roster[1][3]=1; __row.scripts.OnMouseUp(__row,"LeftButton")');
   assert.equal(h.get('__sent[1][2]'),'A1|Alice|selfie_squad|1');
   h.run('__units.target=nil; __sent={}; __row.scripts.OnMouseUp(__row,"LeftButton")');
   assert.equal(h.get('#__sent'),0); assert.match(said(h),/Target a player/);
@@ -959,8 +971,8 @@ end
 
 `helpLines`: add before the `/mam help` line:
 ```lua
-  "/mam award <character> <medal id> - Guild Master only: award a guild-verified medal",
-  "/mam revoke <character> <medal id> - Guild Master only: take a verified medal back",
+  "/mam award <character> <medal id> - rank 0 or 1 only: award a guild-verified medal",
+  "/mam revoke <character> <medal id> - rank 0 or 1 only: take a verified medal back",
   "/mam testmode on|off|clear - try awards without a guild (session only, test awards pay nothing)",
 ```
 
@@ -972,7 +984,7 @@ end
 
 `ShowMedalTooltip`: inside the `if def.verified then` branch from Task 3 add one more line after the "See Guild Lead" line:
 ```lua
-      if Addon.Comms and Addon.Comms:CanAward() then safeMethod(GameTooltip, "AddLine", "Guild Master: target a player and click to award.", 0.6, 0.8, 1, true) end
+      if Addon.Comms and Addon.Comms:CanAward() then safeMethod(GameTooltip, "AddLine", "Officers: target a player and click to award.", 0.6, 0.8, 1, true) end
 ```
 
 - [ ] **Step 4: Add the diagnostics line in `Export.lua`**
@@ -1013,7 +1025,7 @@ At the top of `CHANGELOG.md` (above `## 0.2.0-alpha20`) add:
 
 - **Variety medals:** wave, hug, kiss or cheer at 5, 15 or 40 different guildies. The addon keeps each guildmate's lowercase first name and a count per emote on this computer only (never sent or exported; cleared with the Chronicle).
 - **Named medals:** for example "Hopeless Case": spit at a named guild character 1, 10 or 50 times. The list is a table in `Medals.lua` (`Medals.namedMedals`).
-- **Guild-verified medals:** things the addon cannot see (for example "Selfie Squad"). They show as locked, "See Guild Lead to unlock / award points!". Only the Guild Master can award them: `/mam award <character> <medal id>`, `/mam revoke <character> <medal id>`, or target a player and click the medal. Receivers accept an award only from the guild channel when the sender is Guild Master on their own roster.
+- **Guild-verified medals:** things the addon cannot see (for example "Selfie Squad"). They show as locked, "See Guild Lead to unlock / award points!". Guild ranks 0 and 1 can award them: `/mam award <character> <medal id>`, `/mam revoke <character> <medal id>`, or target a player and click the medal. Receivers accept an award only from the guild channel when the sender is rank 0 or 1 on their own roster.
 - **Test mode:** `/mam testmode on|off|clear` lets you try awards outside a guild by whisper or on yourself. Session only; test awards pay no Mom Money.
 - `/mam diag` has an `Awards:` line.
 ```
