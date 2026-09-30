@@ -32,7 +32,7 @@ The project is intentionally being delivered in safe phases. The current addon i
 - Record only facts the client can prove. Do not invent a killer, quest name, completion state, item quality, or location.
 - Privacy is the default. Do not collect chat, whispers, BattleTags, account paths, IP addresses, gold, mail, trades, or continuous movement trails.
 - Exact coordinates are only for notable events or an explicit manual memory, and can be disabled.
-- Guild sharing must be opt-in, visible, rate-limited, and resilient when addon messages are restricted.
+- Guild sharing of non-sensitive data is on by default (user decision, 30 September 2026) but must stay visible, easy to opt out of, rate-limited, and resilient when addon messages are restricted. Sensitive data (gold, chat, location trails) is never shared by default.
 - Raspberry Pi integration must eventually use a desktop/out-of-game bridge. WoW addons cannot make arbitrary web requests or upload directly to the Pi.
 - Inspect reference addons for patterns and ideas, but check their licences and independently implement anything whose code cannot legally be reused.
 - Clearly separate automated simulation from live in-game proof.
@@ -290,7 +290,9 @@ Achievement Statistics module (alpha3) - AUTOMATED EVIDENCE ONLY, NOT LIVE-TESTE
 - Decision recorded (user asked to proceed): gold = opt-in local setting. Sharing: user wants whole-guild default; not built (no sharing exists). Proposed Phase 2 resolution needing the user's explicit confirmation: non-sensitive categories share by default after a visible first-run notice with one-click opt-out and rate limits; gold never shares by default.
 - Comparison/review: `docs/research/2026-09-30-similar-addons-comparison-and-review.md` (Deathlog GPLv3, Guild Chronicle ARR, HazeAltVault ARR, alt trackers; listing pages only, no code read). Key known limitations: English-only category matching, unproven live value formats, synchronous scan cost, SavedVariables growth.
 - Version `0.2.0-alpha3`. Chronicles **112/112**, Diagnostics **35/35**, Dashboard **39/39** (total **186/186**); `git diff --check` silent.
-- Release: `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha3/` ZIP SHA-256 `C35CB12EF14A5D1CF13417EBB2A778C1005D1F0B57804B14CD213E9894759044`; expanded ZIP matches source (14 files, 0 differences). NOT yet installed in the user's WoW; installed version is alpha2 (`929D6FB0...`).
+- Release: `C:/Users/44750/Documents/ChatGPT/WoW/tester-releases/MAMChronicles-0.2.0-alpha3/` ZIP SHA-256 `9744952724A0CADE0B77BD81E0B88E73EEB02ADFCCD57C70955FEB2B533A68D9`; expanded ZIP matches source (14 files, 0 differences). **Installed and hash-verified (14 files, 0 diffs) on BOTH `_retail_` (12.1.0.69933) and `_classic_beta_` (WowB 1.60.1.70124, WoW Forever) on 30 September 2026**; backups in `C:/Users/44750/Documents/ChatGPT/WoW/addon-backups/`.
+- Forever readiness (no live proof yet): TOC lists interface 16001; statistics APIs are listed as available on Forever by the Warcraft Wiki; every optional API (Settings, Addon Compartment, StaticPopup, C_Timer, SetResizeBounds) is capability-gated; fixed `SetMinResize` -> `SetResizeBounds` fallback so the minimum window size is applied on modern clients (2 tests). Forever test needs the user to log in on the Forever client and run the checklist; the Forever install already had an older alpha1 folder, now replaced.
+- **DECISION (user, 30 Sep 2026): guild sharing is ON BY DEFAULT for the whole guild** because it is important to the addon feeling alive. This overrides the earlier opt-in rule for non-sensitive data only. Required safeguards for Phase 2 (keep): a visible first-run notice saying what is shared, a one-click opt-out in Settings, per-category toggles, rate limits and sender volume caps, receive-side plausibility checks, graceful stop when addon messages are restricted, and **gold/money, chat, location trails and other sensitive data never shared by default**. Nothing is shared in alpha3 because no sharing code exists.
 
 ## 10. Later roadmap
 
@@ -354,7 +356,7 @@ Do not write “complete” unless both automated verification and the required 
 1. Install alpha3 to `_retail_` when the user agrees (WoW fully closed) using scripts/install-mam-chronicles.ps1 with -ClientRoot "C:/Program Files (x86)/World of Warcraft/_retail_" and -BackupRoot "C:/Users/44750/Documents/ChatGPT/WoW/addon-backups", then read back hashes.
 2. User runs the new "Achievement statistics (alpha3)" checklist section and reports group quality, the `Statistics:` diagnostics line, any hitch, and SavedVariables size.
 3. Fix from live findings (likely: key groups on category IDs, parse extra units, chunk the scan).
-4. Then build, in this order: statistics-driven awards, Characters roster tab, opt-in popups/toasts, Courier export of non-sensitive statistics. Phase 2 sync needs the sharing-default confirmation first.
+4. Then build, in this order: statistics-driven awards, Characters roster tab, opt-in popups/toasts, Courier export of non-sensitive statistics. Phase 2 sync may now proceed with the recorded sharing-on-by-default decision and its safeguards.
 
 ## 15. Recent history
 

@@ -187,7 +187,7 @@ end
 function UI:Create()
   if self.frame then return self.frame end
   local frame=CreateFrame("Frame","MAMChroniclesFrame",UIParent,"BackdropTemplate")
-  self.frame=frame; self:RestoreWindowState(); safeMethod(frame,"SetMovable",true); safeMethod(frame,"EnableMouse",true); safeMethod(frame,"RegisterForDrag","LeftButton"); safeMethod(frame,"SetClampedToScreen",true); safeMethod(frame,"SetResizable",true); safeMethod(frame,"SetMinResize",620,440)
+  self.frame=frame; self:RestoreWindowState(); safeMethod(frame,"SetMovable",true); safeMethod(frame,"EnableMouse",true); safeMethod(frame,"RegisterForDrag","LeftButton"); safeMethod(frame,"SetClampedToScreen",true); safeMethod(frame,"SetResizable",true); if frame.SetResizeBounds then safeMethod(frame,"SetResizeBounds",620,440) else safeMethod(frame,"SetMinResize",620,440) end
   safeMethod(frame,"SetBackdrop",{bgFile="Interface\\DialogFrame\\UI-DialogBox-Background",edgeFile="Interface\\DialogFrame\\UI-DialogBox-Border",tile=true,tileSize=32,edgeSize=32,insets={left=11,right=12,top=12,bottom=11}})
   safeMethod(frame,"SetScript","OnDragStart",function(f) safeMethod(f,"StartMoving") end); safeMethod(frame,"SetScript","OnDragStop",function(f) safeMethod(f,"StopMovingOrSizing"); UI:SaveWindowState() end)
   if type(UISpecialFrames)=="table" then local found=false; for _,name in ipairs(UISpecialFrames) do if name=="MAMChroniclesFrame" then found=true; break end end; if not found then table.insert(UISpecialFrames,"MAMChroniclesFrame") end end

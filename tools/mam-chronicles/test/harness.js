@@ -78,7 +78,7 @@ export function createHarness({ globals = {}, savedVariables } = {}) {
       function f:SetSize(w,h) self.width=w self.height=h end function f:GetWidth() return self.width end function f:GetHeight() return self.height end
       function f:SetPoint(...) self.point={...} end function f:GetPoint() return table.unpack(self.point or {}) end function f:ClearAllPoints() self.point=nil end
       function f:SetMovable() end function f:EnableMouse() end function f:SetUserPlaced(value) self.userPlaced=value end
-      function f:RegisterForDrag() end function f:RegisterForClicks() end function f:SetClampedToScreen() end function f:SetResizable() end function f:SetMinResize() end
+      function f:RegisterForDrag() end function f:RegisterForClicks() end function f:SetClampedToScreen() end function f:SetResizable() end function f:SetMinResize(w,h) self.minResize={w,h} end
       function f:SetBackdrop() end function f:SetBackdropColor() end function f:SetBackdropBorderColor() end function f:SetFrameStrata() end
       function f:SetText(value) self.text=value end function f:SetNormalFontObject() end function f:SetWidth(value) self.width=value end function f:SetHeight(value) self.height=value end
       function f:SetMinMaxValues(lo,hi) self.minValue=lo self.maxValue=hi end function f:GetValue() return self.value end function f:SetValue(v) self.value=v if self.scripts.OnValueChanged then self.scripts.OnValueChanged(self,v) end end
