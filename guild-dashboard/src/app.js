@@ -41,10 +41,17 @@ export function buildApp({ dataService, rateLimitPerMinute = 300, logger = true 
     });
   });
 
+  // X-Forwarded-For is client-controlled, so it cannot key a limiter. Cloudflare sets
+  // CF-Connecting-IP itself; the service only listens on loopback, so only the tunnel
+  // can reach it. Without the header, fall back to the socket address.
+  const clientKey = (request) => {
+    const header = request.headers["cf-connecting-ip"];
+    return (typeof header === "string" && header.slice(0, 64)) || request.socket.remoteAddress || "unknown";
+  };
   const limiter = createRateLimiter({ limit: rateLimitPerMinute });
   app.addHook("onRequest", async (request, reply) => {
     if (request.url.startsWith("/health/")) return;
-    const { allowed, retryAfter } = limiter.hit(request.ip);
+    const { allowed, retryAfter } = limiter.hit(clientKey(request));
     if (!allowed) {
       return reply.code(429).header("retry-after", String(retryAfter)).header("cache-control", "no-store").type("text/plain; charset=utf-8").send("Too many requests. Please slow down.");
     }

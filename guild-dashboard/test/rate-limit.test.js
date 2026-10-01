@@ -47,3 +47,18 @@ test("rate limit setting is validated", () => {
   assert.equal(loadConfig({ RATE_LIMIT_PER_MINUTE: "0" }).rateLimitPerMinute, 0);
   assert.throws(() => loadConfig({ RATE_LIMIT_PER_MINUTE: "-1" }), /RATE_LIMIT_PER_MINUTE/);
 });
+
+test("spoofed X-Forwarded-For cannot dodge the limit, but real clients are counted separately", async (t) => {
+  const snapshot = { records: [], stats: buildStats([]), status: "fresh", fetchedAt: "2026-09-22T12:00:00.000Z", lastRefreshFailed: false };
+  const app = buildApp({ dataService: { snapshot: () => snapshot }, rateLimitPerMinute: 2, logger: false });
+  t.after(() => app.close());
+
+  const codes = [];
+  for (let i = 0; i < 4; i += 1) codes.push((await app.inject({ url: "/statistics", headers: { "x-forwarded-for": `9.9.9.${i}` } })).statusCode);
+  assert.deepEqual(codes, [200, 200, 429, 429]);
+
+  const a = await app.inject({ url: "/statistics", headers: { "cf-connecting-ip": "1.1.1.1" } });
+  const b = await app.inject({ url: "/statistics", headers: { "cf-connecting-ip": "2.2.2.2" } });
+  assert.equal(a.statusCode, 200);
+  assert.equal(b.statusCode, 200);
+});
