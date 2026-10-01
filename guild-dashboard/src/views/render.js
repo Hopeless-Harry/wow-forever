@@ -177,10 +177,22 @@ function memberEventText(event) {
   }
 }
 
-export function renderMemberChronicle(snapshot, memberData) {
-  const events = [...memberData.events].reverse();
+const CHRONICLE_FILTERS = [["all", "All"], ["joined", "Joined"], ["left", "Left"], ["changed", "Changed"]];
+const CHRONICLE_EMPTY = { joined: "Nobody has joined since the roll opened.", left: "Nobody has left the roll.", changed: "Nobody has changed their plans yet." };
+
+export function renderMemberChronicle(snapshot, memberData, filter = "all") {
+  const active = CHRONICLE_FILTERS.some(([key]) => key === filter) ? filter : "all";
+  const all = [...memberData.events].reverse();
+  const countOf = (key) => (key === "all" ? all.length : all.filter((event) => event.type === key).length);
+  const events = active === "all" ? all : all.filter((event) => event.type === active);
+  const tabs = `<nav class="member-tabs" aria-label="Filter the chronicle">${CHRONICLE_FILTERS.map(([key, label]) => `<a href="${key === "all" ? "/members/chronicle" : `/members/chronicle?type=${key}`}"${key === active ? ' aria-current="page"' : ""}>${label} (${countOf(key)})</a>`).join("")}</nav>`;
   const items = events.map((event) => `<li class="chronicle-entry chronicle-${escapeHtml(event.type)}"><time datetime="${escapeHtml(event.at)}">${escapeHtml(event.at.slice(0, 16).replace("T", " "))} UTC</time><p>${memberEventText(event)}</p></li>`).join("");
-  const content = `${events.length ? `<section class="parchment-panel chronicle-panel"><div class="panel-heading"><div><span>Guild history</span><h2>Roster changes</h2><p>Who joined, who left and who changed their plans.</p></div><strong>${events.length} ${events.length === 1 ? "entry" : "entries"}</strong></div><ol class="chronicle-list">${items}</ol></section>` : `<section class="parchment-panel empty-ledger"><h2>The Chronicle awaits its first page</h2><p>Changes are recorded after the next successful census sync.</p></section>`}`;
+  const body = events.length
+    ? `<ol class="chronicle-list">${items}</ol>`
+    : `<p class="quiet">${active === "all" ? "Changes are recorded after the next successful census sync." : CHRONICLE_EMPTY[active]}</p>`;
+  const content = all.length
+    ? `${tabs}<section class="parchment-panel chronicle-panel"><div class="panel-heading"><div><span>Guild history</span><h2>Roster changes</h2><p>Who joined, who left and who changed their plans.</p></div><strong>${count(events.length, "entry", "entries")}</strong></div>${body}</section>`
+    : `<section class="parchment-panel empty-ledger"><h2>The Chronicle awaits its first page</h2><p>Changes are recorded after the next successful census sync.</p></section>`;
   return shell({ title: "Guild Chronicle", active: "/members/chronicle", snapshot, content });
 }
 

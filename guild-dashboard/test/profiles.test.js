@@ -168,3 +168,59 @@ test("one odd answer reads in the singular, and a clean roster shows no notice",
   assert.equal(body.includes("double-check"), false);
   assert.equal(body.includes("check-panel"), false);
 });
+
+test("the chronicle can be filtered to joined, left or changed, with counts, and falls back to everything", async (t) => {
+  const entry = { server: "Normal", race: "Orc", characterClass: "Rogue", role: "DPS", profession1: "A", profession2: "B" };
+  const events = [
+    { type: "baseline", at: AT, name: "3" },
+    { type: "joined", at: AT, name: "Zed", entry },
+    { type: "changed", at: AT, name: "Thok", field: "class", from: "Hunter", to: "Warrior" },
+    { type: "changed", at: AT, name: "Mira", field: "role", from: "DPS", to: "Healer" },
+    { type: "left", at: AT, name: "Zed" }
+  ];
+  const app = appWith([member("Thok")], events);
+  t.after(() => app.close());
+  const page = async (query = "") => (await app.inject({ url: `/members/chronicle${query}` })).body;
+
+  const all = await page();
+  assert.match(all, /All \(5\)<\/a>/);
+  assert.match(all, /Joined \(1\)<\/a>/);
+  assert.match(all, /Left \(1\)<\/a>/);
+  assert.match(all, /Changed \(2\)<\/a>/);
+  assert.match(all, /href="\/members\/chronicle" aria-current="page">All \(5\)/);
+  assert.match(all, /5 entries/);
+
+  const changed = await page("?type=changed");
+  assert.match(changed, /href="\/members\/chronicle\?type=changed" aria-current="page">Changed \(2\)/);
+  assert.match(changed, /2 entries/);
+  assert.match(changed, /Thok<\/strong> changed class from Hunter to Warrior/);
+  assert.equal(changed.includes("left the roll"), false);
+  assert.equal(changed.includes("The roll opened"), false, "the opening entry only shows under All");
+
+  const left = await page("?type=left");
+  assert.match(left, /1 entry</);
+  assert.match(left, /Zed<\/strong> left the roll/);
+  assert.equal(left.includes("changed class"), false);
+
+  for (const odd of ["?type=nonsense", "?type=", "?type=%3Cscript%3E", "?type=changed&type=left", "?type[]=left"]) {
+    const body = await page(odd);
+    assert.equal(body.includes("<script>"), false, odd);
+    assert.match(body, /aria-current="page">(All|Changed) \(/, `${odd} lands on a valid tab`);
+  }
+});
+
+test("a filter with no matches says so plainly, and a roll with no history still shows the opening message", async (t) => {
+  const events = [{ type: "baseline", at: AT, name: "1" }, { type: "joined", at: AT, name: "Zed", entry: { server: "Normal", race: "Orc", characterClass: "Rogue", role: "DPS", profession1: "A", profession2: "B" } }];
+  const app = appWith([member("Zed")], events);
+  t.after(() => app.close());
+  const left = (await app.inject({ url: "/members/chronicle?type=left" })).body;
+  assert.match(left, /Nobody has left the roll\./);
+  assert.match(left, /0 entries/);
+  assert.match(left, /Left \(0\)<\/a>/);
+
+  const none = appWith([], []);
+  t.after(() => none.close());
+  const empty = (await none.inject({ url: "/members/chronicle" })).body;
+  assert.match(empty, /The Chronicle awaits its first page/);
+  assert.equal(empty.includes("Filter the chronicle"), false, "no tabs before there is any history");
+});

@@ -91,7 +91,10 @@ export function buildApp({ dataService, rateLimitPerMinute = 300, logger = true 
     return html(reply).code(found ? 200 : 404).send(renderMemberProfile(dataService.snapshot(), memberData, name));
   });
   app.get("/members", memberPage(renderMembers));
-  app.get("/members/chronicle", memberPage(renderMemberChronicle));
+  app.get("/members/chronicle", async (request, reply) => {
+    const filter = typeof request.query?.type === "string" ? request.query.type : "all";
+    return html(reply).send(renderMemberChronicle(dataService.snapshot(), dataService.memberSnapshot?.() ?? { members: [], events: [] }, filter));
+  });
 
   app.get("/", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderDashboard(dataService.snapshot(), dataService.memberSnapshot?.() ?? { members: [], events: [] })));
   app.get("/responses", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderResponses(dataService.snapshot())));
