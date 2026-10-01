@@ -1,3 +1,4 @@
+import { discordSafe } from "./discord.js";
 import { missingProfessions, raidReadiness } from "./raid.js";
 import { LAUNCH_AT, factionOf, roleOf } from "./wow-data.js";
 
@@ -5,7 +6,7 @@ const DAY_MS = 86_400_000;
 
 function tally(values) {
   const counts = new Map();
-  for (const value of values) counts.set(value, (counts.get(value) || 0) + 1);
+  for (const value of values) counts.set(discordSafe(value), (counts.get(discordSafe(value)) || 0) + 1);
   return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 }
 
@@ -33,9 +34,10 @@ export function buildSummary(snapshot, memberData = {}, now = new Date()) {
     for (const row of raidReadiness(records)) {
       const readySizes = row.sizes.filter((item) => item.ready).map((item) => item.size);
       const smallest = row.sizes[0];
+      const label = discordSafe(row.label);
       lines.push(readySizes.length
-        ? `- ${row.label} — ready for a ${Math.max(...readySizes)}-player raid`
-        : `- ${row.label} — not ready for ${smallest.size}-player yet (needs ${smallest.needs.join(", ")}${smallest.flexHelp ? `; ${smallest.flexHelp} flexible ${smallest.flexHelp === 1 ? "player" : "players"} could help` : ""})`);
+        ? `- ${label} — ready for a ${Math.max(...readySizes)}-player raid`
+        : `- ${label} — not ready for ${smallest.size}-player yet (needs ${smallest.needs.join(", ")}${smallest.flexHelp ? `; ${smallest.flexHelp} flexible ${smallest.flexHelp === 1 ? "player" : "players"} could help` : ""})`);
     }
 
     lines.push(`**Top classes:** ${tally(records.map((record) => record.characterClass)).slice(0, 3).map(([name, count]) => `${name} ${count}`).join(", ")}`);

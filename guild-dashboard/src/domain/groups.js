@@ -1,3 +1,4 @@
+import { discordSafe } from "./discord.js";
 import { roleTargets } from "./raid.js";
 import { RAID_SIZES, factionOf, forRuleset, isFlexibleRuleset, roleOf } from "./wow-data.js";
 
@@ -70,13 +71,13 @@ export function groupsToText(plan, size, ruleset = "") {
   for (const faction of plan) {
     const lines = [];
     faction.groups.forEach((group, index) => {
-      if (group.members.length) lines.push(`Group ${index + 1}: ${group.members.map((member) => `${member.name} (${member.characterClass})`).join(", ")}`);
+      if (group.members.length) lines.push(`Group ${index + 1}: ${group.members.map((member) => `${discordSafe(member.name)} (${discordSafe(member.characterClass)})`).join(", ")}`);
     });
-    if (faction.bench.length) lines.push(`Bench: ${faction.bench.map((member) => member.name).join(", ")}`);
+    if (faction.bench.length) lines.push(`Bench: ${faction.bench.map((member) => discordSafe(member.name)).join(", ")}`);
     if (lines.length) sections.push([`**${faction.faction}**`, ...lines].join("\n"));
   }
   if (!sections.length) return null;
-  return [`**Raid groups — ${size}-player${ruleset ? ` (${ruleset})` : ""}**`, ...sections].join("\n");
+  return [`**Raid groups — ${size}-player${ruleset ? ` (${discordSafe(ruleset)})` : ""}**`, ...sections].join("\n");
 }
 
 // Where one member lands in the suggested groups, per raid size. The pool is the member's own
