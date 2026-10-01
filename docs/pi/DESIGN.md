@@ -63,8 +63,8 @@ Caps: 300 members, 40 stat keys, 50 forget entries, 50 acks. The companion copie
 
 1. Admin or officer composes a command in the dashboard.
 2. Pi checks role, writes an audit row, queues the command.
-3. Companion polls, writes `Interface/AddOns/MAMChroniclesInbox/Inbox.lua` with command ids and an HMAC.
-4. Gateway client reads it at login or `/reload`, verifies the HMAC, relays the commands as rank-gated guild messages, records acks.
+3. Companion polls, writes `Interface/AddOns/MAMChroniclesInbox/Inbox.lua` with command ids.
+4. Gateway client reads it at login, `/reload` and on its minute ticker, validates every command (shape, size, allowlist), relays the commands as rank-gated guild messages, records acks.
 5. Next companion upload sends acks. Dashboard shows "relayed to guild channel", never "received by members".
 
 `MAMChroniclesInbox` is a separate tiny addon installed only on the owner's PC. It is not in the CurseForge package.
@@ -91,6 +91,8 @@ Permissions: admin can do everything. Officers (manual login list) can send anno
 
 Retention is forever for daily stats and the audit log, with a database size warning on the dashboard and nightly SQLite backups (7 kept).
 
+Inbox trust (decision): the inbox is a plain file on the owner's own PC, so it is not signed. Anyone who can write it already controls that PC and the game client. The hub authenticates and authorises commands (role rules, validation), the addon re-validates every field, and every receiving client accepts orders only from roster rank 0 or 1.
+
 ## 8. API
 
 Ingest (source key in header, TLS not required on LAN): `POST /api/ingest` with members, locations, forget and acks. `GET /api/commands?after=<id>` returns pending commands. Dashboard (session cookie, role-gated): overview, members, leaderboard, member detail, map, command composer, audit. Per-route role checks, rate limits and body size caps. Passwords scrypt-hashed. Cookies HttpOnly, SameSite=Strict.
@@ -107,6 +109,15 @@ Ingest (source key in header, TLS not required on LAN): `POST /api/ingest` with 
 ## 10. Reconciliation with existing work
 
 Reused: `Comms:IsAwarder`, `A1/R1`, `L1` and `Map.members`, flood and drop counters, `Availability()`. `guild-dashboard/` is the earlier public Google-Form census and stays untouched. Only its systemd and setup script style is reused.
+
+## 10a. Implementation notes
+
+- Addon: `Share.lua` (member side: consent, beacon, C1/S1/F1), `Gateway.lua` (gateway mode), `Orders.lua` (N1/Q1/K1 receive and inbox relay), per-type length limits in `Comms.hubLimits`, `questOverride` in `Medals:SelectQuests`.
+- Hub: `tools/pi-hub`, no dependencies (Node 22.5+ `node:sqlite`, `node:http`, `node:crypto`). Private networks only unless `ALLOW_PUBLIC=true`. Strict CSP, no inline scripts, JSON actions need a custom header (CSRF), scrypt passwords, login lockout, session cookies HttpOnly and SameSite=Strict.
+- Companion: `tools/pi-gateway`, no dependencies, data-only Lua parser, explicit allowlist copy, member deltas, full location set, self-update from the hub (checksum verified, restart by `run.cmd`).
+- Cross-checks in tests: the stat allowlist in the addon, hub and companion must match exactly.
+- Retention follows the owner decision: daily stat snapshots and the audit log are kept forever; only the latest location is kept (10 minute expiry).
+- Location on the Pi: positions come from the gateway's in-memory map, written to SavedVariables only while gateway mode is on, and only the latest set. This is the one place location is saved to disk.
 
 ## 11. What is live
 

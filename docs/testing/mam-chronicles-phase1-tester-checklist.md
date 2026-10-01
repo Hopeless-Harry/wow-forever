@@ -201,6 +201,23 @@ Use `PASS`, `FAIL`, or `NOT TESTED`. If anything fails, copy `/mam diag` and des
 - [ ] The window transparency slider fades the art evenly.
 - [ ] Forever: all textures load (if any are missing, send a screenshot and `/mam diag`).
 
+## Guild hub (alpha25) - needs two real players and a Raspberry Pi; NONE of this has been run live
+
+Tester A is the gateway (guild rank 0 or 1). Tester B is an ordinary member. Both on this build.
+
+- [ ] A: `/mam gateway on`, then `/mam diag`: the gateway line says "on" (not "needs rank").
+- [ ] B: within a minute of A's beacon, a window asks whether to share a stats summary. It lists level, class, race, title, medals, Mom Money and activity counts, and says never chat, gold or items. Pick Share.
+- [ ] B: `/mam share` says on and gateway online. Nothing appears in guild chat or whispers, for either player.
+- [ ] A: after a few minutes `/mam gateway` shows B in the member count. Click "Sync now" (the UI reloads).
+- [ ] The companion app uploads (check its log); the Pi dashboard lists B with level, class and "last heard".
+- [ ] B: `/mam share off` stops new stats; `/mam share forget` then, with A online, B disappears from the dashboard.
+- [ ] Dashboard: officer login can send an announcement and award/revoke a guild-verified medal; cannot send weekly quests or a guild message. Admin can.
+- [ ] Announcement: after the companion writes the inbox and A reloads, B sees a "Guild announcement" toast. A rank 3 member cannot make the same message appear (test with `/run` or another addon only if you know how; otherwise note NOT TESTED).
+- [ ] The dashboard shows the command as relayed after A's next Sync now.
+- [ ] Map: B's zone and position appear on the dashboard map after a Sync now, and disappear 10 minutes later.
+- [ ] Instances and boss fights: no hub traffic is sent (no errors in `/mam diag` handler errors).
+- [ ] Note anything strange: __________
+
 ## Stability
 
 - [ ] No Lua errors during the test.

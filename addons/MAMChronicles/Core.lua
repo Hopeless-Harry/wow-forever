@@ -2,7 +2,7 @@ MAMChronicles = MAMChronicles or {}
 local Addon = MAMChronicles
 
 Addon.name = "MAMChronicles"
-Addon.version = "0.2.0-alpha24"
+Addon.version = "0.2.0-alpha25"
 Addon.schemaVersion = 1
 
 function Addon:Now()
@@ -97,10 +97,10 @@ function Addon:Print(message)
   end
 end
 
-local WELCOME_VERSION = "personal-chronicle-v3"
+local WELCOME_VERSION = "guild-hub-v1"
 
 -- One line shown on Home after an update; keep it in step with CHANGELOG.md.
-Addon.whatsNewText = "jumps count again, dungeons with guildmates are tracked, and the new Map tab shows opted-in guildmates live."
+Addon.whatsNewText = "the guild hub: with your OK, a small stats summary goes to the guild hub, plus guild announcements and weekly quest overrides from the guild leaders."
 
 function Addon:GetWhatsNew()
   local settings = self.db and self.db.settings
@@ -115,7 +115,7 @@ end
 function Addon:ShowWelcome()
   local settings = self.db and self.db.settings
   if not settings or settings.welcomeVersion == WELCOME_VERSION then return end
-  self:Print("Welcome! Type /mam to begin. Medals you earn are shared with your guild; opt out in Settings.")
+  self:Print("Welcome! /mam opens it. Medals and position go to your guild; stats only if you agree. Opt out in Settings.")
   settings.welcomeVersion = WELCOME_VERSION
 end
 

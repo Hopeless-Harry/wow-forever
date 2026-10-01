@@ -21,7 +21,12 @@ A private, persistent diary of your adventures, plus **Mom Medals**: silly and s
 ## Privacy
 
 - Your history stays on your computer.
-- The only thing sent to your guild is the id, points and version of a medal you just earned. Nothing else: no chat, no location, no gold, no history, no statistics.
+- What is sent to your guild, exactly, all as hidden addon messages (never chat, never whispers):
+  - the id, points and version of a medal you just earned;
+  - your map position (zone and a rough spot) every 20 seconds while you are in the open world, held in memory by guildmates and never saved; switch it off in Settings > Guild map;
+  - only if you say yes when asked, and only while a guild hub gateway is online: your level, class, race, title, medal count, Mom Money and a few activity counts (wine, ale, coffee, food, jumps, creatures killed, quests, deaths, dungeons, flight paths). Switch it off with `/mam share off`, or ask the hub to forget you with `/mam share forget`.
+- The guild's hub (a Raspberry Pi run by the guild leader) can show that information to the guild leader and officers only. If your guild does not run a hub, nothing beyond medals and map position is ever sent.
+- Never sent or collected: chat, whispers, gold, item names, BattleTags, account paths, mail, trades.
 - No chat, whispers, mail, trades, BattleTags or account paths are collected.
 - Gold statistics are off by default and never shared.
 - You can turn guild announcements off in Settings > Alerts, and erase your Chronicle from Settings > Danger zone.

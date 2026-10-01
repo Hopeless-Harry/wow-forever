@@ -29,8 +29,8 @@ end
 
 local startText = "Type /mam (or click the minimap button) to open this window.\n"
   .. "Medals tab: Mom Medals you earn, worth Mom Money. Settings tab: themes, alerts and what is recorded.\n"
-  .. "Shared with your guild: only a medal's id, its points and the addon version when you earn one. Never chat, gold or locations.\n"
-  .. "To opt out: Settings > Alerts > untick \"Announce my Mom Medals to the guild\"."
+  .. "Shared with your guild: medals you earn (id and points), your map position in the open world, and only if you say yes a small stats summary for the guild hub (level, class, race, title, medal count, Mom Money and a few activity counts). Never chat, whispers, gold, item names or BattleTag. It all travels as hidden addon messages.\n"
+  .. "To opt out: Settings > Alerts (medals), Settings > Guild map (position), /mam share off (stats)."
 
 local function safeMethod(object, method, ...)
   if object and type(object[method]) == "function" then return pcall(object[method], object, ...) end

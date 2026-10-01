@@ -1,6 +1,6 @@
 # Moms Against Magic Chronicles — User Manual
 
-- **Version:** `0.2.0-alpha24`
+- **Version:** `0.2.0-alpha25`
 - **Primary test target:** WoW Forever (interface 16001, level cap 60)
 - **Secondary test target:** World of Warcraft Retail 12.1
 - **Live evidence:** Retail has been observed live for the window and statistics. Forever, guild sharing between two real players, and most detection (campfires, emotes, consumables, vendor, group, ready checks, fall deaths) are not yet proven live.
@@ -344,6 +344,24 @@ The following are kept character-specific:
 - duplicate-event protection.
 
 The current interface is primarily a personal timeline and does not yet provide a guild-wide character selector.
+
+## Guild hub and what is shared
+
+Everything the addon sends to your guild travels as hidden addon messages on the guild channel. Nothing is whispered and nothing appears in chat (except the optional "post my medals in guild chat" setting, off by default).
+
+| What | When | Switch it off |
+|---|---|---|
+| A medal you earned (id, points, version) | When you earn it | Settings > Alerts > "Announce my Mom Medals to the guild" |
+| Your map position | Every 20 seconds in the open world, never in instances; guildmates keep it in memory only | Settings > Guild map > "Share my location" |
+| Stats summary: level, class, race, title, medal count, Mom Money and counts of wine, ale, coffee, food, cheese, cookies, pies, soup, fish, juice, water, bandages, potions, jumps, creatures killed, quests, deaths, dungeons, flight paths | At most every 30 minutes, only after you said yes, and only while a guild hub gateway has announced itself in the last 15 minutes | `/mam share off` or Settings > Alerts > "Share my stats with the guild hub" |
+
+The first time a gateway is online, a window asks whether to share the stats summary and lists what it contains. Not answering sends nothing. `/mam share forget` switches sharing off and asks the hub to delete everything it holds about you the next time the gateway is online (this is honoured by software the guild leader runs).
+
+Never sent: chat, whispers, gold, item names, BattleTags, account details.
+
+### For the guild leader (gateway)
+
+Only on a character of guild rank 0 or 1. Settings > Guild hub > "Act as the guild hub gateway" (or `/mam gateway on`). The gateway announces itself every 10 minutes, collects what members send, and keeps it in the addon's saved data. The game only writes saved data when the interface reloads, so click "Sync now" (or `/mam gateway sync`) after a play session; the companion app on the same PC uploads it to the Raspberry Pi hub within a minute. Commands queued on the hub (announcements, medal awards and revokes, weekly quest overrides, a guild message) reach the guild when the companion has written them and the gateway client reloads or logs in; the addon then relays them as hidden guild messages that every client only accepts from rank 0 or 1. The hub only knows members who were online while the gateway was online. See `tools/pi-hub/README.md` and `tools/pi-gateway/README.md`.
 
 ## Export and privacy
 

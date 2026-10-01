@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0-alpha25
+
+Guild hub (for guilds that run a Raspberry Pi hub). Nothing in this part is whispered or posted in guild chat: it all travels as hidden addon messages on the guild channel, like medal announcements and map positions do.
+
+- Stats sharing (asks first): when the guild's hub gateway is online, the addon asks once whether to share a small summary: level, class, race, title, medal count, Mom Money and a few activity counts (wine, ale, coffee, food, jumps, creatures killed, quests, deaths, dungeons, flight paths and similar). Never chat, whispers, gold, item names, BattleTag or account details. Nothing is sent until you say yes. Settings > Alerts > "Share my stats with the guild hub", or `/mam share on`, `/mam share off`, `/mam share forget` (asks the hub to delete everything it holds about you).
+- Guild announcements, weekly Mom Quest overrides and a guild message from the guild's rank 0 and rank 1 leaders now show up for everyone (the same roster rank check as medal awards).
+- Gateway mode (owner only, rank 0 or 1): Settings > Guild hub, or `/mam gateway on|off|sync`. Announces the hub, collects members' shared stats and locations, and keeps them for the companion app. "Sync now" reloads the interface so the game writes the data to disk.
+- The welcome text and Getting started card now say exactly what is shared and how to opt out.
+- Technical: guild messages longer than 64 characters are now accepted for the new hub types only (each has its own limit); everything else keeps the old limit.
+
 ## 0.2.0-alpha24
 
 - Location sharing is now ON by default (new installs and anyone who never touched the setting). Untick Settings, Guild map, Share my location to stop. Still never saved, never sent in instances, and only guildmates running the addon receive it. If you had already turned it off, it stays off.
