@@ -46,3 +46,15 @@ test("census controls have accessible labels and a usable table", async (t) => {
   assert.match(body, /<th scope="row">Response #1<\/th>/);
   assert.match(body, /<nav>/);
 });
+
+test("raid tables stay inside their panels on phones and pages ship an inline favicon", async (t) => {
+  const css = await readFile(path.join(projectRoot, "public", "styles.css"), "utf8");
+  assert.match(css, /\.raid-panel table\s*\{\s*min-width:\s*0/);
+  assert.match(css, /\.statistics-grid > \*[^{]*\{\s*min-width:\s*0/);
+
+  const app = buildApp({ dataService: safeService(), logger: false });
+  t.after(() => app.close());
+  const body = (await app.inject({ url: "/raid" })).body;
+  assert.match(body, /<link rel="icon" href="data:image\/svg\+xml,/);
+  assert.equal(body.match(/<div class="table-scroll">/g)?.length >= 2, true);
+});
