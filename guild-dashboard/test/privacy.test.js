@@ -6,7 +6,7 @@ import { normalizeRows } from "../src/domain/normalize.js";
 import { buildStats } from "../src/domain/stats.js";
 import { mapping, PRIVATE_MARKERS, sheetRows } from "./fixtures/sheet-rows.js";
 
-test("private source markers never cross any browser response", async (t) => {
+test("private columns never cross any browser response; names appear only on member pages", async (t) => {
   const normalized = normalizeRows(sheetRows, mapping);
   const snapshot = {
     ...normalized,
@@ -25,4 +25,38 @@ test("private source markers never cross any browser response", async (t) => {
       assert.equal(response.body.includes(marker), false, `${url} leaked ${marker}`);
     }
   }
+});
+
+test("page copy never promises secrecy or anonymity, since names are public", async (t) => {
+  const records = [{ anonymousId: "Response #1", server: "Normal", race: "Orc", characterClass: "Warrior", role: "Tank", profession1: "Mining", profession2: "Skinning" }];
+  const memberData = { members: [{ name: "Al#1", ...records[0] }], events: [{ type: "left", at: "2026-09-22T12:00:00.000Z", name: "Bea#2" }], fetchedAt: "2026-09-22T12:00:00.000Z" };
+  const snapshot = { records, stats: buildStats(records), fetchedAt: memberData.fetchedAt, status: "fresh", lastRefreshFailed: false };
+  const app = buildApp({ dataService: { snapshot: () => snapshot, memberSnapshot: () => memberData }, logger: false, rateLimitPerMinute: 0 });
+  t.after(() => app.close());
+
+  for (const url of ["/", "/responses", "/statistics", "/raid", "/members", "/members/chronicle", "/members/professions", "/member?name=Al%231", "/member?name=nobody"]) {
+    const visible = (await app.inject({ url })).body
+      .replace(/<script[\s\S]*?<\/script>/g, "")
+      .replace(/<[^>]+>/g, " ");
+    assert.doesNotMatch(visible, /sealed|vault|anonymous|never leave|without revealing/i, `${url} still implies secrecy`);
+  }
+});
+
+test("empty and not-yet-synced pages speak to guild members, not to whoever installs the site", async (t) => {
+  const empty = { records: [], stats: buildStats([]), status: "empty", fetchedAt: null, lastRefreshFailed: false, rejectedRows: 0 };
+  const synced = { ...empty, status: "fresh", fetchedAt: "2026-09-22T12:00:00.000Z" };
+  const jargon = /\bPi\b|raspberry|credential|service account|environment|systemd|tunnel|\.env|google sheet|anonymous|sealed|vault/i;
+
+  for (const snapshot of [empty, synced]) {
+    const app = buildApp({ dataService: { snapshot: () => snapshot, memberSnapshot: () => ({ members: [], events: [], fetchedAt: null }) }, logger: false, rateLimitPerMinute: 0 });
+    t.after(() => app.close());
+    for (const url of ["/", "/responses", "/statistics", "/raid", "/members", "/members/chronicle", "/members/professions", "/member?name=x"]) {
+      const text = (await app.inject({ url })).body.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, " ");
+      assert.doesNotMatch(text, jargon, `${snapshot.status} ${url} shows setup jargon: ${text.match(jargon)?.[0]}`);
+    }
+  }
+  const app = buildApp({ dataService: { snapshot: () => empty }, logger: false, rateLimitPerMinute: 0 });
+  t.after(() => app.close());
+  assert.match((await app.inject({ url: "/" })).body, /Waiting for the first sync/);
+  assert.match((await app.inject({ url: "/" })).body, /ask a guild officer/);
 });

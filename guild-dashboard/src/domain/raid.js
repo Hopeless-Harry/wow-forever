@@ -1,0 +1,173 @@
+import { PRIMARY_PROFESSIONS, RAID_SIZES, SECONDARY_PROFESSIONS, canFillRole, factionOf, forRuleset, isFlexibleRuleset, roleOf, rulesetOptions } from "./wow-data.js";
+
+// Rough guide from community raid-planning advice: about 4 tanks, 11 healers and
+// 25 DPS in a 40-player raid, scaled down for smaller groups (never fewer than two tanks).
+export function roleTargets(size) {
+  const tanks = Math.max(2, Math.round((4 * size) / 40));
+  const healers = Math.max(2, Math.round((11 * size) / 40));
+  return { tank: tanks, healer: healers, dps: Math.max(0, size - tanks - healers) };
+}
+
+const UTILITY = [
+  { label: "Warrior tank", note: "Main tanks are usually Warriors", test: (r) => r.characterClass === "Warrior" && roleOf(r.role) === "tank", need: () => 1 },
+  { label: "Druid", note: "Unique raid buffs and off-tanking", test: (r) => r.characterClass === "Druid", need: () => 1 },
+  { label: "Hunter", note: "Some fights need Tranquilizing Shot", test: (r) => r.characterClass === "Hunter", need: () => 1 },
+  { label: "Paladin", note: "Blessings; about 4 for a 40-player raid", test: (r) => r.characterClass === "Paladin", need: (size) => Math.max(1, Math.round(size / 10)) },
+  { label: "Shaman", note: "Totems; about one per melee group", test: (r) => r.characterClass === "Shaman", need: (size) => Math.max(1, Math.round(size / 10)) },
+  { label: "Priest", note: "Core healers and Fortitude", test: (r) => r.characterClass === "Priest", need: (size) => Math.max(1, Math.round(size / 10)) },
+  { label: "Mage", note: "Core damage and Intellect buff", test: (r) => r.characterClass === "Mage", need: (size) => Math.max(1, Math.round(size / 10)) },
+  { label: "Warlock", note: "Curses and Soulstones", test: (r) => r.characterClass === "Warlock", need: (size) => Math.max(1, Math.round(size / 20)) }
+];
+
+function status(have, need) {
+  if (have >= need) return "ready";
+  return have > 0 ? "short" : "missing";
+}
+
+export function buildRaidPlan(records, size) {
+  const targets = roleTargets(size);
+  const byFaction = new Map();
+  for (const record of records) {
+    const faction = factionOf(record.race);
+    if (!byFaction.has(faction)) byFaction.set(faction, []);
+    byFaction.get(faction).push(record);
+  }
+  const order = ["Horde", "Alliance", "Unknown"].filter((faction) => byFaction.has(faction));
+  return order.map((faction) => {
+    const members = byFaction.get(faction);
+    const roles = Object.fromEntries(["tank", "healer", "dps", "flex"].map((role) => [role, members.filter((r) => roleOf(r.role) === role).length]));
+    return {
+      faction,
+      total: members.length,
+      roles: ["tank", "healer", "dps"].map((role) => ({ role, have: roles[role], need: targets[role], status: status(roles[role], targets[role]) })),
+      flex: roles.flex,
+      utility: UTILITY.map((item) => {
+        const have = members.filter(item.test).length;
+        const need = item.need(size);
+        return { label: item.label, note: item.note, have, need, status: status(have, need) };
+      })
+    };
+  });
+}
+
+export function professionDirectory(members) {
+  const byProfession = new Map();
+  for (const member of members) {
+    for (const profession of new Set([member.profession1, member.profession2])) {
+      if (!byProfession.has(profession)) byProfession.set(profession, []);
+      byProfession.get(profession).push(member);
+    }
+  }
+  return [...byProfession.entries()]
+    .map(([profession, crafters]) => ({ profession, crafters: crafters.sort((a, b) => a.name.localeCompare(b.name)) }))
+    .sort((a, b) => b.crafters.length - a.crafters.length || a.profession.localeCompare(b.profession));
+}
+
+export function missingProfessions(members) {
+  const covered = new Set(members.flatMap((member) => [member.profession1, member.profession2]));
+  return {
+    primary: PRIMARY_PROFESSIONS.filter((profession) => !covered.has(profession)),
+    secondary: SECONDARY_PROFESSIONS.filter((profession) => !covered.has(profession))
+  };
+}
+
+// For each faction and short role, the flexible players whose class could take it on.
+export function gapCandidates(members, size) {
+  const targets = roleTargets(size);
+  const byFaction = new Map();
+  for (const member of members) {
+    const faction = factionOf(member.race);
+    if (!byFaction.has(faction)) byFaction.set(faction, []);
+    byFaction.get(faction).push(member);
+  }
+  const result = new Map();
+  for (const [faction, group] of byFaction) {
+    const flexible = group.filter((member) => roleOf(member.role) === "flex").sort((a, b) => a.name.localeCompare(b.name));
+    const gaps = [];
+    for (const role of ["tank", "healer", "dps"]) {
+      const have = group.filter((member) => roleOf(member.role) === role).length;
+      const short = targets[role] - have;
+      const candidates = flexible.filter((member) => canFillRole(member.characterClass, role));
+      if (short > 0 && candidates.length) gaps.push({ role, short, candidates });
+    }
+    if (gaps.length) result.set(faction, gaps);
+  }
+  return result;
+}
+
+const ROLE_NOUNS = { tank: ["tank", "tanks"], healer: ["healer", "healers"], dps: ["DPS", "DPS"] };
+
+// Whether each faction can field each raid size today and, if not, what it needs.
+// Players can only group within one ruleset, so a faction whose members chose several
+// rulesets gets one row per ruleset (players happy with either count toward each).
+export function raidReadiness(records, sizes = RAID_SIZES) {
+  const byFaction = new Map();
+  for (const record of records) {
+    const faction = factionOf(record.race);
+    if (!byFaction.has(faction)) byFaction.set(faction, []);
+    byFaction.get(faction).push(record);
+  }
+  const rows = [];
+  for (const faction of ["Horde", "Alliance", "Unknown"].filter((name) => byFaction.has(name))) {
+    const group = byFaction.get(faction);
+    const options = rulesetOptions(group);
+    const parts = options.length > 1 ? options.map((ruleset) => ({ ruleset, players: forRuleset(group, ruleset) })) : [{ ruleset: "", players: group }];
+    for (const { ruleset, players } of parts) {
+      const have = { tank: 0, healer: 0, dps: 0 };
+      for (const record of players) {
+        const role = roleOf(record.role);
+        if (role in have) have[role] += 1;
+      }
+      rows.push({
+        faction,
+        ruleset,
+        label: ruleset ? `${faction} · ${ruleset}` : faction,
+        total: players.length,
+        sizes: sizes.map((size) => {
+          const targets = roleTargets(size);
+          const needs = ["tank", "healer", "dps"]
+            .map((role) => ({ role, short: Math.max(0, targets[role] - have[role]) }))
+            .filter((item) => item.short > 0)
+            .map(({ role, short }) => `${short} ${ROLE_NOUNS[role][short === 1 ? 0 : 1]}`);
+          const shortRoles = ["tank", "healer", "dps"].filter((role) => targets[role] - have[role] > 0);
+          // Flexible players whose class can take at least one of the short roles.
+          const flexHelp = players.filter((record) => roleOf(record.role) === "flex" && shortRoles.some((role) => canFillRole(record.characterClass, role))).length;
+          return { size, ready: needs.length === 0, needs, flexHelp };
+        })
+      });
+    }
+  }
+  return rows;
+}
+
+// Professions someone in the guild has but nobody on a given faction has. Factions cannot
+// trade, so an officer on that side still has no crafter. Empty unless both factions are present.
+export function factionProfessionGaps(members) {
+  const byFaction = new Map();
+  for (const member of members) {
+    const faction = factionOf(member.race);
+    if (faction === "Unknown") continue;
+    if (!byFaction.has(faction)) byFaction.set(faction, []);
+    byFaction.get(faction).push(member);
+  }
+  if (byFaction.size < 2) return [];
+  const known = [...PRIMARY_PROFESSIONS, ...SECONDARY_PROFESSIONS];
+  const guildHas = new Set(members.flatMap((member) => [member.profession1, member.profession2]));
+  return ["Horde", "Alliance"].filter((faction) => byFaction.has(faction)).map((faction) => {
+    const mine = new Set(byFaction.get(faction).flatMap((member) => [member.profession1, member.profession2]));
+    return { faction, missing: known.filter((name) => guildHas.has(name) && !mine.has(name)) };
+  }).filter((entry) => entry.missing.length);
+}
+
+// The guild's ruleset "vote": players who answered "happy with either" can play any ruleset,
+// so they count toward every option. A close vote is flagged.
+export function rulesetVote(records) {
+  const total = records.length;
+  const flexible = records.filter((record) => isFlexibleRuleset(record.server)).length;
+  const options = rulesetOptions(records).map((name) => {
+    const chose = records.filter((record) => record.server === name).length;
+    return { name, chose, canPlay: chose + flexible, percent: total ? Math.round(((chose + flexible) / total) * 100) : 0 };
+  }).sort((a, b) => b.canPlay - a.canPlay || a.name.localeCompare(b.name));
+  const close = options.length > 1 && options[0].percent - options[1].percent <= 10;
+  return { total, flexible, options, leader: options[0] ?? null, runnerUp: options[1] ?? null, close };
+}

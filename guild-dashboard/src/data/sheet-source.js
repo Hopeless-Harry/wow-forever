@@ -1,9 +1,10 @@
 export class SheetSource {
-  constructor({ sheetId, sheetRange, tokenProvider, fetchFn = fetch }) {
+  constructor({ sheetId, sheetRange, tokenProvider, fetchFn = fetch, timeoutMs = 15_000 }) {
     this.sheetId = sheetId;
     this.sheetRange = sheetRange;
     this.tokenProvider = tokenProvider;
     this.fetchFn = fetchFn;
+    this.timeoutMs = timeoutMs;
   }
 
   async fetchRows() {
@@ -11,7 +12,8 @@ export class SheetSource {
     const token = await this.tokenProvider();
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(this.sheetId)}/values/${encodeURIComponent(this.sheetRange)}?majorDimension=ROWS`;
     const response = await this.fetchFn(url, {
-      headers: { authorization: `Bearer ${token}` }
+      headers: { authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(this.timeoutMs)
     });
     if (!response.ok) throw new Error(`Google Sheets request failed with status ${response.status}`);
     const result = await response.json();

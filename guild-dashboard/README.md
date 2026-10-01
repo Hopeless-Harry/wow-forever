@@ -4,8 +4,38 @@ A lightweight, privacy-first guild census for the **Moms Against Magic — WoW F
 
 ## What it does
 
-- Shows anonymous class, role, race, realm, and profession summaries.
+- Shows anonymous class, role, race, ruleset, and profession summaries.
 - Provides a searchable and filterable Guild Census.
+- The dashboard's "Favoured ruleset" card treats the Form's server question as a guild vote: it shows how many players could play the leading ruleset (those who chose it plus anyone happy with either) and flags a close call when the runner-up is within ten percentage points.
+- The roster CSV (`/members.csv`) is spreadsheet-formula-safe, saved as `guild-roster-<data date>.csv`, and starts with a UTF-8 byte-order mark so Excel keeps accents and non-Latin names.
+- "Class by role" table on `/statistics`: how many players of each class chose tank, healer, DPS or flexible, with totals. Counts only, so it stays anonymous.
+- Chronicle filter tabs (`/members/chronicle?type=joined|left|changed`) with counts, so an officer can see just who left or who changed their plans.
+- Raid Planner (`/raid?size=10|20|40`): per-faction role balance against rough community targets (about 4 tanks, 11 healers, 25 DPS for 40 players) and class coverage (Warrior tank, Druid, Hunter, Paladin, Shaman, Priest, Mage, Warlock). Factions are planned separately because they cannot group together.
+- "Can we raid?" on the dashboard, placed right under the headline numbers so it is the first thing an officer sees: for each faction and raid size (10, 20, 40), either Ready or exactly what is missing (for example "Needs 3 healers, 7 DPS"), using the same rough role targets as the raid planner. Flexible players are not counted as filled slots, so it is a cautious answer, but each short cell says how many flexible players could help (a flexible Mage can add damage but is never offered as a tank), and the Discord summary says the same. Players can only group within one ruleset, so when a faction's members chose several rulesets it gets one row per ruleset (players happy with either count toward each) instead of pooling people who can never group.
+- Discord summary on the dashboard (and as plain text at `/summary.txt`): totals, faction split, roles per faction, raid readiness (the biggest raid size each faction or ruleset group is ready for, or exactly what it needs), top classes, ruleset preferences, professions nobody has and days to launch, as counts only with no names, with a one-click Copy for Discord button.
+- Times in the Chronicle, on profiles and in the dashboard's recent activity are shown in the visitor's own timezone (for example "Sep 21, 2026, 02:30 PM EDT"), with the original UTC time as the hover tooltip and as the fallback when scripts are off.
+- Pasted links show a proper preview in Discord and similar apps: every page has a description and Open Graph tags. The text is static (never guild data), and member profile previews stay generic ("Guild member profile") because other services cache previews where a removal here cannot reach. No images or outside services are involved.
+- Mistyped or outdated links show a friendly in-app page ("That page isn't here") with the normal navigation instead of raw JSON, and an unexpected failure shows a calm "try again in a minute" page. Neither repeats the address or any error detail. `/api/` and `/assets/` keep short JSON.
+- "Copy names" on the roster copies the names currently shown (after any filters and sorting) as a comma-separated list, ready for invites or a Discord ping (mentions like @everyone are defused and markdown characters escaped, so a name can never ping anyone).
+- The dashboard shows a notice ("3 roster answers look unusual. Review them on the roster") when any answers are flagged, so officers see it without opening the roster.
+- Suggested raid spot on each member profile: for the 10-, 20- and 40-player plans, which group the planner would currently put them in and who they would raid with (their own faction and ruleset, plus players happy with either), or that they are on the bench. It is only a suggestion; the raid leader decides.
+- "Add yourself" button (optional, set `FORM_URL`): new members can find the sign-up Form from the dashboard and the roster.
+- Possible duplicate entries: when the same person submits the Form twice (a bare "Mira" and a BattleTag "Mira#1234"), the roster's double-check panel lists the pair and the dashboard notice counts it. A different tag number ("Al#1234" vs "Al#5678") is a different account and is not flagged. Nothing is merged automatically; remove the unwanted row from the response sheet.
+- "Answers to double-check" on the roster: a short list at the top of members whose race/class or role/class answer looks impossible (for example a Mage tank), each linked to their profile. Only clear impossibilities are listed, and nothing is changed automatically.
+- Every page's status line says when the data was last updated ("updated 3 min ago"), kept current in the browser and shown outside the screen-reader announcement so it does not keep interrupting.
+- On phones, wide tables (roster, census, recent entries) scroll sideways with the name column pinned, so you can always see whose row you are reading.
+- Roster filters: search, class, role, **faction**, ruleset and sort. The choices are remembered across the automatic refresh and written into the address (`/members?faction=Alliance&class=Priest`), so a filtered view can be shared as a link. Opening such a link applies exactly that view; unknown values are ignored.
+- "Raid groups for Discord" on `/raid`: the suggested groups as paste-ready text (names and classes per group, then the bench) with a Copy button. It follows the chosen raid size and ruleset, and warns when the text is over Discord's 2,000-character limit. Pasted names are made safe for Discord: `@everyone`, `@here` and `<@id>` mentions are broken with an invisible character so a member's name can never ping anyone, and markdown characters in names (`* _ ~ \` | >`) are escaped so they show as typed.
+- "Who could fill the gaps" on `/raid`: for each short role (tank, healer, damage), the players who answered flexible and whose class can play it, linked to their profiles. A Mage is never offered as a tank; hybrids are not ruled out. Respects the ruleset filter.
+- Ruleset filter on `/raid` (`?ruleset=PvP`): tabs appear when members chose more than one ruleset. Choosing one plans only the players who picked it plus anyone "happy with either", so a suggested group never mixes rulesets. In the all-rulesets view a highlighted note warns that the role totals pool players who cannot group together. Answers are matched to the Form's wording; ruleset names are unverified third-party information.
+- Suggested raid groups on `/raid`: names placed into groups of five per faction (a tank per group, healers spread out), with overflow benched and a ruleset breakdown, because players can only group within one faction and one ruleset.
+- Every page prints cleanly (black on white, no navigation or controls, cards kept whole), so a raid leader can print the suggested groups with the browser's Print or Save as PDF.
+- Profession Directory (`/members/professions`): who can craft or gather each profession, most-covered first, with each crafter's faction and a link to their profile, the professions nobody has yet, and the professions only one faction covers (Horde and Alliance cannot trade, so the other side still needs a crafter).
+- Member profile pages (`/member?name=...`), a roster CSV download (`/members.csv`, formula-safe) and a recent-activity feed on the dashboard.
+- Soft sanity flags for impossible race/class and role/class answers (for example a Mage tank).
+- Launch countdown on the dashboard (reported launch: 4 November 2026, 3 PM PST).
+- Roster shows each member's faction and flags race/class combinations that are not in the known WoW Forever list.
+- Shows a public named Guild Roster and Guild Chronicle: everyone's current plans, plus who joined, left or changed class, role, race, ruleset or professions.
 - Refreshes from Google Sheets every two minutes without rebuilding.
 - Continues serving the last safe cache if Google is unavailable.
 - Runs as a small Node.js service on a Raspberry Pi 3.
@@ -99,10 +129,13 @@ Do not publish the Sheet to the web. Publishing it could reveal the excluded nam
 | `REFRESH_SECONDS` | `120` | Google refresh interval |
 | `STALE_AFTER_SECONDS` | `600` | Age at which the UI labels cached data stale |
 | `CACHE_PATH` | project `data/cache.json` | Sanitized cache location |
+| `MEMBER_PATH` | project `data/members.json` | Named roster and history file (mode 0600) |
 | `GOOGLE_SHEET_ID` | empty | ID from the response Sheet URL |
 | `GOOGLE_SHEET_RANGE` | `Form Responses 1!A:Z` | Response tab and columns |
 | `GOOGLE_CLIENT_EMAIL` | empty | Read-only service account email |
 | `GOOGLE_PRIVATE_KEY` | empty | RSA private key with literal `\n` line breaks |
+| `FORM_URL` | empty | The public sign-up Form address. When set, the dashboard and roster show an "Add yourself" button that opens it in a new tab. Must be a full `https://` address; anything else stops the service at startup |
+| `RATE_LIMIT_PER_MINUTE` | `300` | Per-IP request limit; over it the site answers 429 with `Retry-After`. `0` disables. The two health routes are exempt. Clients are keyed on Cloudflare's `CF-Connecting-IP` (only trusted from the local tunnel), IPv6 by /64 |
 | `USE_FIXTURE` | `false` | Local visual testing only |
 
 After editing production values:
@@ -190,11 +223,23 @@ git pull --ff-only
 sudo ./scripts/update.sh
 ```
 
-The update script performs a locked install, runs the complete test suite, copies the verified source, installs production dependencies, and only then restarts the service. If tests fail, the running service is left untouched.
+The update script also reinstalls the systemd service file when it changed (and reloads systemd), so new data paths such as `MEMBER_PATH` reach existing installs. The service file sets safe defaults for `CACHE_PATH` and `MEMBER_PATH` inside `/var/lib/guild-ledger`, the only writable directory, so an older `/etc/guild-ledger.env` without those lines still works. The update script performs a locked install, runs the complete test suite, copies the verified source, installs production dependencies, and only then restarts the service. If tests fail, the running service is left untouched.
 
 ## Troubleshooting
 
-**The dashboard says it is waiting for a sync**
+The status line in the page header says what went wrong. In every case the site keeps serving the last safe copy.
+
+| Status message | Meaning | Fix |
+| --- | --- | --- |
+| The Form's questions changed | A question heading no longer matches `src/config.js` | Compare the Sheet headers with the mapping, update it, run `npm test`, deploy |
+| Google refused access to the Sheet | HTTP 401/403/404 from Sheets | Share the Sheet with the service-account email as Viewer; check `GOOGLE_SHEET_ID` and the tab name |
+| Google credentials need attention | Token exchange failed or credentials missing | Re-check `GOOGLE_CLIENT_EMAIL` and `GOOGLE_PRIVATE_KEY` in `/etc/guild-ledger.env` |
+| Google is unreachable | Network error or a Google 5xx | Usually temporary; check the Pi's internet if it persists |
+| Names could not be refreshed (roster page) | The name question changed, so only the roster is affected | Update `nameHeader` in `src/config.js`; the census keeps working meanwhile |
+
+"No responses yet" means the sync works but nobody has answered the Form. A footer note says how many incomplete responses were skipped.
+
+**The dashboard says "Waiting for the first sync"**
 
 - Check `/health/ready` and `journalctl`.
 - Confirm the Form is linked to a Sheet.
@@ -223,21 +268,36 @@ node --version
 
 Node must be version 20 or newer. Do not paste environment-file contents into support messages because they contain the private key.
 
+## Game data notes
+
+`src/domain/wow-data.js` holds the race/class matrix and factions. It is the Classic matrix plus the six new combinations reported by third-party guides (Human Hunter, Dwarf Shaman, Gnome Priest, Orc Mage, Troll Warlock, Undead Paladin). Skyborne class lists were not verified, so Skyborne races are never flagged. Verify the matrix against official Blizzard information before relying on a flag, and edit that one file if it changes. Raid targets in `src/domain/raid.js` are a rough guide, not game rules. WoW Forever has no realm list (it uses four shared rulesets), so the Form's "server" answer is shown as a **ruleset** preference exactly as given. Reported rulesets are Normal, PvP and Roleplay at launch, with Hardcore planned for winter 2026/27. The launch date and ruleset names come from third-party coverage and are not verified against Blizzard; edit `LAUNCH_AT` in `src/domain/wow-data.js` if the date changes.
+
 ## Privacy behaviour
 
-The privacy rule is an allowlist, not a visual hide:
+Member names are public by the guild's decision. Anyone with the site link can see the roster and chronicle, so only people who are happy to be listed should fill in the Form.
 
-- Allowed: anonymous response number, server preference, race, class, role, profession 1, profession 2.
-- Excluded: name, BattleTag, email, Google identity, timestamp, response ID, comments, hidden columns, and every unknown column.
-- Excluded fields are removed before cache writing, statistics, HTML, or JSON.
-- Free-text comments remain excluded because current answers can indirectly identify members.
-- The browser receives only `/api/public-data`, which is generated from the sanitized snapshot.
+- Shown publicly: the name or BattleTag typed into the Form, server preference, race, class, role, profession 1 and profession 2, and the history of changes to those answers.
+- Never read or shown: email, Google identity, timestamp, response ID, comments, hidden columns and every unknown column.
+- Names are matched case-insensitively across syncs. A later submission with the same name replaces the earlier one and is recorded in the Chronicle as a change.
+- Roster history is stored in `MEMBER_PATH` (mode 0600 inside a 0700 directory, capped at 500 events), flushed to disk and written atomically. If the file ever becomes unreadable it is kept as `members.json.corrupt-<time>` rather than overwritten.
 - Logs contain row counts and error categories, never response content or credentials.
+- Do not publish the response Sheet itself; it contains the excluded columns.
+- Emails and phone numbers typed into the name field are replaced with `[removed]` before anything is stored or shown.
+- Named pages, the CSV and the profile pages are sent `Cache-Control: no-store`, so Cloudflare and browsers should not keep a copy after someone is removed.
+- To remove someone: delete their row from the response Sheet **and** erase their history, because the Chronicle keeps earlier answers and a "left" event:
+
+  ```bash
+  sudo -u guild-ledger MEMBER_PATH=/var/lib/guild-ledger/members.json node /opt/guild-ledger/app/scripts/forget-member.mjs "Name#1234"
+  sudo systemctl restart guild-ledger
+  ```
+
+- The anonymous `/responses` entries use the same answers as the named roster, so an anonymous row can be matched to a named one. Anyone who filled in the Form while it was described as anonymous should be told that names are now public.
+- The `/responses` Guild Census and `/statistics` pages remain aggregate views with numbered entries.
 
 Run the privacy regression suite at any time:
 
 ```bash
-npm test -- test/privacy.test.js test/normalize.test.js test/cache-store.test.js
+npm test -- test/privacy.test.js test/normalize.test.js test/cache-store.test.js test/members.test.js
 ```
 
 If you later want comments visible, add a separate moderation workflow. Do not simply add the comment column to the public mapping.

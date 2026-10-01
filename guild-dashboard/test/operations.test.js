@@ -51,3 +51,37 @@ test("Cloudflare example proxies only the local guild service", async () => {
   assert.match(config, /service: http:\/\/127\.0\.0\.1:3000/);
   assert.match(config, /service: http_status:404/);
 });
+
+test("every data path the service writes lives inside the one writable directory", async () => {
+  const unit = await read("config/guild-ledger.service");
+  const writable = unit.match(/^ReadWritePaths=(\S+)$/m)[1];
+  const paths = [...unit.matchAll(/^Environment=([A-Z_]+_PATH)=(\S+)$/gm)];
+  const names = paths.map((match) => match[1]);
+  assert.ok(names.includes("CACHE_PATH") && names.includes("MEMBER_PATH"), `unit sets ${names.join(", ")}`);
+  for (const [, name, value] of paths) assert.ok(value.startsWith(`${writable}/`), `${name}=${value} is outside ${writable}`);
+
+  const env = await read(".env.example");
+  for (const [, name, value] of env.matchAll(/^([A-Z_]+_PATH)=(\S+)$/gm)) assert.ok(value.startsWith(`${writable}/`), `.env.example ${name}=${value}`);
+});
+
+test("setup and update both deploy the scripts folder, and update reinstalls a changed service file before restarting", async () => {
+  const setup = await read("scripts/setup.sh");
+  const update = await read("scripts/update.sh");
+  assert.match(setup, /"\$\{PROJECT_DIR\}\/scripts"/);
+  assert.match(update, /cp -R src public config test scripts/);
+
+  const compare = update.indexOf("cmp -s");
+  assert.ok(compare > 0, "update compares the installed unit with the repository copy");
+  assert.ok(update.indexOf("install -o root -g root -m 0644", compare) > compare);
+  assert.ok(update.indexOf("systemctl daemon-reload", compare) > compare);
+  assert.ok(update.indexOf("daemon-reload") < update.indexOf("systemctl restart guild-ledger"), "reload happens before the restart");
+});
+
+test("the erase-member command in the README points at a script the installers actually deploy", async () => {
+  const readme = await read("README.md");
+  const command = readme.match(/node (\/opt\/guild-ledger\/app\/scripts\/forget-member\.mjs)/);
+  assert.ok(command, "README documents the production command");
+  const setup = await read("scripts/setup.sh");
+  assert.match(setup, /scripts/);
+  await readFile(path.join(root, "scripts/forget-member.mjs"), "utf8");
+});
