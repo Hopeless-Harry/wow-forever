@@ -1,3 +1,5 @@
+import { factionOf } from "./wow-data.js";
+
 const DISTRIBUTION_FIELDS = ["server", "race", "characterClass", "role"];
 
 function distribution(values) {
@@ -17,6 +19,7 @@ export function buildStats(records) {
   const distributions = Object.fromEntries(
     DISTRIBUTION_FIELDS.map((field) => [field, distribution(records.map((record) => record[field]))])
   );
+  distributions.faction = distribution(records.map((record) => factionOf(record.race)));
   distributions.professions = distribution(
     records.flatMap((record) => [record.profession1, record.profession2])
   );

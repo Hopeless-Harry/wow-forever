@@ -14,8 +14,13 @@
     for (const value of values) select.add(new Option(value, value));
   }
 
-  function numberOf(row) {
-    return Number(row.cells[0].textContent.match(/\d+/)?.[0] || 0);
+  function byEntry(a, b) {
+    const first = (row) => row.cells[0].textContent.trim();
+    const numeric = (text) => (text.startsWith("Response #") ? Number(text.match(/\d+/)?.[0] || 0) : null);
+    const left = numeric(first(a));
+    const right = numeric(first(b));
+    if (left !== null && right !== null) return left - right;
+    return first(a).localeCompare(first(b));
   }
 
   function update() {
@@ -23,8 +28,8 @@
     const rows = [...originalRows];
     rows.sort((a, b) => {
       const mode = form.elements.sort.value;
-      if (mode === "class" || mode === "role") return a.dataset[mode].localeCompare(b.dataset[mode]) || numberOf(a) - numberOf(b);
-      return numberOf(a) - numberOf(b);
+      if (mode === "class" || mode === "role") return a.dataset[mode].localeCompare(b.dataset[mode]) || byEntry(a, b);
+      return byEntry(a, b);
     });
     let visible = 0;
     for (const row of rows) {

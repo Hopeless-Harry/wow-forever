@@ -89,3 +89,19 @@ test("raid planner handles an empty roster", async (t) => {
   assert.equal((await app.inject({ url: "/raid" })).statusCode, 200);
   assert.equal((await app.inject({ url: "/members/professions" })).statusCode, 200);
 });
+
+test("roster has search and filters, and statistics show the faction split", async (t) => {
+  const snapshot = { records, stats: buildStats(records), status: "fresh", fetchedAt: "2026-09-22T12:00:00.000Z", lastRefreshFailed: false };
+  const memberData = { members: [{ name: "Al#1", server: "Normal", race: "Orc", characterClass: "Warrior", role: "Tank", profession1: "Mining", profession2: "Tailoring" }], events: [], fetchedAt: snapshot.fetchedAt };
+  const app = buildApp({ dataService: { snapshot: () => snapshot, memberSnapshot: () => memberData }, logger: false });
+  t.after(() => app.close());
+
+  const roster = (await app.inject({ url: "/members" })).body;
+  assert.match(roster, /<label>Search the roster<input type="search"/);
+  assert.match(roster, /data-class="Warrior" data-role="Tank" data-server="Normal"/);
+  assert.match(roster, /<table id="census-table"/);
+  assert.match(roster, /\/assets\/responses\.js/);
+
+  assert.match((await app.inject({ url: "/statistics" })).body, /Faction split/);
+  assert.deepEqual(buildStats(records).distributions.faction.map((f) => [f.label, f.count]), [["Alliance", 2], ["Horde", 2]]);
+});
