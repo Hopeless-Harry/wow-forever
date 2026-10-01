@@ -24,7 +24,21 @@ function navLink(href, label, active) {
   return `<a href="${href}"${current}>${label}</a>`;
 }
 
-function shell({ title, active, snapshot, content, scripts = [] }) {
+const SITE_NAME = "Moms Against Magic";
+const PAGE_DESCRIPTIONS = {
+  "/": "Moms Against Magic guild ledger: raid readiness, class and role balance, and a roster summary for WoW Forever.",
+  "/responses": "Every guild plan by entry number: class, role, race, ruleset and professions.",
+  "/statistics": "Class, role, race, faction and profession breakdowns for the Moms Against Magic guild.",
+  "/raid": "Raid planner for Moms Against Magic: role balance, class coverage and suggested groups of five by faction and ruleset.",
+  "/members": "The Moms Against Magic roster: who plays what, with faction, ruleset and professions.",
+  "/members/chronicle": "Who joined, left or changed their plans in the Moms Against Magic guild.",
+  "/members/professions": "Who can craft or gather each profession in the Moms Against Magic guild, by faction.",
+  default: "Moms Against Magic guild ledger for WoW Forever."
+};
+
+function shell({ title, active, snapshot, content, scripts = [], previewTitle = title }) {
+  // Static text only, never guild data, so a link preview cached by Discord cannot go stale or leak anything.
+  const description = PAGE_DESCRIPTIONS[active] ?? PAGE_DESCRIPTIONS.default;
   const scriptTags = [...scripts, "/assets/sync-time.js"].map((source) => `<script src="${source}" defer></script>`).join("");
   return `<!doctype html>
 <html lang="en">
@@ -32,6 +46,12 @@ function shell({ title, active, snapshot, content, scripts = [] }) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#120f0b">
+  <meta name="description" content="${escapeHtml(description)}">
+  <meta property="og:site_name" content="${SITE_NAME}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="${escapeHtml(previewTitle)} · ${SITE_NAME}">
+  <meta property="og:description" content="${escapeHtml(description)}">
+  <meta name="twitter:card" content="summary">
   <title>${escapeHtml(title)} · Moms Against Magic</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23171612'/%3E%3Ctext x='16' y='23' font-size='20' font-family='Georgia,serif' text-anchor='middle' fill='%23d2a743'%3EM%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="/assets/styles.css">
@@ -280,7 +300,8 @@ export function renderMemberProfile(snapshot, memberData, name) {
     <dl class="profile-facts"><div><dt>Ruleset preference</dt><dd>${escapeHtml(member.server)}</dd></div><div><dt>Profession 1</dt><dd>${escapeHtml(member.profession1)}</dd></div><div><dt>Profession 2</dt><dd>${escapeHtml(member.profession2)}</dd></div></dl>
     ${notes.map((note) => `<p class="combo-flag">⚠ ${escapeHtml(note)} — check the form answer</p>`).join("")}</section>
   <section class="parchment-panel chronicle-panel"><div class="panel-heading"><div><span>History</span><h2>${escapeHtml(member.name)}'s chronicle</h2></div></div>${items ? `<ol class="chronicle-list">${items}</ol>` : '<p class="quiet">No changes recorded since the roll opened.</p>'}</section>`;
-  return shell({ title: member.name, active: "/members", snapshot, content });
+  // The page title shows the name, but link previews are cached by other services, so they stay generic.
+  return shell({ title: member.name, previewTitle: "Guild member profile", active: "/members", snapshot, content });
 }
 
 const ERROR_PAGES = {
