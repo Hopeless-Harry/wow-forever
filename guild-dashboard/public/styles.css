@@ -515,3 +515,5 @@ th[scope="row"] a, .panel-heading p a, .empty-ledger a, .profile-card a { displa
   .readiness-panel th[scope="col"] { font-size: .75rem; }
 }
 @media print { .readiness-panel .wow-button { display: none !important; } }
+
+.pool-warning { color: var(--gold-bright); }

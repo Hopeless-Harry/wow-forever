@@ -78,3 +78,20 @@ test("no ruleset tabs appear when everyone chose the same one", async () => {
   await app.close();
   assert.equal(body.includes('aria-label="Ruleset"'), false);
 });
+
+test("the all-rulesets view warns that totals pool players who cannot group, and the warning goes away when it does not apply", async () => {
+  const all = (await raid("/raid?size=10")).body;
+  assert.match(all, /Members chose different rulesets, so these totals pool everyone\. Pick a ruleset above/);
+  assert.match(all, /<strong class="pool-warning">/);
+
+  const chosen = (await raid("/raid?size=10&ruleset=PvP")).body;
+  assert.equal(chosen.includes("pool everyone"), false, "no warning once a ruleset is chosen");
+
+  const single = members.map((x) => ({ ...x, server: "Normal" }));
+  const records = single.map((x, i) => ({ anonymousId: `Response #${i + 1}`, server: x.server, race: x.race, characterClass: x.characterClass, role: x.role, profession1: x.profession1, profession2: x.profession2 }));
+  const snapshot = { records, stats: buildStats(records), status: "fresh", fetchedAt: "2026-09-22T12:00:00.000Z", lastRefreshFailed: false };
+  const app = buildApp({ dataService: { snapshot: () => snapshot, memberSnapshot: () => ({ members: single, events: [], fetchedAt: snapshot.fetchedAt }) }, logger: false, rateLimitPerMinute: 0 });
+  const body = (await app.inject({ url: "/raid?size=10" })).body;
+  await app.close();
+  assert.equal(body.includes("pool everyone"), false, "nothing to warn about with one ruleset");
+});
