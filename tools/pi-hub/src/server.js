@@ -1,7 +1,7 @@
 import http from 'node:http';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { createStore } from './store.js';
 import { loadConfig } from './config.js';
 import { hashPassword, verifyPassword, strongEnough, LoginLimiter, parseCookies, isPrivateAddress } from './auth.js';
@@ -35,6 +35,14 @@ export function createApp({ store, config = loadConfig(), now = () => Math.floor
   });
   const readJson = async (req) => { try { return JSON.parse(await readBody(req)); } catch (e) { if (e.status) throw e; return null; } };
   const readForm = async (req) => Object.fromEntries(new URLSearchParams(await readBody(req)));
+
+  const mapIndex = () => {
+    const out = {};
+    for (const client of ['retail', 'forever']) {
+      try { out[client] = JSON.parse(readFileSync(join(config.mapsDir, client, 'index.json'), 'utf8').replace(/^﻿/, '')); } catch { /* no maps for this client */ }
+    }
+    return config.mapsDir ? out : {};
+  };
 
   const sessionOf = (req) => store.getSession(parseCookies(req.headers.cookie)[COOKIE]);
   const cookie = (token, maxAge) => `${COOKIE}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}${config.secureCookies ? '; Secure' : ''}`;
@@ -95,11 +103,16 @@ export function createApp({ store, config = loadConfig(), now = () => Math.floor
     const page = (title, body, active) => send(res, 200, views.layout({ title, user, body, banner: views.banner(overview, t), active }));
 
     if (req.method === 'GET') {
+      const art = /^\/maps\/(retail|forever)\/(\d+\.jpg)$/.exec(path);
+      if (art) {
+        const file = config.mapsDir ? join(config.mapsDir, art[1], art[2]) : null;
+        return file && existsSync(file) ? send(res, 200, readFileSync(file), 'image/jpeg', { 'Cache-Control': 'private, max-age=86400' }) : send(res, 404, 'Not found', 'text/plain; charset=utf-8');
+      }
       if (path === '/') return page('Overview', views.overviewPage(overview, store.listMembers().sort((a, b) => b.last_heard - a.last_heard).slice(0, 10), t), 'overview');
       if (path === '/members') return page('Members', `<h2>Members</h2>${views.memberTable(store.listMembers(), t)}`, 'members');
       if (path === '/leaderboard') return page('Leaderboard', views.leaderboardPage(store.leaderboard('mom_money', 20), store.leaderboard('medals', 20), t), 'leaderboard');
       if (path === '/member') return page('Member', views.memberPage(store.member(url.searchParams.get('name') ?? ''), t), 'members');
-      if (path === '/map') return page('Map', views.mapPage(store.locations(), t), 'map');
+      if (path === '/map') return page('Map', views.mapPage(store.locations(), t, mapIndex()), 'map');
       if (path === '/commands') return page('Commands', views.commandsPage(user, store.catalog(), store.listCommands(50), ROLE_COMMANDS[user.role] ?? [], t), 'commands');
       if (path === '/audit' && user.role === 'admin') return page('Audit', views.auditPage(store.listAudit(300), t), 'audit');
       if (path === '/users' && user.role === 'admin') return page('Logins', views.usersPage(store.listUsers(), store.listSources(), t), 'users');

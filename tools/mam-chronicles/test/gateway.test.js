@@ -107,6 +107,12 @@ test('the snapshot lists guild-verified medals, quest templates and zone names f
   assert.equal(h.get('#MAMChroniclesDB.gateway.catalog.templates')<=80,true);
 });
 
+test('the snapshot says which game client it was written by so the dashboard picks the right maps',()=>{
+  const h=setup();h.run('MAMChronicles.Gateway:Snapshot()');
+  assert.equal(['retail','forever'].includes(h.get('MAMChroniclesDB.gateway.client')),true);
+  assert.equal(h.get('MAMChroniclesDB.gateway.client'),h.get('MAMChronicles.Medals:Client()'));
+});
+
 test('the gateway includes its own position when location sharing is on and it is in the open world',()=>{
   let h=setup();
   h.run('MAMChronicles.Map.GetPosition=function() return 2022,0.5,0.4 end; MAMChronicles.Map.members={}; C_Map={GetMapInfo=function() return {name="Zone"} end}; MAMChronicles.Gateway:Snapshot()');

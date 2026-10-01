@@ -312,6 +312,7 @@ function Gateway:Snapshot()
   end
   data.catalog = catalog
   data.enabled = true
+  data.client = Addon.Medals and Addon.Medals:Client() or "retail"
   data.meta = { writtenAt = t, version = self.version }
   return true
 end

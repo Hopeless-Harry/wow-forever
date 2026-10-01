@@ -16,5 +16,6 @@ label{display:block;margin:8px 0}input,select,textarea{display:block;width:100%;
 button{background:var(--accent);color:#fff;border:0;border-radius:5px;padding:8px 14px;font:inherit;cursor:pointer}button.link{background:none;color:var(--gold);padding:0;text-decoration:underline}
 .badge{display:inline-block;padding:1px 8px;border-radius:10px;background:var(--panel2);font-size:.8rem}.badge.relayed{color:var(--ok)}.badge.rejected{color:var(--bad)}
 svg{width:100%;max-width:300px;background:var(--panel2);border-radius:6px}.field{fill:none;stroke:var(--muted);stroke-width:.5}.dot{fill:var(--gold)}.dot.old{opacity:.4}
+svg image{image-rendering:auto}.zone.art{grid-column:1/-1}.zone.art svg{max-width:760px}.dot{stroke:#000;stroke-width:.6}
 [hidden]{display:none!important}code{background:var(--panel2);padding:1px 5px;border-radius:4px}
 @media (max-width:600px){main{padding:10px}}

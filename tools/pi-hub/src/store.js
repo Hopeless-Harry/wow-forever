@@ -31,6 +31,8 @@ export function createStore(path, { now = () => Math.floor(Date.now() / 1000) } 
   const db = new DatabaseSync(path);
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 3000;');
   db.exec(SCHEMA);
+  // Older databases lack the client column on locations (which game client the position came from).
+  try { db.exec("ALTER TABLE locations ADD COLUMN client TEXT NOT NULL DEFAULT 'retail'"); } catch { /* already there */ }
   const q = (sql) => db.prepare(sql);
   const tx = (fn) => { db.exec('BEGIN'); try { const r = fn(); db.exec('COMMIT'); return r; } catch (e) { db.exec('ROLLBACK'); throw e; } };
   const setMeta = (key, value) => q('INSERT INTO meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(key, String(value));
@@ -80,7 +82,7 @@ export function createStore(path, { now = () => Math.floor(Date.now() / 1000) } 
         q('DELETE FROM locations').run();
         for (const l of value.locations) {
           if (tomb.has(l.name) && (l.at ?? 0) <= tomb.get(l.name)) continue;
-          q('INSERT INTO locations(name, map_id, x, y, level, class_id, at, zone) VALUES(?,?,?,?,?,?,?,?)').run(l.name, l.mapID, l.x, l.y, l.level, l.classID, l.at, l.zone);
+          q('INSERT INTO locations(name, map_id, x, y, level, class_id, at, zone, client) VALUES(?,?,?,?,?,?,?,?,?)').run(l.name, l.mapID, l.x, l.y, l.level, l.classID, l.at, l.zone, value.client);
         }
         for (const a of value.acks) {
           q("UPDATE commands SET state = ?, state_at = ?, reason = ? WHERE id = ? AND state IN ('queued','fetched')").run(a.state, t, a.reason || null, a.id);

@@ -69,13 +69,18 @@ export function memberPage(m, now) {
   <section class="card"><h3>Daily history</h3><div class="scroll"><table><thead><tr><th>Day</th>${keys.map((k) => `<th>${esc(STATS_LABELS[k] ?? k)}</th>`).join('')}</tr></thead><tbody>${grid || '<tr><td class="muted">No history yet.</td></tr>'}</tbody></table></div></section></div>`;
 }
 
-export function mapPage(locations, now) {
+export function mapPage(locations, now, mapIndex = {}) {
   const zones = new Map();
-  for (const l of locations) { const key = `${l.map_id}|${l.zone ?? `Zone ${l.map_id}`}`; (zones.get(key) ?? zones.set(key, []).get(key)).push(l); }
+  for (const l of locations) { const key = `${l.client ?? 'retail'}|${l.map_id}|${l.zone ?? `Zone ${l.map_id}`}`; (zones.get(key) ?? zones.set(key, []).get(key)).push(l); }
   const panels = [...zones.entries()].map(([key, list]) => {
-    const name = key.split('|').slice(1).join('|');
-    const dots = list.map((l) => `<circle cx="${(l.x * 100).toFixed(1)}" cy="${(l.y * 100).toFixed(1)}" r="1.8" class="dot${now - l.at > 120 ? ' old' : ''}"><title>${esc(l.name)} (level ${esc(l.level ?? '?')} ${esc(className(l.class_id))}) ${esc(ago(l.at, now))}</title></circle>`).join('');
-    return `<section class="card zone"><h3>${esc(name)}</h3><svg viewBox="0 0 100 100" role="img" aria-label="${esc(name)}"><rect width="100" height="100" class="field"/>${dots}</svg><ul>${list.map((l) => `<li>${esc(l.name)} <span class="muted">${esc(ago(l.at, now))}</span></li>`).join('')}</ul></section>`;
+    const [client, mapId, ...rest] = key.split('|');
+    const name = rest.join('|');
+    const art = mapIndex[client]?.[mapId];
+    const safeFile = art && /^\d+\.jpg$/.test(art.file) ? art : null;
+    const w = safeFile ? safeFile.w : 100, h = safeFile ? safeFile.h : 100, r = (w / 100) * 1.3;
+    const dots = list.map((l) => `<circle cx="${(l.x * w).toFixed(1)}" cy="${(l.y * h).toFixed(1)}" r="${r.toFixed(1)}" class="dot${now - l.at > 120 ? ' old' : ''}"><title>${esc(l.name)} (level ${esc(l.level ?? '?')} ${esc(className(l.class_id))}) ${esc(ago(l.at, now))}</title></circle>`).join('');
+    const background = safeFile ? `<image href="/maps/${esc(client)}/${esc(safeFile.file)}" width="${w}" height="${h}"/>` : `<rect width="100" height="100" class="field"/>`;
+    return `<section class="card zone${safeFile ? ' art' : ''}"><h3>${esc(name)}</h3><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(name)}">${background}${dots}</svg><ul>${list.map((l) => `<li>${esc(l.name)} <span class="muted">${esc(ago(l.at, now))}</span></li>`).join('')}</ul></section>`;
   }).join('');
   return `<h2>Live map</h2><p class="muted">Latest known position per member, shown inside each zone. Only members who share their location, in the open world, while the gateway is online. Positions expire after 10 minutes. The data is only as fresh as the gateway's last reload.</p><div class="cols zones">${panels || '<p class="muted">Nobody is sharing a position right now.</p>'}</div>`;
 }

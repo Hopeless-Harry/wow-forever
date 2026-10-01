@@ -18,7 +18,7 @@ const list = (v) => (Array.isArray(v) ? v : []);
 export function buildPayload(root) {
   const gateway = root?.MAMChroniclesDB?.gateway;
   if (!isObject(gateway) || !isObject(gateway.meta) || int(gateway.meta.writtenAt) === undefined) return null;
-  const payload = { writtenAt: gateway.meta.writtenAt, members: {}, locations: {}, forget: [], acks: [], catalog: { verified: [], templates: [] } };
+  const payload = { writtenAt: gateway.meta.writtenAt, client: gateway.client === 'forever' ? 'forever' : 'retail', members: {}, locations: {}, forget: [], acks: [], catalog: { verified: [], templates: [] } };
 
   for (const [name, m] of entries(gateway.members).slice(0, 300)) {
     if (!isObject(m)) continue;

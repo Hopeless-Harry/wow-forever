@@ -54,7 +54,7 @@ function location(name, raw, errors) {
 export function validateIngest(payload) {
   const errors = [];
   if (!isObject(payload)) return { ok: false, errors: ['body must be an object'] };
-  const value = { writtenAt: int(payload.writtenAt, 0, 4102444800), members: [], locations: [], forget: [], acks: [], catalog: { verified: [], templates: [] } };
+  const value = { writtenAt: int(payload.writtenAt, 0, 4102444800), client: payload.client === 'forever' ? 'forever' : 'retail', members: [], locations: [], forget: [], acks: [], catalog: { verified: [], templates: [] } };
   if (value.writtenAt === null) return { ok: false, errors: ['writtenAt is required'] };
   if (isObject(payload.members)) {
     for (const [name, raw] of Object.entries(payload.members).slice(0, LIMITS.members)) { const m = member(name, raw, errors); if (m) value.members.push(m); }

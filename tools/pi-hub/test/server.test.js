@@ -92,6 +92,28 @@ test('pages need a login and render escaped data without inline scripts', async 
   } finally { await ctx.close(); }
 });
 
+test('zone art is served only after login and drawn behind the dots; unknown art falls back to the grid', async () => {
+  const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os'); const { join } = await import('node:path');
+  const maps = mkdtempSync(join(tmpdir(), 'maps-')); mkdirSync(join(maps, 'retail'));
+  writeFileSync(join(maps, 'retail', '2022.jpg'), Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+  writeFileSync(join(maps, 'retail', 'index.json'), '﻿' + JSON.stringify({ 2022: { file: '2022.jpg', w: 1024, h: 683, name: 'The Waking Shores' }, 99: { file: '../../evil.jpg', w: 10, h: 10 } }));
+  const store = createStore(':memory:', { now }); store.addUser('harry', 'admin', hashPassword('correct horse battery'));
+  const app = createApp({ store, now, getRemote: () => '127.0.0.1', config: { allowPublic: false, secureCookies: false, mapsDir: maps } });
+  await new Promise((ok) => app.server.listen(0, '127.0.0.1', ok));
+  const ctx = { base: `http://127.0.0.1:${app.server.address().port}` };
+  try {
+    store.ingest(validateIngest({ writtenAt: clock, client: 'retail', members: {}, locations: { Zed: { mapID: 2022, x: 0.5, y: 0.25, at: clock - 5, zone: 'The Waking Shores' }, Evil: { mapID: 99, x: 0.1, y: 0.1, at: clock - 5, zone: 'Odd' }, Gap: { mapID: 5, x: 0.1, y: 0.1, at: clock - 5, zone: 'Unmapped' } } }).value);
+    assert.equal((await fetch(`${ctx.base}/maps/retail/2022.jpg`, { redirect: 'manual' })).status, 303);
+    const { cookie } = await login(ctx, 'harry', 'correct horse battery');
+    const img = await get(ctx, cookie, '/maps/retail/2022.jpg'); assert.equal(img.status, 200); assert.equal(img.headers.get('content-type'), 'image/jpeg');
+    assert.equal((await get(ctx, cookie, '/maps/retail/3.jpg')).status, 404); assert.equal((await get(ctx, cookie, '/maps/retail/..%2Findex.json')).status, 404);
+    const html = await (await get(ctx, cookie, '/map')).text();
+    assert.match(html, /<image href="\/maps\/retail\/2022\.jpg" width="1024" height="683"/); assert.match(html, /cx="512\.0" cy="170\.8"/);
+    assert.doesNotMatch(html, /evil\.jpg/); assert.match(html, /class="field"/);
+  } finally { await new Promise((ok) => { app.server.close(ok); app.server.closeAllConnections?.(); }); rmSync(maps, { recursive: true, force: true }); }
+});
+
 test('the banner warns when the gateway has not uploaded recently', async () => {
   const ctx = await start();
   try {
