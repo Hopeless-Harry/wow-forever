@@ -449,3 +449,12 @@ footer {
 th[scope="row"] a, .panel-heading p a, .empty-ledger a, .profile-card a { display: inline-block; padding: .55rem 0; margin: -.55rem 0; }
 .member-tabs a { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 1rem; border: 1px solid var(--gold-dark); text-decoration: none; }
 .member-tabs a[aria-current="page"] { background: rgba(210, 167, 67, .16); }
+
+/* Free-text answers such as long names must wrap instead of widening the page. */
+.ledger-main { overflow-wrap: anywhere; min-width: 0; }
+.ledger-topbar > div, .panel-heading > div, .group-card, .profession-card, .chronicle-entry { min-width: 0; }
+.table-scroll td, .table-scroll th { overflow-wrap: normal; }
+
+.ledger-topbar { flex-wrap: wrap; gap: .75rem 1rem; }
+.ledger-topbar > div { flex: 1 1 14rem; }
+.sync-rune { flex: 0 1 auto; min-width: 9rem; }

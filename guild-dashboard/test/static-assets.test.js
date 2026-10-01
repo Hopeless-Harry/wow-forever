@@ -64,3 +64,15 @@ test("inline links get phone-sized tap targets", async () => {
   assert.match(css, /th\[scope="row"\] a[^{]*\{[^}]*padding:\s*\.55rem 0/);
   assert.match(css, /\.member-tabs a\s*\{[^}]*min-height:\s*2\.75rem/);
 });
+
+test("long free-text values wrap instead of widening the page", async () => {
+  const css = await readFile(path.join(projectRoot, "public", "styles.css"), "utf8");
+  assert.match(css, /\.ledger-main\s*\{[^}]*overflow-wrap:\s*anywhere/);
+  assert.match(css, /\.group-card[^{]*\{\s*min-width:\s*0/);
+});
+
+test("the sync badge cannot be crushed by a long page title", async () => {
+  const css = await readFile(path.join(projectRoot, "public", "styles.css"), "utf8");
+  assert.match(css, /\.ledger-topbar\s*\{[^}]*flex-wrap:\s*wrap/);
+  assert.match(css, /\.sync-rune\s*\{[^}]*min-width:\s*9rem/);
+});
