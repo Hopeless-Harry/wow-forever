@@ -104,3 +104,20 @@ test("profession cards label the crafter count and the chronicle opener reads na
   assert.equal(chronicle.includes("on the muster"), false);
   assert.equal((chronicle.match(/<h2>Guild Chronicle<\/h2>/g) ?? []).length, 0, "page title is not repeated as a panel heading");
 });
+
+test("counts read naturally for one item: no '1 plans' or '1 entries' anywhere", async (t) => {
+  const records = [{ anonymousId: "Response #1", server: "Normal", race: "Orc", characterClass: "Warrior", role: "Tank", profession1: "Mining", profession2: "Skinning" }];
+  const snapshot = { records, stats: buildStats(records), status: "fresh", fetchedAt: AT, lastRefreshFailed: false, rejectedRows: 1 };
+  const members = [member("Al#1")];
+  const events = [{ type: "baseline", at: AT, name: "1" }, { type: "left", at: AT, name: "Bea#2" }];
+  const app = buildApp({ dataService: { snapshot: () => snapshot, memberSnapshot: () => ({ members, events, fetchedAt: AT }) }, logger: false, rateLimitPerMinute: 0 });
+  t.after(() => app.close());
+
+  const wrongPlural = /\b1 (plans|responses|entries|members|adventurers|crafters|players)\b/;
+  for (const url of ["/", "/statistics", "/responses", "/members", "/members/chronicle", "/members/professions", "/raid?size=10", "/member?name=Al%231"]) {
+    const text = (await app.inject({ url })).body.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ");
+    assert.doesNotMatch(text, wrongPlural, `${url} has a plural error`);
+  }
+  assert.match((await app.inject({ url: "/statistics" })).body, /1 plan, counted exactly/);
+  assert.match((await app.inject({ url: "/responses" })).body, /id="visible-count"[^>]*>1 entry</);
+});
