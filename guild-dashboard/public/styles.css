@@ -509,5 +509,9 @@ th[scope="row"] a, .panel-heading p a, .empty-ledger a, .profile-card a { displa
 
 .readiness-panel th small { display: block; font-weight: 400; color: #3b2815; }
 .readiness-panel table { min-width: 0; table-layout: auto; }
-.readiness-panel td, .readiness-panel th { padding: .6rem .6rem; overflow-wrap: anywhere; }
+.readiness-panel td, .readiness-panel th { padding: .6rem .6rem; overflow-wrap: normal; }
+@media (max-width: 700px) {
+  .readiness-panel td, .readiness-panel th { padding: .5rem .35rem; font-size: .8rem; }
+  .readiness-panel th[scope="col"] { font-size: .75rem; }
+}
 @media print { .readiness-panel .wow-button { display: none !important; } }

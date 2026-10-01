@@ -1,4 +1,4 @@
-import { PRIMARY_PROFESSIONS, RAID_SIZES, SECONDARY_PROFESSIONS, canFillRole, factionOf, roleOf } from "./wow-data.js";
+import { PRIMARY_PROFESSIONS, RAID_SIZES, SECONDARY_PROFESSIONS, canFillRole, factionOf, forRuleset, roleOf, rulesetOptions } from "./wow-data.js";
 
 // Rough guide from community raid-planning advice: about 4 tanks, 11 healers and
 // 25 DPS in a 40-player raid, scaled down for smaller groups (never fewer than two tanks).
@@ -97,7 +97,9 @@ export function gapCandidates(members, size) {
 
 const ROLE_NOUNS = { tank: ["tank", "tanks"], healer: ["healer", "healers"], dps: ["DPS", "DPS"] };
 
-// For each faction, whether it can field each raid size today and, if not, what it needs.
+// Whether each faction can field each raid size today and, if not, what it needs.
+// Players can only group within one ruleset, so a faction whose members chose several
+// rulesets gets one row per ruleset (players happy with either count toward each).
 export function raidReadiness(records, sizes = RAID_SIZES) {
   const byFaction = new Map();
   for (const record of records) {
@@ -105,24 +107,32 @@ export function raidReadiness(records, sizes = RAID_SIZES) {
     if (!byFaction.has(faction)) byFaction.set(faction, []);
     byFaction.get(faction).push(record);
   }
-  return ["Horde", "Alliance", "Unknown"].filter((faction) => byFaction.has(faction)).map((faction) => {
+  const rows = [];
+  for (const faction of ["Horde", "Alliance", "Unknown"].filter((name) => byFaction.has(name))) {
     const group = byFaction.get(faction);
-    const have = { tank: 0, healer: 0, dps: 0 };
-    for (const record of group) {
-      const role = roleOf(record.role);
-      if (role in have) have[role] += 1;
+    const options = rulesetOptions(group);
+    const parts = options.length > 1 ? options.map((ruleset) => ({ ruleset, players: forRuleset(group, ruleset) })) : [{ ruleset: "", players: group }];
+    for (const { ruleset, players } of parts) {
+      const have = { tank: 0, healer: 0, dps: 0 };
+      for (const record of players) {
+        const role = roleOf(record.role);
+        if (role in have) have[role] += 1;
+      }
+      rows.push({
+        faction,
+        ruleset,
+        label: ruleset ? `${faction} · ${ruleset}` : faction,
+        total: players.length,
+        sizes: sizes.map((size) => {
+          const targets = roleTargets(size);
+          const needs = ["tank", "healer", "dps"]
+            .map((role) => ({ role, short: Math.max(0, targets[role] - have[role]) }))
+            .filter((item) => item.short > 0)
+            .map(({ role, short }) => `${short} ${ROLE_NOUNS[role][short === 1 ? 0 : 1]}`);
+          return { size, ready: needs.length === 0, needs };
+        })
+      });
     }
-    return {
-      faction,
-      total: group.length,
-      sizes: sizes.map((size) => {
-        const targets = roleTargets(size);
-        const needs = ["tank", "healer", "dps"]
-          .map((role) => ({ role, short: Math.max(0, targets[role] - have[role]) }))
-          .filter((item) => item.short > 0)
-          .map(({ role, short }) => `${short} ${ROLE_NOUNS[role][short === 1 ? 0 : 1]}`);
-        return { size, ready: needs.length === 0, needs };
-      })
-    };
-  });
+  }
+  return rows;
 }

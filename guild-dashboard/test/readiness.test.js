@@ -61,3 +61,53 @@ test("one player reads as '1 player' and an empty guild shows no readiness panel
   assert.match(await dashboard([rec(1, "Orc", "Warrior", "Tank")]), /Horde<small>1 player<\/small>/);
   assert.equal((await dashboard([])).includes("Can we raid?"), false);
 });
+
+const withServer = (record, server) => ({ ...record, server });
+
+test("tanks and healers on one ruleset plus damage on another is not ready for anyone", () => {
+  const split = [
+    ...many(2, "Orc", "Warrior", "Tank").map((x) => withServer(x, "Normal")),
+    ...many(3, "Troll", "Priest", "Healer").map((x) => withServer(x, "Normal")),
+    ...many(5, "Undead", "Mage", "DPS").map((x) => withServer(x, "PvP"))
+  ];
+  const rows = raidReadiness(split);
+  assert.deepEqual(rows.map((row) => row.label), ["Horde · Normal", "Horde · PvP"]);
+  for (const row of rows) assert.equal(row.sizes.find((item) => item.size === 10).ready, false, row.label);
+  assert.deepEqual(rows[0].sizes.find((item) => item.size === 10).needs, ["5 DPS"]);
+  assert.deepEqual(rows[1].sizes.find((item) => item.size === 10).needs, ["2 tanks", "3 healers"]);
+});
+
+test("a ruleset with a full group is ready on its own row, and flexible-ruleset players count for every row", () => {
+  const players = [
+    ...many(2, "Orc", "Warrior", "Tank").map((x) => withServer(x, "Normal")),
+    ...many(3, "Troll", "Priest", "Healer").map((x) => withServer(x, "Normal")),
+    ...many(4, "Undead", "Mage", "DPS").map((x) => withServer(x, "Normal")),
+    withServer(rec(99, "Orc", "Rogue", "DPS"), "Happy with either"),
+    withServer(rec(100, "Orc", "Warrior", "Tank"), "PvP")
+  ];
+  const [normal, pvp] = raidReadiness(players);
+  assert.equal(normal.label, "Horde · Normal");
+  assert.equal(normal.total, 10, "9 Normal players plus the flexible one");
+  assert.equal(normal.sizes.find((item) => item.size === 10).ready, true);
+  assert.equal(pvp.label, "Horde · PvP");
+  assert.equal(pvp.total, 2, "the PvP tank plus the flexible player");
+  assert.equal(pvp.sizes.find((item) => item.size === 10).ready, false);
+});
+
+test("a single ruleset keeps the plain faction row, and factions never share a row", () => {
+  const one = raidReadiness(many(3, "Orc", "Warrior", "Tank").map((x) => withServer(x, "Normal")));
+  assert.deepEqual(one.map((row) => row.label), ["Horde"]);
+  const mixed = raidReadiness([...many(2, "Orc", "Warrior", "Tank").map((x) => withServer(x, "Normal")), ...many(2, "Human", "Paladin", "Tank").map((x) => withServer(x, "PvP"))]);
+  assert.deepEqual(mixed.map((row) => row.label), ["Horde", "Alliance"], "each faction has only one ruleset, so no split");
+});
+
+test("the dashboard labels each ruleset row so an officer sees which group is ready", async () => {
+  const body = await dashboard([
+    ...many(2, "Orc", "Warrior", "Tank").map((x) => withServer(x, "Normal")),
+    ...many(3, "Troll", "Priest", "Healer").map((x) => withServer(x, "Normal")),
+    ...many(5, "Undead", "Mage", "DPS").map((x) => withServer(x, "PvP"))
+  ]);
+  assert.match(body, /Horde · Normal<small>/);
+  assert.match(body, /Horde · PvP<small>/);
+  assert.equal(body.includes('<td class="plan-ready">'), false, "nothing is falsely ready");
+});
