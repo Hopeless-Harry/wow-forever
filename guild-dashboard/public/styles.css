@@ -444,3 +444,8 @@ footer {
 
 .statistics-grid > .parchment-panel, .dashboard-grid > .parchment-panel { margin: 0; }
 .raid-panel table { min-width: 0; }
+
+/* Larger tap targets for inline links; negative margins keep the layout unchanged. */
+th[scope="row"] a, .panel-heading p a, .empty-ledger a, .profile-card a { display: inline-block; padding: .55rem 0; margin: -.55rem 0; }
+.member-tabs a { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 1rem; border: 1px solid var(--gold-dark); text-decoration: none; }
+.member-tabs a[aria-current="page"] { background: rgba(210, 167, 67, .16); }

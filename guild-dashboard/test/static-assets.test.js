@@ -58,3 +58,9 @@ test("raid tables stay inside their panels on phones and pages ship an inline fa
   assert.match(body, /<link rel="icon" href="data:image\/svg\+xml,/);
   assert.equal(body.match(/<div class="table-scroll">/g)?.length >= 2, true);
 });
+
+test("inline links get phone-sized tap targets", async () => {
+  const css = await readFile(path.join(projectRoot, "public", "styles.css"), "utf8");
+  assert.match(css, /th\[scope="row"\] a[^{]*\{[^}]*padding:\s*\.55rem 0/);
+  assert.match(css, /\.member-tabs a\s*\{[^}]*min-height:\s*2\.75rem/);
+});
