@@ -2,7 +2,7 @@ import { classRoleMatrix } from "../domain/stats.js";
 import { ERROR_COPY } from "../data/errors.js";
 import { groupPlan, groupsToText } from "../domain/groups.js";
 import { buildSummary } from "../domain/summary.js";
-import { buildRaidPlan, factionProfessionGaps, gapCandidates, missingProfessions, professionDirectory, raidReadiness } from "../domain/raid.js";
+import { buildRaidPlan, factionProfessionGaps, gapCandidates, missingProfessions, professionDirectory, raidReadiness, rulesetVote } from "../domain/raid.js";
 import { LAUNCH_AT, RAID_SIZES, comboWarning, factionOf, forRuleset, roleWarning, rulesetOptions } from "../domain/wow-data.js";
 import { escapeHtml } from "./escape.js";
 
@@ -89,6 +89,18 @@ function emptyPanel(snapshot = {}) {
   return `<section class="parchment-panel empty-ledger"><h2>The ledger is ready</h2><p>Link the Form to a Google Sheet and add the read-only credentials on the Pi. The first anonymous census will appear automatically.</p></section>`;
 }
 
+function rulesetCard(records) {
+  const vote = rulesetVote(records);
+  if (!vote.leader) {
+    if (!vote.total) return leaderCard("Favoured ruleset", null);
+    return `<article class="ledger-stat"><span>Favoured ruleset</span><strong>Any</strong><small>Everyone is happy with either</small></article>`;
+  }
+  const { leader, runnerUp, flexible, total } = vote;
+  const detail = `${leader.canPlay} of ${total} could play it (${leader.chose} chose it${flexible ? ` + ${flexible} happy with either` : ""})`;
+  const closeNote = vote.close ? `<small class="vote-close">Close call: ${escapeHtml(runnerUp.name)} has ${runnerUp.canPlay} of ${total}</small>` : "";
+  return `<article class="ledger-stat"><span>Favoured ruleset</span><strong>${escapeHtml(leader.name)}</strong><small>${detail}</small>${closeNote}</article>`;
+}
+
 function leaderCard(label, leader, tone = "") {
   return `<article class="ledger-stat ${tone}"><span>${escapeHtml(label)}</span><strong>${leader ? escapeHtml(leader.label) : "—"}</strong><small>${leader ? `${leader.count} ${leader.count === 1 ? "response" : "responses"}` : "No responses yet"}</small></article>`;
 }
@@ -129,7 +141,7 @@ export function renderDashboard(snapshot, memberData = { members: [], events: []
   const content = `<aside class="launch-banner" data-launch="${escapeHtml(LAUNCH_AT)}"><span>WoW Forever launches</span><strong id="launch-countdown">4 November 2026, 3 PM PST</strong><small>Reported launch date</small></aside>
   <section class="ledger-overview" aria-labelledby="muster-heading">
     <div class="muster-count"><span>Responses received</span><strong>${totalResponses}</strong><h2 id="muster-heading">Adventurers mustered</h2></div>
-    <div class="stat-rack">${leaderCard("Favoured ruleset", leaders.server)}${leaderCard("Largest class", leaders.characterClass, "class-ledger")}${leaderCard("Main calling", leaders.role)}${leaderCard("Top profession", leaders.professions)}</div>
+    <div class="stat-rack">${rulesetCard(snapshot.records)}${leaderCard("Largest class", leaders.characterClass, "class-ledger")}${leaderCard("Main calling", leaders.role)}${leaderCard("Top profession", leaders.professions)}</div>
   </section>
   ${readinessPanel(snapshot.records)}
   <section class="dashboard-grid">${bars("Class muster", distributions.characterClass, "wide")}${bars("Role balance", distributions.role)}${bars("Ruleset preference", distributions.server)}</section>

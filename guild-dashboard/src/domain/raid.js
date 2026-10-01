@@ -1,4 +1,4 @@
-import { PRIMARY_PROFESSIONS, RAID_SIZES, SECONDARY_PROFESSIONS, canFillRole, factionOf, forRuleset, roleOf, rulesetOptions } from "./wow-data.js";
+import { PRIMARY_PROFESSIONS, RAID_SIZES, SECONDARY_PROFESSIONS, canFillRole, factionOf, forRuleset, isFlexibleRuleset, roleOf, rulesetOptions } from "./wow-data.js";
 
 // Rough guide from community raid-planning advice: about 4 tanks, 11 healers and
 // 25 DPS in a 40-player raid, scaled down for smaller groups (never fewer than two tanks).
@@ -154,4 +154,17 @@ export function factionProfessionGaps(members) {
     const mine = new Set(byFaction.get(faction).flatMap((member) => [member.profession1, member.profession2]));
     return { faction, missing: known.filter((name) => guildHas.has(name) && !mine.has(name)) };
   }).filter((entry) => entry.missing.length);
+}
+
+// The guild's ruleset "vote": players who answered "happy with either" can play any ruleset,
+// so they count toward every option. A close vote is flagged.
+export function rulesetVote(records) {
+  const total = records.length;
+  const flexible = records.filter((record) => isFlexibleRuleset(record.server)).length;
+  const options = rulesetOptions(records).map((name) => {
+    const chose = records.filter((record) => record.server === name).length;
+    return { name, chose, canPlay: chose + flexible, percent: total ? Math.round(((chose + flexible) / total) * 100) : 0 };
+  }).sort((a, b) => b.canPlay - a.canPlay || a.name.localeCompare(b.name));
+  const close = options.length > 1 && options[0].percent - options[1].percent <= 10;
+  return { total, flexible, options, leader: options[0] ?? null, runnerUp: options[1] ?? null, close };
 }
