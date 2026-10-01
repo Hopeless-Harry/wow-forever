@@ -548,3 +548,8 @@ th[scope="row"] a, .panel-heading p a, .empty-ledger a, .profile-card a { displa
 @media print { .check-notice { display: none !important; } }
 
 .check-panel { scroll-margin-top: 1rem; }
+
+.copy-names { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; margin: 0 0 1rem; }
+.copy-names .wow-button { width: auto; }
+.copy-names .quiet { margin: 0; min-height: 1.2rem; }
+@media print { .copy-names { display: none !important; } }

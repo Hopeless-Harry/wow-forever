@@ -6,13 +6,13 @@ import vm from "node:vm";
 const script = readFileSync(new URL("../public/table-filters.js", import.meta.url), "utf8");
 
 const ROWS = [
-  { sort: "000003", faction: "Horde", class: "Warrior", role: "Tank", server: "Normal", search: "warrior tank orc horde normal" },
-  { sort: "000002", faction: "Horde", class: "Priest", role: "DPS", server: "Normal", search: "priest dps undead horde normal" },
-  { sort: "000001", faction: "Alliance", class: "Priest", role: "Healer", server: "PvP", search: "priest healer troll horde pvp" },
-  { sort: "000004", faction: "Alliance", class: "Hunter", role: "", server: "", search: "hunter troll" }
+  { name: "Thok", sort: "000003", faction: "Horde", class: "Warrior", role: "Tank", server: "Normal", search: "warrior tank orc horde normal" },
+  { name: "Una", sort: "000002", faction: "Horde", class: "Priest", role: "DPS", server: "Normal", search: "priest dps undead horde normal" },
+  { name: "Mira", sort: "000001", faction: "Alliance", class: "Priest", role: "Healer", server: "PvP", search: "priest healer troll horde pvp" },
+  { name: "Kor", sort: "000004", faction: "Alliance", class: "Hunter", role: "", server: "", search: "hunter troll" }
 ];
 
-function harness({ saved = null, storageThrows = false, missing = false, withFaction = false, search = "" } = {}) {
+function harness({ saved = null, storageThrows = false, missing = false, withFaction = false, search = "", copy = null } = {}) {
   const urls = [];
   const handlers = {};
   const select = (extra = {}) => ({ value: "", options: [], add(option) { this.options.push(option); }, ...extra });
@@ -20,7 +20,7 @@ function harness({ saved = null, storageThrows = false, missing = false, withFac
     elements: { search: { value: "" }, class: select(), role: select(), server: select(), sort: select({ value: "name" }), ...(withFaction ? { faction: select() } : {}) },
     addEventListener: (type, handler) => { handlers[type] = handler; }
   };
-  const rows = ROWS.map((data) => ({ dataset: { ...data }, hidden: false }));
+  const rows = ROWS.map(({ name, ...data }) => ({ dataset: { ...data }, hidden: false, cells: [{ textContent: `  ${name}  ` }] }));
   const body = { rows: [...rows], append(row) { this.rows = this.rows.filter((r) => r !== row); this.rows.push(row); } };
   const table = { tBodies: [body] };
   const count = { textContent: "", dataset: { singular: "member", plural: "members" } };
@@ -30,17 +30,24 @@ function harness({ saved = null, storageThrows = false, missing = false, withFac
     getItem: (key) => { if (storageThrows) throw new Error("blocked"); return store.get(key) ?? null; },
     setItem: (key, value) => { if (storageThrows) throw new Error("blocked"); store.set(key, value); }
   };
+  const copyButton = { textContent: "Copy names", handlers: {}, addEventListener(type, fn) { this.handlers[type] = fn; } };
+  const copyStatus = { textContent: "" };
+  const timers = [];
+  const scratch = { value: "", select() { scratch.selected = true; }, remove() { scratch.removed = true; } };
   const document = {
+    createElement: () => scratch,
+    body: { append() {} },
+    execCommand: (command) => (copy?.execCommand ? copy.execCommand(command, scratch.value) : false),
     querySelector: (selector) => {
       if (missing) return null;
-      return { "[data-census-filters]": form, "#census-table": table, "#visible-count": count, ".no-results": noResults }[selector] ?? null;
+      return { "[data-census-filters]": form, "#census-table": table, "#visible-count": count, ".no-results": noResults, "[data-copy-names]": copy ? copyButton : null, "#copy-names-status": copy ? copyStatus : null }[selector] ?? null;
     }
   };
-  vm.runInNewContext(script, vm.createContext({ document, sessionStorage, URLSearchParams, history: { replaceState: (_state, _title, url) => { urls.push(url); } }, location: { pathname: "/members", search, hash: "" }, Option: function Option(text, value) { return { text, value }; } }));
+  vm.runInNewContext(script, vm.createContext({ document, navigator: { clipboard: copy?.clipboard }, window: { setTimeout: (fn, ms) => timers.push({ fn, ms }) }, sessionStorage, URLSearchParams, history: { replaceState: (_state, _title, url) => { urls.push(url); } }, location: { pathname: "/members", search, hash: "" }, Option: function Option(text, value) { return { text, value }; } }));
   const fire = () => { handlers.input?.(); handlers.change?.(); };
   const visible = () => body.rows.filter((r) => !r.hidden).map((r) => r.dataset.sort);
   const order = () => body.rows.map((r) => r.dataset.sort);
-  return { form, count, noResults, store, fire, visible, order, handlers, urls };
+  return { form, count, noResults, store, fire, visible, order, handlers, urls, copyButton, copyStatus, timers, scratch };
 }
 
 test("dropdowns list each distinct non-empty value once, sorted", () => {
@@ -225,4 +232,76 @@ test("an unavailable address bar never breaks filtering", () => {
   h.form.elements.search.value = "hunter";
   assert.doesNotThrow(() => h.fire());
   assert.deepEqual(h.visible(), ["000004"]);
+});
+
+test("Copy names copies the visible members in the order shown and says how many", async () => {
+  let written = null;
+  const h = harness({ withFaction: true, copy: { clipboard: { writeText: async (text) => { written = text; } } } });
+  await h.copyButton.handlers.click();
+  assert.equal(written, "Mira, Una, Thok, Kor", "names are trimmed and follow the current sort order");
+  assert.equal(h.copyStatus.textContent, "Copied 4 names.");
+  assert.equal(h.copyButton.textContent, "Copied!");
+  h.timers[0].fn();
+  assert.equal(h.copyButton.textContent, "Copy names");
+
+  h.form.elements.faction.value = "Alliance";
+  h.fire();
+  await h.copyButton.handlers.click();
+  assert.equal(written, "Mira, Kor", "only the filtered rows are copied");
+
+  h.form.elements.search.value = "hunter";
+  h.fire();
+  await h.copyButton.handlers.click();
+  assert.equal(written, "Kor");
+  assert.equal(h.copyStatus.textContent, "Copied 1 name.");
+
+  h.form.elements.sort.value = "class";
+  h.form.elements.search.value = "";
+  h.form.elements.faction.value = "";
+  h.fire();
+  await h.copyButton.handlers.click();
+  assert.equal(written, "Kor, Mira, Una, Thok", "a different sort changes the copied order");
+});
+
+test("Copy names explains an empty result and a blocked clipboard, and falls back to selection", async () => {
+  let written = null;
+  const none = harness({ copy: { clipboard: { writeText: async (text) => { written = text; } } } });
+  none.form.elements.search.value = "nobody matches this";
+  none.fire();
+  await none.copyButton.handlers.click();
+  assert.equal(written, null, "nothing is copied when nothing matches");
+  assert.match(none.copyStatus.textContent, /Nothing to copy/);
+
+  const fallback = harness({ copy: { clipboard: { writeText: async () => { throw new Error("denied"); } }, execCommand: (command, value) => command === "copy" && value === "Mira, Una, Thok, Kor" } });
+  await fallback.copyButton.handlers.click();
+  assert.equal(fallback.scratch.selected, true, "the names were selected in a scratch box");
+  assert.equal(fallback.scratch.removed, true, "and the scratch box was cleaned up");
+  assert.equal(fallback.copyStatus.textContent, "Copied 4 names.");
+
+  const blocked = harness({ copy: { clipboard: { writeText: async () => { throw new Error("denied"); } }, execCommand: () => false } });
+  await blocked.copyButton.handlers.click();
+  assert.match(blocked.copyStatus.textContent, /blocked by the browser/);
+  assert.equal(blocked.copyButton.textContent, "Copy names");
+});
+
+test("pages without a Copy names button are unaffected", () => {
+  const h = harness();
+  assert.deepEqual(Object.keys(h.copyButton.handlers), []);
+});
+
+test("the copy message is cleared when the filters change so it never describes an old view", async () => {
+  const h = harness({ copy: { clipboard: { writeText: async () => {} } } });
+  await h.copyButton.handlers.click();
+  assert.equal(h.copyStatus.textContent, "Copied 4 names.");
+  h.form.elements.search.value = "priest";
+  h.fire();
+  assert.equal(h.copyStatus.textContent, "", "the old message is gone");
+
+  h.form.elements.search.value = "nothing matches";
+  h.fire();
+  await h.copyButton.handlers.click();
+  assert.match(h.copyStatus.textContent, /Nothing to copy/);
+  h.form.elements.search.value = "";
+  h.fire();
+  assert.equal(h.copyStatus.textContent, "", "so the empty-result warning does not linger");
 });

@@ -7,6 +7,7 @@
   const originalRows = [...body.rows];
   const count = document.querySelector("#visible-count");
   const noResults = document.querySelector(".no-results");
+  const copyStatus = document.querySelector("#copy-names-status");
   const storageKey = `table-filters:${location.pathname}`;
 
   const selects = ["class", "role", "server", "faction"].filter((name) => form.elements[name]);
@@ -101,6 +102,41 @@
     }
     count.textContent = `${visible} ${visible === 1 ? count.dataset.singular : count.dataset.plural}`;
     noResults.hidden = visible !== 0;
+    if (copyStatus) copyStatus.textContent = "";
+  }
+
+  // Roster only: copy the names of the rows currently shown, in the order shown, as a comma-separated list.
+  const copyButton = document.querySelector("[data-copy-names]");
+  if (copyButton) {
+    const label = copyButton.textContent;
+    copyButton.addEventListener("click", async () => {
+      const names = [...body.rows].filter((row) => !row.hidden).map((row) => row.cells[0].textContent.trim());
+      if (!names.length) {
+        if (copyStatus) copyStatus.textContent = "Nothing to copy: no members match the filters.";
+        return;
+      }
+      const text = names.join(", ");
+      let copied = false;
+      try {
+        await navigator.clipboard.writeText(text);
+        copied = true;
+      } catch {
+        try {
+          const scratch = document.createElement("textarea");
+          scratch.value = text;
+          document.body.append(scratch);
+          scratch.select();
+          copied = document.execCommand("copy");
+          scratch.remove();
+        } catch {
+          copied = false;
+        }
+      }
+      const noun = names.length === 1 ? "name" : "names";
+      if (copyStatus) copyStatus.textContent = copied ? `Copied ${names.length} ${noun}.` : "Copying was blocked by the browser. Select the names in the table instead.";
+      copyButton.textContent = copied ? "Copied!" : label;
+      window.setTimeout(() => { copyButton.textContent = label; }, 2500);
+    });
   }
 
   form.addEventListener("input", () => { remember(); writeUrl(); update(); });

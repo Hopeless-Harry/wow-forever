@@ -268,3 +268,12 @@ test("the dashboard points officers at unusual roster answers, with the right wo
   assert.match(roster, /<section class="parchment-panel check-panel" id="check-panel" aria-labelledby="check-heading">/, "the link lands on the whole double-check panel");
   assert.match(roster, /<h2 id="check-heading">/);
 });
+
+test("only the roster offers Copy names, with its own status line", async (t) => {
+  const app = appWith([member("Al#1")]);
+  t.after(() => app.close());
+  const roster = (await app.inject({ url: "/members" })).body;
+  assert.match(roster, /<p class="copy-names"><button class="wow-button" type="button" data-copy-names>Copy names<\/button> <span id="copy-names-status" class="quiet" role="status"><\/span><\/p>/);
+  assert.ok(roster.indexOf("data-copy-names") < roster.indexOf('id="census-table"'), "the button sits above the table");
+  assert.equal((await app.inject({ url: "/responses" })).body.includes("data-copy-names"), false, "entry numbers are not names, so the census has no button");
+});
