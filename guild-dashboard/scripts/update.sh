@@ -13,8 +13,8 @@ cd "${PROJECT_DIR}"
 npm ci --omit=dev
 npm test
 
-rm -rf "${APP_DIR}/src" "${APP_DIR}/public" "${APP_DIR}/config" "${APP_DIR}/test"
-cp -R src public config test "${APP_DIR}/"
+rm -rf "${APP_DIR}/src" "${APP_DIR}/public" "${APP_DIR}/config" "${APP_DIR}/test" "${APP_DIR}/scripts"
+cp -R src public config test scripts "${APP_DIR}/"
 install -m 0644 package.json package-lock.json "${APP_DIR}/"
 chown -R guild-ledger:guild-ledger "${APP_DIR}"
 

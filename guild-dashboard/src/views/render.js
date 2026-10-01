@@ -41,7 +41,7 @@ function shell({ title, active, snapshot, content, scripts = [] }) {
       <a class="guild-seal" href="/" aria-label="Moms Against Magic Guild Ledger"><span>M</span></a>
       <div class="guild-name"><strong>Moms Against Magic</strong><span>Guild Ledger</span></div>
       <nav>${navLink("/", "Dashboard", active)}${navLink("/responses", "Guild Census", active)}${navLink("/statistics", "Statistics", active)}${navLink("/raid", "Raid Planner", active)}${navLink("/members", "Roster", active)}${navLink("/members/professions", "Professions", active)}${navLink("/members/chronicle", "Chronicle", active)}</nav>
-      <p class="privacy-mark">Every adventurer<br>on the roll</p>
+      <p class="privacy-mark">Names are public<br>to all visitors</p>
     </aside>
     <main id="main-content" class="ledger-main">
       <header class="ledger-topbar">
@@ -99,13 +99,13 @@ export function renderDashboard(snapshot, memberData = { events: [] }) {
   </section>
   <section class="dashboard-grid">${bars("Class muster", distributions.characterClass, "wide")}${bars("Role balance", distributions.role)}${bars("Ruleset preference", distributions.server)}</section>
   ${activityPanel(memberData.events)}
-  <section class="parchment-panel recent-panel"><div class="panel-heading"><div><span>Latest entries</span><h2>Recent anonymous roster</h2></div><a class="wow-button" href="/responses">Open full census</a></div><div class="table-scroll"><table><thead><tr><th>Entry</th><th>Class</th><th>Role</th><th>Race</th><th>Professions</th></tr></thead><tbody>${recentRows(snapshot.records)}</tbody></table></div></section>`;
+  <section class="parchment-panel recent-panel"><div class="panel-heading"><div><span>Latest entries</span><h2>Recent roster entries</h2></div><a class="wow-button" href="/responses">Open full census</a></div><div class="table-scroll"><table><thead><tr><th>Entry</th><th>Class</th><th>Role</th><th>Race</th><th>Professions</th></tr></thead><tbody>${recentRows(snapshot.records)}</tbody></table></div></section>`;
   return shell({ title: "Guild Ledger", active: "/", snapshot, content, scripts: ["/assets/countdown.js", "/assets/live-refresh.js"] });
 }
 
 export function renderResponses(snapshot) {
   const rows = snapshot.records.map((record, index) => `<tr ${rowAttrs({ search: Object.values(record).join(" "), characterClass: record.characterClass, role: record.role, server: record.server, sort: String(index + 1).padStart(6, "0") })}><th scope="row">${escapeHtml(record.anonymousId)}</th><td><span class="class-chip${classToken(record.characterClass)}">${escapeHtml(record.characterClass)}</span></td><td>${escapeHtml(record.role)}</td><td>${escapeHtml(record.race)}</td><td>${escapeHtml(record.server)}</td><td>${escapeHtml(record.profession1)}</td><td>${escapeHtml(record.profession2)}</td></tr>`).join("");
-  const content = `<section class="parchment-panel census-panel"><div class="panel-heading"><div><span>Roster vault</span><h2>Guild Census</h2><p>Browse plans without revealing who submitted them.</p></div><strong id="visible-count" data-singular="entry" data-plural="entries">${snapshot.records.length} entries</strong></div>
+  const content = `<section class="parchment-panel census-panel"><div class="panel-heading"><div><span>Roster vault</span><h2>Guild Census</h2><p>Aggregate plans by entry number. Named listings are in the roster.</p></div><strong id="visible-count" data-singular="entry" data-plural="entries">${snapshot.records.length} entries</strong></div>
     ${filterForm("Search the census", "Class, role, race or profession", "Response number")}
     <div class="table-scroll"><table id="census-table"><thead><tr><th>Entry</th><th>Class</th><th>Role</th><th>Race</th><th>Ruleset</th><th>Profession 1</th><th>Profession 2</th></tr></thead><tbody>${rows}</tbody></table></div><p class="no-results" hidden>No roster entries match those filters.</p>
   </section>`;
@@ -114,7 +114,7 @@ export function renderResponses(snapshot) {
 
 export function renderStatistics(snapshot) {
   const d = snapshot.stats.distributions;
-  const content = snapshot.records.length ? `<section class="statistics-intro"><p>${snapshot.stats.totalResponses} anonymous plans, counted exactly as submitted.</p></section><section class="statistics-grid">${bars("Class distribution", d.characterClass)}${bars("Role distribution", d.role)}${bars("Race distribution", d.race)}${bars("Faction split", d.faction)}${bars("Ruleset preference", d.server)}${bars("Profession demand", d.professions, "wide")}</section>` : emptyPanel();
+  const content = snapshot.records.length ? `<section class="statistics-intro"><p>${snapshot.stats.totalResponses} plans, counted exactly as submitted.</p></section><section class="statistics-grid">${bars("Class distribution", d.characterClass)}${bars("Role distribution", d.role)}${bars("Race distribution", d.race)}${bars("Faction split", d.faction)}${bars("Ruleset preference", d.server)}${bars("Profession demand", d.professions, "wide")}</section>` : emptyPanel();
   return shell({ title: "Guild Statistics", active: "/statistics", snapshot, content, scripts: ["/assets/live-refresh.js"] });
 }
 

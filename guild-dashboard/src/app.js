@@ -2,7 +2,7 @@ import Fastify from "fastify";
 import { readFileSync } from "node:fs";
 
 import { membersToCsv } from "./domain/export.js";
-import { createRateLimiter } from "./rate-limit.js";
+import { createRateLimiter, isLoopback, limiterKey } from "./rate-limit.js";
 import { RAID_SIZES } from "./domain/wow-data.js";
 import { PUBLIC_FIELDS } from "./domain/normalize.js";
 import { renderDashboard, renderMemberChronicle, renderMemberProfile, renderMembers, renderProfessions, renderRaidPlan, renderResponses, renderStatistics } from "./views/render.js";
@@ -28,9 +28,9 @@ function publicPayload(snapshot) {
 }
 
 export function buildApp({ dataService, rateLimitPerMinute = 300, logger = true }) {
-  const app = Fastify({ logger, bodyLimit: 16 * 1024, trustProxy: true });
+  const app = Fastify({ logger, bodyLimit: 16 * 1024, trustProxy: false });
 
-  app.addHook("onRequest", async (_request, reply) => {
+  app.addHook("onRequest", async (request, reply) => {
     reply.headers({
       "content-security-policy": CSP,
       "x-content-type-options": "nosniff",
@@ -39,18 +39,24 @@ export function buildApp({ dataService, rateLimitPerMinute = 300, logger = true 
       "permissions-policy": "camera=(), microphone=(), geolocation=()",
       "cross-origin-opener-policy": "same-origin"
     });
+    // Pages and downloads can carry names, so no cache may keep them after a row is removed.
+    // The assets route overrides this with its own public cache header.
+    if (!request.url.startsWith("/assets/")) reply.header("cache-control", "no-store");
   });
 
   // X-Forwarded-For is client-controlled, so it cannot key a limiter. Cloudflare sets
   // CF-Connecting-IP itself; the service only listens on loopback, so only the tunnel
   // can reach it. Without the header, fall back to the socket address.
   const clientKey = (request) => {
+    const peer = request.socket.remoteAddress || "unknown";
     const header = request.headers["cf-connecting-ip"];
-    return (typeof header === "string" && header.slice(0, 64)) || request.socket.remoteAddress || "unknown";
+    const fromTunnel = isLoopback(peer) && typeof header === "string" && header.length > 0;
+    return limiterKey(fromTunnel ? header.slice(0, 64) : peer);
   };
   const limiter = createRateLimiter({ limit: rateLimitPerMinute });
   app.addHook("onRequest", async (request, reply) => {
-    if (request.url.startsWith("/health/")) return;
+    const pathOnly = request.url.split("?")[0];
+    if (pathOnly === "/health/live" || pathOnly === "/health/ready") return;
     const { allowed, retryAfter } = limiter.hit(clientKey(request));
     if (!allowed) {
       return reply.code(429).header("retry-after", String(retryAfter)).header("cache-control", "no-store").type("text/plain; charset=utf-8").send("Too many requests. Please slow down.");

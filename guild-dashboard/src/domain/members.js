@@ -14,6 +14,14 @@ function cleanCell(value) {
   return String(value ?? "").trim().slice(0, 200);
 }
 
+// The name field is free text. Contact details are removed before anything is stored or shown.
+const EMAIL = /[^\s@]+@[^\s@]+\.[^\s@]+/g;
+const PHONE = /\+?\d[\d\s().-]{7,}\d/g;
+
+export function redactContact(name) {
+  return name.replace(EMAIL, "[removed]").replace(PHONE, "[removed]").replace(/\s+/g, " ").trim();
+}
+
 function memberKey(name) {
   return name.toLowerCase();
 }
@@ -40,7 +48,7 @@ export function normalizeMembers(rows, mapping, nameHeader) {
 
   for (const row of rows.slice(1)) {
     if (!Array.isArray(row)) continue;
-    const name = cleanCell(row[nameColumn]);
+    const name = redactContact(cleanCell(row[nameColumn]));
     const values = Object.fromEntries(MEMBER_FIELDS.map((field) => [field, cleanCell(row[columns[field]])]));
     if (!name || MEMBER_FIELDS.some((field) => values[field] === "")) continue;
     byKey.set(memberKey(name), { name, ...values });

@@ -112,7 +112,7 @@ Do not publish the Sheet to the web. Publishing it could reveal the excluded nam
 | `GOOGLE_SHEET_RANGE` | `Form Responses 1!A:Z` | Response tab and columns |
 | `GOOGLE_CLIENT_EMAIL` | empty | Read-only service account email |
 | `GOOGLE_PRIVATE_KEY` | empty | RSA private key with literal `\n` line breaks |
-| `RATE_LIMIT_PER_MINUTE` | `300` | Per-IP request limit; over it the site answers 429 with `Retry-After`. `0` disables. Health checks are exempt |
+| `RATE_LIMIT_PER_MINUTE` | `300` | Per-IP request limit; over it the site answers 429 with `Retry-After`. `0` disables. The two health routes are exempt. Clients are keyed on Cloudflare's `CF-Connecting-IP` (only trusted from the local tunnel), IPv6 by /64 |
 | `USE_FIXTURE` | `false` | Local visual testing only |
 
 After editing production values:
@@ -244,10 +244,19 @@ Member names are public by the guild's decision. Anyone with the site link can s
 - Shown publicly: the name or BattleTag typed into the Form, server preference, race, class, role, profession 1 and profession 2, and the history of changes to those answers.
 - Never read or shown: email, Google identity, timestamp, response ID, comments, hidden columns and every unknown column.
 - Names are matched case-insensitively across syncs. A later submission with the same name replaces the earlier one and is recorded in the Chronicle as a change.
-- Roster history is stored in `MEMBER_PATH` (mode 0600, capped at 500 events) and written atomically.
+- Roster history is stored in `MEMBER_PATH` (mode 0600 inside a 0700 directory, capped at 500 events), flushed to disk and written atomically. If the file ever becomes unreadable it is kept as `members.json.corrupt-<time>` rather than overwritten.
 - Logs contain row counts and error categories, never response content or credentials.
 - Do not publish the response Sheet itself; it contains the excluded columns.
-- To remove someone, delete their row from the response Sheet; they then appear in the Chronicle as having left.
+- Emails and phone numbers typed into the name field are replaced with `[removed]` before anything is stored or shown.
+- Named pages, the CSV and the profile pages are sent `Cache-Control: no-store`, so Cloudflare and browsers should not keep a copy after someone is removed.
+- To remove someone: delete their row from the response Sheet **and** erase their history, because the Chronicle keeps earlier answers and a "left" event:
+
+  ```bash
+  sudo -u guild-ledger MEMBER_PATH=/var/lib/guild-ledger/members.json node /opt/guild-ledger/app/scripts/forget-member.mjs "Name#1234"
+  sudo systemctl restart guild-ledger
+  ```
+
+- The anonymous `/responses` entries use the same answers as the named roster, so an anonymous row can be matched to a named one. Anyone who filled in the Form while it was described as anonymous should be told that names are now public.
 - The `/responses` Guild Census and `/statistics` pages remain aggregate views with numbered entries.
 
 Run the privacy regression suite at any time:
