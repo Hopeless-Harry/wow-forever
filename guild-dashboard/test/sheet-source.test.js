@@ -29,3 +29,18 @@ test("rejects malformed Sheets payloads", async () => {
   });
   await assert.rejects(source.fetchRows(), /did not contain rows/);
 });
+
+test("a hung Google request times out instead of freezing every later refresh", async () => {
+  const hung = (_url, options) => new Promise((_resolve, reject) => {
+    options.signal.addEventListener("abort", () => reject(options.signal.reason));
+  });
+  const source = new SheetSource({ sheetId: "id", sheetRange: "A:Z", tokenProvider: async () => "t", fetchFn: hung, timeoutMs: 40 });
+  const started = Date.now();
+  const keepAlive = setTimeout(() => {}, 2000); // AbortSignal.timeout timers are unref'd; a real server stays alive on its socket
+  try {
+    await assert.rejects(() => source.fetchRows(), (error) => error.name === "TimeoutError");
+  } finally {
+    clearTimeout(keepAlive);
+  }
+  assert.ok(Date.now() - started < 1000, "gave up quickly");
+});

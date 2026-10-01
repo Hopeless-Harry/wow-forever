@@ -7,7 +7,7 @@ function encodeJson(value) {
   return Buffer.from(JSON.stringify(value)).toString("base64url");
 }
 
-export async function createAccessToken(config, fetchFn = fetch, now = () => new Date()) {
+export async function createAccessToken(config, fetchFn = fetch, now = () => new Date(), timeoutMs = 15_000) {
   if (!config.googleClientEmail || !config.googlePrivateKey) {
     throw new Error("Google service account credentials are incomplete");
   }
@@ -32,7 +32,8 @@ export async function createAccessToken(config, fetchFn = fetch, now = () => new
   const response = await fetchFn(TOKEN_URL, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: body.toString()
+    body: body.toString(),
+    signal: AbortSignal.timeout(timeoutMs)
   });
   if (!response.ok) throw new Error(`Google token exchange failed with status ${response.status}`);
   const result = await response.json();
