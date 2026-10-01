@@ -277,3 +277,28 @@ test("only the roster offers Copy names, with its own status line", async (t) =>
   assert.ok(roster.indexOf("data-copy-names") < roster.indexOf('id="census-table"'), "the button sits above the table");
   assert.equal((await app.inject({ url: "/responses" })).body.includes("data-copy-names"), false, "entry numbers are not names, so the census has no button");
 });
+
+test("chronicle, profile and dashboard activity mark their times for local conversion and load the script", async (t) => {
+  const entry = { server: "Normal", race: "Orc", characterClass: "Rogue", role: "DPS", profession1: "A", profession2: "B" };
+  const events = [
+    { type: "joined", at: "2026-09-22T18:30:00.000Z", name: "Zed#1", entry },
+    { type: "left", at: "2026-09-23T07:05:00.000Z", name: "Zed#1" }
+  ];
+  const record = { anonymousId: "Response #1", ...entry };
+  const snapshot = { records: [record], stats: buildStats([record]), status: "fresh", fetchedAt: AT, lastRefreshFailed: false };
+  const app = buildApp({ dataService: { snapshot: () => snapshot, memberSnapshot: () => ({ members: [member("Zed#1")], events, fetchedAt: AT }) }, logger: false, rateLimitPerMinute: 0 });
+  t.after(() => app.close());
+
+  const chronicle = (await app.inject({ url: "/members/chronicle" })).body;
+  assert.match(chronicle, /<time datetime="2026-09-23T07:05:00.000Z" data-local-time="datetime">2026-09-23 07:05 UTC<\/time>/, "the UTC text stays as the fallback");
+  assert.match(chronicle, /\/assets\/local-time\.js/);
+
+  const profile = (await app.inject({ url: "/member?name=Zed%231" })).body;
+  assert.match(profile, /data-local-time="datetime">2026-09-22 18:30 UTC<\/time>/);
+  assert.match(profile, /\/assets\/local-time\.js/);
+
+  const dashboard = (await app.inject({ url: "/" })).body;
+  assert.match(dashboard, /<time datetime="2026-09-23T07:05:00.000Z" data-local-time="date">2026-09-23<\/time>/);
+  assert.match(dashboard, /\/assets\/local-time\.js/);
+  assert.equal((await app.inject({ url: "/assets/local-time.js" })).statusCode, 200);
+});

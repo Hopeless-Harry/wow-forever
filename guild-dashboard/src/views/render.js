@@ -151,7 +151,7 @@ function summaryPanel(snapshot, memberData) {
 function activityPanel(events = []) {
   const recent = [...events].filter((event) => event.type !== "baseline").slice(-5).reverse();
   if (!recent.length) return "";
-  const items = recent.map((event) => `<li class="chronicle-entry chronicle-${escapeHtml(event.type)}"><time datetime="${escapeHtml(event.at)}">${escapeHtml(event.at.slice(0, 10))}</time><p>${memberEventText(event)}</p></li>`).join("");
+  const items = recent.map((event) => `<li class="chronicle-entry chronicle-${escapeHtml(event.type)}"><time datetime="${escapeHtml(event.at)}" data-local-time="date">${escapeHtml(event.at.slice(0, 10))}</time><p>${memberEventText(event)}</p></li>`).join("");
   return `<section class="parchment-panel chronicle-panel"><div class="panel-heading"><div><span>Latest news</span><h2>Recent activity</h2></div><a class="wow-button" href="/members/chronicle">Open chronicle</a></div><ol class="chronicle-list">${items}</ol></section>`;
 }
 
@@ -169,7 +169,7 @@ export function renderDashboard(snapshot, memberData = { members: [], events: []
   ${summaryPanel(snapshot, memberData)}
   ${activityPanel(memberData.events)}
   <section class="parchment-panel recent-panel"><div class="panel-heading"><div><span>Latest entries</span><h2>Recent roster entries</h2></div><a class="wow-button" href="/responses">Open full census</a></div><div class="table-scroll"><table aria-label="Recent roster entries"><thead><tr><th>Entry</th><th>Class</th><th>Role</th><th>Race</th><th>Professions</th></tr></thead><tbody>${recentRows(snapshot.records)}</tbody></table></div></section>`;
-  return shell({ title: "Guild Ledger", active: "/", snapshot, content, scripts: ["/assets/countdown.js", "/assets/copy-summary.js", "/assets/live-refresh.js"] });
+  return shell({ title: "Guild Ledger", active: "/", snapshot, content, scripts: ["/assets/countdown.js", "/assets/copy-summary.js", "/assets/local-time.js", "/assets/live-refresh.js"] });
 }
 
 export function renderResponses(snapshot) {
@@ -227,14 +227,14 @@ export function renderMemberChronicle(snapshot, memberData, filter = "all") {
   const countOf = (key) => (key === "all" ? all.length : all.filter((event) => event.type === key).length);
   const events = active === "all" ? all : all.filter((event) => event.type === active);
   const tabs = `<nav class="member-tabs" aria-label="Filter the chronicle">${CHRONICLE_FILTERS.map(([key, label]) => `<a href="${key === "all" ? "/members/chronicle" : `/members/chronicle?type=${key}`}"${key === active ? ' aria-current="page"' : ""}>${label} (${countOf(key)})</a>`).join("")}</nav>`;
-  const items = events.map((event) => `<li class="chronicle-entry chronicle-${escapeHtml(event.type)}"><time datetime="${escapeHtml(event.at)}">${escapeHtml(event.at.slice(0, 16).replace("T", " "))} UTC</time><p>${memberEventText(event)}</p></li>`).join("");
+  const items = events.map((event) => `<li class="chronicle-entry chronicle-${escapeHtml(event.type)}"><time datetime="${escapeHtml(event.at)}" data-local-time="datetime">${escapeHtml(event.at.slice(0, 16).replace("T", " "))} UTC</time><p>${memberEventText(event)}</p></li>`).join("");
   const body = events.length
     ? `<ol class="chronicle-list">${items}</ol>`
     : `<p class="quiet">${active === "all" ? "Changes are recorded after the next successful census sync." : CHRONICLE_EMPTY[active]}</p>`;
   const content = all.length
     ? `${tabs}<section class="parchment-panel chronicle-panel"><div class="panel-heading"><div><span>Guild history</span><h2>Roster changes</h2><p>Who joined, who left and who changed their plans.</p></div><strong>${count(events.length, "entry", "entries")}</strong></div>${body}</section>`
     : `<section class="parchment-panel empty-ledger"><h2>The Chronicle awaits its first page</h2><p>Changes are recorded after the next successful census sync.</p></section>`;
-  return shell({ title: "Guild Chronicle", active: "/members/chronicle", snapshot, content });
+  return shell({ title: "Guild Chronicle", active: "/members/chronicle", snapshot, content, scripts: ["/assets/local-time.js"] });
 }
 
 const ROLE_LABELS = { tank: "Tanks", healer: "Healers", dps: "Damage dealers" };
@@ -295,13 +295,13 @@ export function renderMemberProfile(snapshot, memberData, name) {
   }
   const notes = [comboWarning(member.race, member.characterClass), roleWarning(member.characterClass, member.role)].filter(Boolean);
   const history = memberData.events.filter((event) => event.type !== "baseline" && event.name.toLowerCase() === key).reverse();
-  const items = history.map((event) => `<li class="chronicle-entry chronicle-${escapeHtml(event.type)}"><time datetime="${escapeHtml(event.at)}">${escapeHtml(event.at.slice(0, 16).replace("T", " "))} UTC</time><p>${memberEventText(event)}</p></li>`).join("");
+  const items = history.map((event) => `<li class="chronicle-entry chronicle-${escapeHtml(event.type)}"><time datetime="${escapeHtml(event.at)}" data-local-time="datetime">${escapeHtml(event.at.slice(0, 16).replace("T", " "))} UTC</time><p>${memberEventText(event)}</p></li>`).join("");
   const content = `<section class="parchment-panel census-panel"><div class="panel-heading"><div><span>${escapeHtml(factionOf(member.race))} adventurer</span><h2>${escapeHtml(member.name)}</h2><p><span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span> · ${escapeHtml(member.role)} · ${escapeHtml(member.race)}</p></div><a class="wow-button" href="/members">Back to roster</a></div>
     <dl class="profile-facts"><div><dt>Ruleset preference</dt><dd>${escapeHtml(member.server)}</dd></div><div><dt>Profession 1</dt><dd>${escapeHtml(member.profession1)}</dd></div><div><dt>Profession 2</dt><dd>${escapeHtml(member.profession2)}</dd></div></dl>
     ${notes.map((note) => `<p class="combo-flag">⚠ ${escapeHtml(note)} — check the form answer</p>`).join("")}</section>
   <section class="parchment-panel chronicle-panel"><div class="panel-heading"><div><span>History</span><h2>${escapeHtml(member.name)}'s chronicle</h2></div></div>${items ? `<ol class="chronicle-list">${items}</ol>` : '<p class="quiet">No changes recorded since the roll opened.</p>'}</section>`;
   // The page title shows the name, but link previews are cached by other services, so they stay generic.
-  return shell({ title: member.name, previewTitle: "Guild member profile", active: "/members", snapshot, content });
+  return shell({ title: member.name, previewTitle: "Guild member profile", active: "/members", snapshot, content, scripts: ["/assets/local-time.js"] });
 }
 
 const ERROR_PAGES = {
