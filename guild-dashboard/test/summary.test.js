@@ -102,3 +102,35 @@ test("copy button copies via the clipboard, falls back to selection, and tells t
   failed.field.handlers.focus();
   assert.equal(failed.field.selected, true, "focusing the box selects the text");
 });
+
+const many = (count, race, characterClass, role, server = "Normal") => Array.from({ length: count }, (_, i) => rec(i + 1, race, characterClass, role, server));
+
+test("the summary says which raid size each faction is ready for, or exactly what it needs", () => {
+  const ready = [...many(2, "Orc", "Warrior", "Tank"), ...many(3, "Troll", "Priest", "Healer"), ...many(5, "Undead", "Mage", "DPS")];
+  const text = buildSummary({ records: ready }, {}, NOW);
+  assert.match(text, /\*\*Raid readiness:\*\*\n- Horde — ready for a 10-player raid/);
+
+  const notReady = buildSummary({ records: [...many(1, "Orc", "Warrior", "Tank"), ...many(1, "Human", "Paladin", "Healer")] }, {}, NOW);
+  assert.match(notReady, /- Horde — not ready for 10-player yet \(needs 1 tank, 3 healers, 5 DPS\)/);
+  assert.match(notReady, /- Alliance — not ready for 10-player yet \(needs 2 tanks, 2 healers, 5 DPS\)/);
+});
+
+test("the summary reports readiness per ruleset when members chose different ones, never falsely ready", () => {
+  const split = [
+    ...many(2, "Orc", "Warrior", "Tank", "Normal"),
+    ...many(3, "Troll", "Priest", "Healer", "Normal"),
+    ...many(5, "Undead", "Mage", "DPS", "PvP")
+  ];
+  const text = buildSummary({ records: split }, {}, NOW);
+  assert.match(text, /- Horde · Normal — not ready for 10-player yet \(needs 5 DPS\)/);
+  assert.match(text, /- Horde · PvP — not ready for 10-player yet \(needs 2 tanks, 3 healers\)/);
+  assert.equal(/— ready for/.test(text), false);
+});
+
+test("a larger ready guild reports its biggest ready size and the summary still fits in a Discord message", () => {
+  const big = [...many(4, "Orc", "Warrior", "Tank"), ...many(11, "Troll", "Priest", "Healer"), ...many(25, "Undead", "Mage", "DPS")];
+  const text = buildSummary({ records: big }, { members: [{ name: "A", profession1: "Mining", profession2: "Skinning" }] }, NOW);
+  assert.match(text, /- Horde — ready for a 40-player raid/);
+  assert.ok(text.length < 2000, `summary is ${text.length} characters`);
+  assert.equal(buildSummary({ records: [] }, {}, NOW).includes("Raid readiness"), false, "nothing to report for an empty guild");
+});

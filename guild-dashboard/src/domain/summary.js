@@ -1,4 +1,4 @@
-import { missingProfessions } from "./raid.js";
+import { missingProfessions, raidReadiness } from "./raid.js";
 import { LAUNCH_AT, factionOf, roleOf } from "./wow-data.js";
 
 const DAY_MS = 86_400_000;
@@ -27,6 +27,15 @@ export function buildSummary(snapshot, memberData = {}, now = new Date()) {
       const roles = { tank: 0, healer: 0, dps: 0, flex: 0 };
       for (const record of group) roles[roleOf(record.role)] += 1;
       lines.push(`**${faction}** — ${plural(roles.tank, "tank", "tanks")} · ${plural(roles.healer, "healer", "healers")} · ${roles.dps} DPS${roles.flex ? ` · ${roles.flex} flexible` : ""}`);
+    }
+
+    lines.push("**Raid readiness:**");
+    for (const row of raidReadiness(records)) {
+      const readySizes = row.sizes.filter((item) => item.ready).map((item) => item.size);
+      const smallest = row.sizes[0];
+      lines.push(readySizes.length
+        ? `- ${row.label} — ready for a ${Math.max(...readySizes)}-player raid`
+        : `- ${row.label} — not ready for ${smallest.size}-player yet (needs ${smallest.needs.join(", ")})`);
     }
 
     lines.push(`**Top classes:** ${tally(records.map((record) => record.characterClass)).slice(0, 3).map(([name, count]) => `${name} ${count}`).join(", ")}`);
