@@ -28,7 +28,7 @@ function publicPayload(snapshot) {
 }
 
 export function buildApp({ dataService, rateLimitPerMinute = 300, logger = true }) {
-  const app = Fastify({ logger, bodyLimit: 16 * 1024, trustProxy: false });
+  const app = Fastify({ logger, bodyLimit: 16 * 1024, trustProxy: false, routerOptions: { ignoreTrailingSlash: true, caseSensitive: false } });
 
   app.addHook("onRequest", async (request, reply) => {
     reply.headers({
@@ -89,7 +89,7 @@ export function buildApp({ dataService, rateLimitPerMinute = 300, logger = true 
   app.get("/responses", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderResponses(dataService.snapshot())));
   app.get("/statistics", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderStatistics(dataService.snapshot())));
   app.get("/assets/:name", async (request, reply) => {
-    const asset = ASSETS.get(request.params.name);
+    const asset = ASSETS.get(String(request.params.name).toLowerCase());
     if (!asset) return reply.code(404).send({ error: "Not found" });
     return reply.header("cache-control", "public, max-age=3600").type(asset.type).send(asset.body);
   });

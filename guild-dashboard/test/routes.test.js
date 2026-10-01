@@ -83,3 +83,20 @@ test("distinguishes process and data readiness", async (t) => {
   assert.equal((await app.inject({ url: "/health/live" })).statusCode, 200);
   assert.equal((await app.inject({ url: "/health/ready" })).statusCode, 503);
 });
+
+test("trailing slashes and capitalisation do not cause 404s, and queries keep their case", async (t) => {
+  const members = [{ name: "Al#1", server: "Normal", race: "Orc", characterClass: "Warrior", role: "Tank", profession1: "Mining", profession2: "Skinning" }];
+  const snapshot = { records: [record], stats: buildStats([record]), fetchedAt: "2026-09-22T12:00:00.000Z", status: "fresh", lastRefreshFailed: false };
+  const app = buildApp({ dataService: { snapshot: () => snapshot, memberSnapshot: () => ({ members, events: [], fetchedAt: snapshot.fetchedAt }) }, logger: false, rateLimitPerMinute: 0 });
+  t.after(() => app.close());
+
+  for (const url of ["/members/", "/MEMBERS", "/Members/Chronicle/", "/RAID?size=20", "/Statistics/", "/health/live/", "/Assets/Styles.CSS"]) {
+    assert.equal((await app.inject({ url })).statusCode, 200, url);
+  }
+  const profile = await app.inject({ url: "/Member/?name=Al%231" });
+  assert.equal(profile.statusCode, 200);
+  assert.match(profile.body, /Al#1/);
+  assert.equal((await app.inject({ url: "/member?name=AL%231" })).statusCode, 200, "name lookup stays case-insensitive");
+  assert.equal((await app.inject({ url: "/nope/" })).statusCode, 404);
+  assert.equal((await app.inject({ url: "/assets/../server.js" })).statusCode, 404);
+});
