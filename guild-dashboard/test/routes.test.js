@@ -100,3 +100,21 @@ test("trailing slashes and capitalisation do not cause 404s, and queries keep th
   assert.equal((await app.inject({ url: "/nope/" })).statusCode, 404);
   assert.equal((await app.inject({ url: "/assets/../server.js" })).statusCode, 404);
 });
+
+test("every page shows when the data was last updated, outside the live status region", async (t) => {
+  const app = buildApp({ dataService: service(), logger: false, rateLimitPerMinute: 0 });
+  t.after(() => app.close());
+  for (const url of ["/", "/responses", "/statistics", "/raid", "/members"]) {
+    const body = (await app.inject({ url })).body;
+    assert.match(body, /<time class="sync-time" data-sync-time datetime="2026-09-22T12:00:00.000Z">updated 12:00 UTC<\/time>/, url);
+    assert.match(body, /<span role="status">Guild census synced<\/span>/, url);
+    assert.ok(body.indexOf('role="status">Guild census') < body.indexOf("data-sync-time"), "time follows the status text");
+    assert.doesNotMatch(body, /<span role="status">[^<]*<time/, "the ticking time is not inside the announced region");
+    assert.match(body, /\/assets\/sync-time\.js/);
+  }
+  assert.equal((await app.inject({ url: "/assets/sync-time.js" })).statusCode, 200);
+
+  const empty = buildApp({ dataService: service({ records: [], stats: buildStats([]), status: "empty", fetchedAt: null }), logger: false, rateLimitPerMinute: 0 });
+  t.after(() => empty.close());
+  assert.equal((await empty.inject({ url: "/" })).body.includes("data-sync-time"), false, "no time before the first sync");
+});

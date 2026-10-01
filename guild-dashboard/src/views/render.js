@@ -24,7 +24,7 @@ function navLink(href, label, active) {
 }
 
 function shell({ title, active, snapshot, content, scripts = [] }) {
-  const scriptTags = scripts.map((source) => `<script src="${source}" defer></script>`).join("");
+  const scriptTags = [...scripts, "/assets/sync-time.js"].map((source) => `<script src="${source}" defer></script>`).join("");
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -48,7 +48,7 @@ function shell({ title, active, snapshot, content, scripts = [] }) {
     <main id="main-content" class="ledger-main">
       <header class="ledger-topbar">
         <div><span class="realm-mark">WoW Forever</span><h1>${escapeHtml(title)}</h1></div>
-        <div class="sync-rune" role="status"><span aria-hidden="true"></span>${escapeHtml(statusCopy(snapshot))}</div>
+        <div class="sync-rune"><span class="sync-dot" aria-hidden="true"></span><span role="status">${escapeHtml(statusCopy(snapshot))}</span>${snapshot.fetchedAt ? ` <time class="sync-time" data-sync-time datetime="${escapeHtml(snapshot.fetchedAt)}">updated ${escapeHtml(String(snapshot.fetchedAt).slice(11, 16))} UTC</time>` : ""}</div>
       </header>
       ${content}
       <footer>Emails, comments and response metadata are never read by this ledger.${snapshot.rejectedRows ? ` ${snapshot.rejectedRows} incomplete ${snapshot.rejectedRows === 1 ? "response was" : "responses were"} skipped.` : ""}</footer>

@@ -87,3 +87,41 @@ test("countdown leaves the static fallback text for a bad date or a page without
   const missing = countdownHarness({ launch: "2026-11-04T23:00:00Z", now: { value: 0 }, present: false });
   assert.equal(missing.intervals.length, 0);
 });
+
+function syncTimeHarness({ datetime, now }) {
+  const element = { textContent: "updated 12:00 UTC", getAttribute: (name) => (name === "datetime" ? datetime : null) };
+  const intervals = [];
+  const clock = { value: now };
+  runScript("sync-time.js", {
+    document: { querySelector: (selector) => (selector === "[data-sync-time]" && datetime !== undefined ? element : null) },
+    window: { setInterval: (callback, ms) => { intervals.push({ callback, ms }); } },
+    Date: { now: () => clock.value, parse: (value) => Date.parse(value) }
+  });
+  return { element, intervals, clock };
+}
+
+test("the sync time reads naturally from just now to days and keeps itself current", () => {
+  const base = Date.parse("2026-10-01T12:00:00Z");
+  const at = (ms) => syncTimeHarness({ datetime: "2026-10-01T12:00:00Z", now: base + ms }).element.textContent;
+  assert.equal(at(5_000), "updated just now");
+  assert.equal(at(60_000), "updated 1 min ago");
+  assert.equal(at(59 * 60_000), "updated 59 min ago");
+  assert.equal(at(60 * 60_000), "updated 1 hour ago");
+  assert.equal(at(5 * 3_600_000), "updated 5 hours ago");
+  assert.equal(at(24 * 3_600_000), "updated 1 day ago");
+  assert.equal(at(3 * 86_400_000), "updated 3 days ago");
+
+  const live = syncTimeHarness({ datetime: "2026-10-01T12:00:00Z", now: base });
+  assert.equal(live.intervals[0].ms, 30_000);
+  live.clock.value = base + 7 * 60_000;
+  live.intervals[0].callback();
+  assert.equal(live.element.textContent, "updated 7 min ago");
+});
+
+test("the sync time ignores a clock that is behind the server, a bad date and pages without it", () => {
+  assert.equal(syncTimeHarness({ datetime: "2026-10-01T12:00:00Z", now: Date.parse("2026-10-01T11:00:00Z") }).element.textContent, "updated just now");
+  const bad = syncTimeHarness({ datetime: "not a date", now: 0 });
+  assert.equal(bad.element.textContent, "updated 12:00 UTC", "falls back to the server-rendered text");
+  assert.equal(bad.intervals.length, 0);
+  assert.equal(syncTimeHarness({ datetime: undefined, now: 0 }).intervals.length, 0);
+});

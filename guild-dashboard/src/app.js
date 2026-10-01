@@ -14,6 +14,7 @@ const ASSETS = new Map([
   ["table-filters.js", { type: "text/javascript; charset=utf-8", body: readFileSync(new URL("../public/table-filters.js", import.meta.url), "utf8") }],
   ["countdown.js", { type: "text/javascript; charset=utf-8", body: readFileSync(new URL("../public/countdown.js", import.meta.url), "utf8") }],
   ["copy-summary.js", { type: "text/javascript; charset=utf-8", body: readFileSync(new URL("../public/copy-summary.js", import.meta.url), "utf8") }],
+  ["sync-time.js", { type: "text/javascript; charset=utf-8", body: readFileSync(new URL("../public/sync-time.js", import.meta.url), "utf8") }],
   ["live-refresh.js", { type: "text/javascript; charset=utf-8", body: readFileSync(new URL("../public/live-refresh.js", import.meta.url), "utf8") }]
 ]);
 
