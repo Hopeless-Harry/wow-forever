@@ -1,7 +1,7 @@
 import { ERROR_COPY } from "../data/errors.js";
 import { groupPlan } from "../domain/groups.js";
 import { buildRaidPlan, missingProfessions, professionDirectory } from "../domain/raid.js";
-import { LAUNCH_AT, RAID_SIZES, comboWarning, factionOf, roleWarning } from "../domain/wow-data.js";
+import { LAUNCH_AT, RAID_SIZES, comboWarning, factionOf, forRuleset, roleWarning, rulesetOptions } from "../domain/wow-data.js";
 import { escapeHtml } from "./escape.js";
 
 const CLASS_NAMES = new Set(["Warrior", "Paladin", "Hunter", "Rogue", "Priest", "Shaman", "Mage", "Warlock", "Druid"]);
@@ -167,15 +167,18 @@ function planRow(label, note, have, need, state) {
   return `<tr class="plan-${escapeHtml(state)}"><th scope="row">${escapeHtml(label)}${note ? `<small>${escapeHtml(note)}</small>` : ""}</th><td>${have} / ${need}</td><td><span class="plan-badge">${STATUS_LABELS[state]}</span></td></tr>`;
 }
 
-export function renderRaidPlan(snapshot, size = 40, memberData = { members: [] }) {
-  const sizeTabs = `<nav class="member-tabs" aria-label="Raid size">${RAID_SIZES.map((option) => `<a href="/raid?size=${option}"${option === size ? ' aria-current="page"' : ""}>${option}-player</a>`).join("")}</nav>`;
-  const plan = buildRaidPlan(snapshot.records, size);
+export function renderRaidPlan(snapshot, size = 40, memberData = { members: [] }, ruleset = "") {
+  const query = (nextSize, nextRuleset) => `/raid?size=${nextSize}${nextRuleset ? `&ruleset=${encodeURIComponent(nextRuleset)}` : ""}`;
+  const sizeTabs = `<nav class="member-tabs" aria-label="Raid size">${RAID_SIZES.map((option) => `<a href="${escapeHtml(query(option, ruleset))}"${option === size ? ' aria-current="page"' : ""}>${option}-player</a>`).join("")}</nav>`;
+  const options = rulesetOptions([...snapshot.records, ...memberData.members]);
+  const rulesetTabs = options.length > 1 ? `<nav class="member-tabs" aria-label="Ruleset"><a href="${escapeHtml(query(size, ""))}"${!ruleset ? ' aria-current="page"' : ""}>All rulesets</a>${options.map((option) => `<a href="${escapeHtml(query(size, option))}"${option === ruleset ? ' aria-current="page"' : ""}>${escapeHtml(option)}</a>`).join("")}</nav>` : "";
+  const plan = buildRaidPlan(forRuleset(snapshot.records, ruleset), size);
   const panels = plan.map((group) => `<section class="parchment-panel raid-panel"><div class="panel-heading"><div><span>${escapeHtml(group.faction)} muster</span><h2>${group.total} ${group.total === 1 ? "adventurer" : "adventurers"}</h2></div></div>
     <h3>Roles</h3><div class="table-scroll"><table aria-label="${escapeHtml(group.faction)} role balance"><thead><tr><th>Role</th><th>Have / aim</th><th>Status</th></tr></thead><tbody>${group.roles.map((row) => planRow(ROLE_LABELS[row.role], "", row.have, row.need, row.status)).join("")}</tbody></table></div>${group.flex ? `<p class="quiet">${group.flex} flexible ${group.flex === 1 ? "player" : "players"} could fill a gap.</p>` : ""}
     <h3>Class coverage</h3><div class="table-scroll"><table aria-label="${escapeHtml(group.faction)} class coverage"><thead><tr><th>Class</th><th>Have / aim</th><th>Status</th></tr></thead><tbody>${group.utility.map((row) => planRow(row.label, row.note, row.have, row.need, row.status)).join("")}</tbody></table></div></section>`).join("");
-  const groups = groupPlan(memberData.members, size).map((faction) => `<section class="parchment-panel raid-panel wide"><div class="panel-heading"><div><span>${escapeHtml(faction.faction)} suggested groups</span><h2>${faction.groups.reduce((sum, group) => sum + group.members.length, 0)} placed${faction.bench.length ? `, ${faction.bench.length} on the bench` : ""}</h2></div></div><p class="quiet">Ruleset preferences: ${faction.rulesets.map((item) => `${escapeHtml(item.label)} (${item.count})`).join(" · ")}. Players can only group within one faction and one ruleset.</p><div class="group-grid">${faction.groups.map((group, index) => `<article class="group-card"><h3>Group ${index + 1}</h3><ul>${group.members.map((member) => `<li><strong>${escapeHtml(member.name)}</strong><span class="member-meta"><span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span> <span aria-hidden="true">·</span> ${escapeHtml(member.role)}</span></li>`).join("") || '<li class="quiet">Open slots</li>'}</ul></article>`).join("")}</div>${faction.bench.length ? `<p class="quiet">Bench: ${faction.bench.map((member) => escapeHtml(member.name)).join(", ")}</p>` : ""}</section>`).join("");
+  const groups = groupPlan(forRuleset(memberData.members, ruleset), size).map((faction) => `<section class="parchment-panel raid-panel wide"><div class="panel-heading"><div><span>${escapeHtml(faction.faction)} suggested groups</span><h2>${faction.groups.reduce((sum, group) => sum + group.members.length, 0)} placed${faction.bench.length ? `, ${faction.bench.length} on the bench` : ""}</h2></div></div><p class="quiet">Ruleset preferences: ${faction.rulesets.map((item) => `${escapeHtml(item.label)} (${item.count})`).join(" · ")}. Players can only group within one faction and one ruleset.</p><div class="group-grid">${faction.groups.map((group, index) => `<article class="group-card"><h3>Group ${index + 1}</h3><ul>${group.members.map((member) => `<li><strong>${escapeHtml(member.name)}</strong><span class="member-meta"><span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span> <span aria-hidden="true">·</span> ${escapeHtml(member.role)}</span></li>`).join("") || '<li class="quiet">Open slots</li>'}</ul></article>`).join("")}</div>${faction.bench.length ? `<p class="quiet">Bench: ${faction.bench.map((member) => escapeHtml(member.name)).join(", ")}</p>` : ""}</section>`).join("");
   const content = snapshot.records.length
-    ? `${sizeTabs}<p class="quiet">Factions cannot group together, so each side is planned separately. Targets are a rough guide from community raid advice, not a rule.</p><div class="statistics-grid">${panels}</div>${groups}`
+    ? `${sizeTabs}${rulesetTabs}<p class="quiet">Factions cannot group together, so each side is planned separately.${ruleset ? ` Showing players who chose ${escapeHtml(ruleset)} or are happy with either.` : ""} Targets are a rough guide from community raid advice, not a rule.</p><div class="statistics-grid">${panels}</div>${groups}`
     : emptyPanel(snapshot);
   return shell({ title: "Raid Planner", active: "/raid", snapshot, content, scripts: ["/assets/live-refresh.js"] });
 }

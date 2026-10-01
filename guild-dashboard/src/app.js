@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 
 import { membersToCsv } from "./domain/export.js";
 import { createRateLimiter, isLoopback, limiterKey } from "./rate-limit.js";
-import { RAID_SIZES } from "./domain/wow-data.js";
+import { RAID_SIZES, rulesetOptions } from "./domain/wow-data.js";
 import { PUBLIC_FIELDS } from "./domain/normalize.js";
 import { renderDashboard, renderMemberChronicle, renderMemberProfile, renderMembers, renderProfessions, renderRaidPlan, renderResponses, renderStatistics } from "./views/render.js";
 
@@ -70,7 +70,11 @@ export function buildApp({ dataService, rateLimitPerMinute = 300, logger = true 
   app.get("/raid", async (request, reply) => {
     const requested = Number(request.query?.size);
     const size = RAID_SIZES.includes(requested) ? requested : 40;
-    return html(reply).send(renderRaidPlan(dataService.snapshot(), size, dataService.memberSnapshot?.() ?? { members: [] }));
+    const snapshot = dataService.snapshot();
+    const memberData = dataService.memberSnapshot?.() ?? { members: [] };
+    const asked = String(request.query?.ruleset ?? "");
+    const ruleset = rulesetOptions([...snapshot.records, ...memberData.members]).find((option) => option.toLowerCase() === asked.toLowerCase()) ?? "";
+    return html(reply).send(renderRaidPlan(snapshot, size, memberData, ruleset));
   });
   app.get("/members.csv", async (_request, reply) => {
     const members = dataService.memberSnapshot?.().members ?? [];

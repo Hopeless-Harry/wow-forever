@@ -54,3 +54,19 @@ export function roleWarning(characterClass, role) {
   if (kind === "healer" && CANNOT_HEAL.has(characterClass)) return `${characterClass} is not normally a healer`;
   return "";
 }
+
+// The Form's ruleset answers are shown verbatim; only an "either/any" answer is treated as flexible.
+export function isFlexibleRuleset(value) {
+  return /\b(either|any|both)\b/i.test(String(value));
+}
+
+export function rulesetOptions(items) {
+  return [...new Set(items.map((item) => item.server).filter((value) => value && !isFlexibleRuleset(value)))].sort((a, b) => a.localeCompare(b));
+}
+
+// A group can only form within one ruleset, so a chosen ruleset keeps players who picked
+// it plus those happy with either. No choice keeps everyone.
+export function forRuleset(items, ruleset) {
+  if (!ruleset) return items;
+  return items.filter((item) => item.server === ruleset || isFlexibleRuleset(item.server));
+}
