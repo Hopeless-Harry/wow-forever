@@ -1,8 +1,9 @@
 import Fastify from "fastify";
 import { readFileSync } from "node:fs";
 
+import { RAID_SIZES } from "./domain/wow-data.js";
 import { PUBLIC_FIELDS } from "./domain/normalize.js";
-import { renderDashboard, renderMemberChronicle, renderMembers, renderResponses, renderStatistics } from "./views/render.js";
+import { renderDashboard, renderMemberChronicle, renderMembers, renderProfessions, renderRaidPlan, renderResponses, renderStatistics } from "./views/render.js";
 
 const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 const ASSETS = new Map([
@@ -40,6 +41,12 @@ export function buildApp({ dataService, logger = true }) {
   const html = (reply) => reply.type("text/html; charset=utf-8");
   const memberPage = (render) => async (_request, reply) => html(reply).send(render(dataService.snapshot(), dataService.memberSnapshot?.() ?? { members: [], events: [] }));
 
+  app.get("/members/professions", memberPage(renderProfessions));
+  app.get("/raid", async (request, reply) => {
+    const requested = Number(request.query?.size);
+    const size = RAID_SIZES.includes(requested) ? requested : 40;
+    return html(reply).send(renderRaidPlan(dataService.snapshot(), size));
+  });
   app.get("/members", memberPage(renderMembers));
   app.get("/members/chronicle", memberPage(renderMemberChronicle));
 

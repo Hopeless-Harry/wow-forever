@@ -1,3 +1,5 @@
+import { buildRaidPlan, professionDirectory } from "../domain/raid.js";
+import { RAID_SIZES, comboWarning, factionOf } from "../domain/wow-data.js";
 import { escapeHtml } from "./escape.js";
 
 const CLASS_NAMES = new Set(["Warrior", "Paladin", "Hunter", "Rogue", "Priest", "Shaman", "Mage", "Warlock", "Druid"]);
@@ -36,7 +38,7 @@ function shell({ title, active, snapshot, content, scripts = [] }) {
     <aside class="guild-rail" aria-label="Guild Ledger navigation">
       <a class="guild-seal" href="/" aria-label="Moms Against Magic Guild Ledger"><span>M</span></a>
       <div class="guild-name"><strong>Moms Against Magic</strong><span>Guild Ledger</span></div>
-      <nav>${navLink("/", "Dashboard", active)}${navLink("/responses", "Guild Census", active)}${navLink("/statistics", "Statistics", active)}${navLink("/members", "Roster", active)}${navLink("/members/chronicle", "Chronicle", active)}</nav>
+      <nav>${navLink("/", "Dashboard", active)}${navLink("/responses", "Guild Census", active)}${navLink("/statistics", "Statistics", active)}${navLink("/raid", "Raid Planner", active)}${navLink("/members", "Roster", active)}${navLink("/members/professions", "Professions", active)}${navLink("/members/chronicle", "Chronicle", active)}</nav>
       <p class="privacy-mark">Every adventurer<br>on the roll</p>
     </aside>
     <main id="main-content" class="ledger-main">
@@ -110,8 +112,8 @@ function lastChange(events, name) {
 
 export function renderMembers(snapshot, memberData) {
   const members = [...memberData.members].sort((a, b) => a.name.localeCompare(b.name));
-  const rows = members.map((member) => `<tr><th scope="row">${escapeHtml(member.name)}</th><td><span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span></td><td>${escapeHtml(member.role)}</td><td>${escapeHtml(member.race)}</td><td>${escapeHtml(member.server)}</td><td>${escapeHtml(member.profession1)}</td><td>${escapeHtml(member.profession2)}</td><td>${escapeHtml(lastChange(memberData.events, member.name))}</td></tr>`).join("");
-  const content = `${members.length ? `<section class="parchment-panel census-panel"><div class="panel-heading"><div><span>Named roster</span><h2>Guild Roster</h2><p>Everyone's current plans, with their latest change.</p></div><strong>${members.length} ${members.length === 1 ? "member" : "members"}</strong></div><div class="table-scroll"><table><thead><tr><th>Name</th><th>Class</th><th>Role</th><th>Race</th><th>Realm</th><th>Profession 1</th><th>Profession 2</th><th>Latest change</th></tr></thead><tbody>${rows}</tbody></table></div></section>` : `<section class="parchment-panel empty-ledger"><h2>No members on the roll yet</h2><p>Members appear after the next successful census sync.</p></section>`}`;
+  const rows = members.map((member) => `<tr><th scope="row">${escapeHtml(member.name)}</th><td><span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span></td><td>${escapeHtml(member.role)}</td><td>${escapeHtml(member.race)}</td><td>${escapeHtml(factionOf(member.race))}</td><td>${escapeHtml(member.server)}</td><td>${escapeHtml(member.profession1)}</td><td>${escapeHtml(member.profession2)}</td><td>${escapeHtml(lastChange(memberData.events, member.name))}${comboWarning(member.race, member.characterClass) ? `<br><small class="combo-flag">⚠ ${escapeHtml(comboWarning(member.race, member.characterClass))} — check the form answer</small>` : ""}</td></tr>`).join("");
+  const content = `${members.length ? `<section class="parchment-panel census-panel"><div class="panel-heading"><div><span>Named roster</span><h2>Guild Roster</h2><p>Everyone's current plans, with their latest change.</p></div><strong>${members.length} ${members.length === 1 ? "member" : "members"}</strong></div><div class="table-scroll"><table><thead><tr><th>Name</th><th>Class</th><th>Role</th><th>Race</th><th>Faction</th><th>Realm</th><th>Profession 1</th><th>Profession 2</th><th>Latest change</th></tr></thead><tbody>${rows}</tbody></table></div></section>` : `<section class="parchment-panel empty-ledger"><h2>No members on the roll yet</h2><p>Members appear after the next successful census sync.</p></section>`}`;
   return shell({ title: "Guild Roster", active: "/members", snapshot, content });
 }
 
@@ -131,4 +133,32 @@ export function renderMemberChronicle(snapshot, memberData) {
   const items = events.map((event) => `<li class="chronicle-entry chronicle-${escapeHtml(event.type)}"><time datetime="${escapeHtml(event.at)}">${escapeHtml(event.at.slice(0, 16).replace("T", " "))} UTC</time><p>${memberEventText(event)}</p></li>`).join("");
   const content = `${events.length ? `<section class="parchment-panel chronicle-panel"><div class="panel-heading"><div><span>Guild history</span><h2>Guild Chronicle</h2><p>Who joined, who left and who changed their plans.</p></div><strong>${events.length} ${events.length === 1 ? "entry" : "entries"}</strong></div><ol class="chronicle-list">${items}</ol></section>` : `<section class="parchment-panel empty-ledger"><h2>The Chronicle awaits its first page</h2><p>Changes are recorded after the next successful census sync.</p></section>`}`;
   return shell({ title: "Guild Chronicle", active: "/members/chronicle", snapshot, content });
+}
+
+const ROLE_LABELS = { tank: "Tanks", healer: "Healers", dps: "Damage dealers" };
+const STATUS_LABELS = { ready: "Covered", short: "Short", missing: "Missing" };
+
+function planRow(label, note, have, need, state) {
+  return `<tr class="plan-${escapeHtml(state)}"><th scope="row">${escapeHtml(label)}${note ? `<small>${escapeHtml(note)}</small>` : ""}</th><td>${have} / ${need}</td><td><span class="plan-badge">${STATUS_LABELS[state]}</span></td></tr>`;
+}
+
+export function renderRaidPlan(snapshot, size = 40) {
+  const sizeTabs = `<nav class="member-tabs" aria-label="Raid size">${RAID_SIZES.map((option) => `<a href="/raid?size=${option}"${option === size ? ' aria-current="page"' : ""}>${option}-player</a>`).join("")}</nav>`;
+  const plan = buildRaidPlan(snapshot.records, size);
+  const panels = plan.map((group) => `<section class="parchment-panel raid-panel"><div class="panel-heading"><div><span>${escapeHtml(group.faction)} muster</span><h2>${group.total} ${group.total === 1 ? "adventurer" : "adventurers"}</h2></div></div>
+    <h3>Roles</h3><table><thead><tr><th>Role</th><th>Have / aim</th><th>Status</th></tr></thead><tbody>${group.roles.map((row) => planRow(ROLE_LABELS[row.role], "", row.have, row.need, row.status)).join("")}</tbody></table>${group.flex ? `<p class="quiet">${group.flex} flexible ${group.flex === 1 ? "player" : "players"} could fill a gap.</p>` : ""}
+    <h3>Class coverage</h3><table><thead><tr><th>Class</th><th>Have / aim</th><th>Status</th></tr></thead><tbody>${group.utility.map((row) => planRow(row.label, row.note, row.have, row.need, row.status)).join("")}</tbody></table></section>`).join("");
+  const content = snapshot.records.length
+    ? `${sizeTabs}<p class="quiet">Factions cannot group together, so each side is planned separately. Targets are a rough guide from community raid advice, not a rule.</p><div class="statistics-grid">${panels}</div>`
+    : emptyPanel();
+  return shell({ title: "Raid Planner", active: "/raid", snapshot, content, scripts: ["/assets/live-refresh.js"] });
+}
+
+export function renderProfessions(snapshot, memberData) {
+  const directory = professionDirectory(memberData.members);
+  const cards = directory.map((entry) => `<section class="parchment-panel profession-card"><h2>${escapeHtml(entry.profession)} <small>${entry.crafters.length}</small></h2><ul>${entry.crafters.map((member) => `<li><strong>${escapeHtml(member.name)}</strong> <span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span></li>`).join("")}</ul></section>`).join("");
+  const content = directory.length
+    ? `<p class="quiet">Who can craft or gather what. Professions listed on the Form only — skill levels are not tracked.</p><div class="statistics-grid">${cards}</div>`
+    : `<section class="parchment-panel empty-ledger"><h2>No professions recorded yet</h2><p>They appear after the next successful census sync.</p></section>`;
+  return shell({ title: "Profession Directory", active: "/members/professions", snapshot, content });
 }

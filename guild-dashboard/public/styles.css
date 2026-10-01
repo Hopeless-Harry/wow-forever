@@ -417,3 +417,14 @@ footer {
 .chronicle-entry p { margin: 0.15rem 0 0; }
 .chronicle-milestone::before, .chronicle-leader-change::before { background: var(--gold-bright); }
 
+
+.member-tabs { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
+.member-tabs a[aria-current="page"] { color: var(--gold-bright); }
+.raid-panel h3 { margin: 1rem 0 0.4rem; }
+.raid-panel th small, .profession-card h2 small { display: block; font-weight: 400; opacity: 0.75; }
+.plan-badge { font-weight: 700; }
+.plan-ready .plan-badge { color: #1f5a2a; }
+.plan-short .plan-badge { color: #8a5a00; }
+.plan-missing .plan-badge { color: #8a1f17; }
+.profession-card ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; }
+.combo-flag { color: #8a1f17; }
