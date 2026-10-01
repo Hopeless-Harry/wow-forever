@@ -989,7 +989,7 @@ for _, season in ipairs(Medals.seasons) do
 end
 
 -- Goals: up to three unearned medals the player pins to follow on Home.
-Medals.maxPinned = 3
+Medals.maxPinned = 6
 
 function Medals:IsPinned(id)
   local list = Addon.db and Addon.db.settings and Addon.db.settings.pinnedMedals

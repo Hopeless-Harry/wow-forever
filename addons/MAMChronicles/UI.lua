@@ -773,7 +773,7 @@ function UI:ToggleGoal(row, button)
   if entry.earned then return end
   local id = entry.def.id
   if Addon.Medals:IsPinned(id) then Addon.Medals:SetPinned(id, false)
-  elseif not Addon.Medals:SetPinned(id, true) then Addon:Print("You can pin 3 goals. Unpin one first.") end
+  elseif not Addon.Medals:SetPinned(id, true) then Addon:Print("You can pin 6 goals. Unpin one first.") end
   self:RefreshMedals()
 end
 

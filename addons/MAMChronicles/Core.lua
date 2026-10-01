@@ -2,7 +2,7 @@ MAMChronicles = MAMChronicles or {}
 local Addon = MAMChronicles
 
 Addon.name = "MAMChronicles"
-Addon.version = "0.2.0-alpha21"
+Addon.version = "0.2.0-alpha22"
 Addon.schemaVersion = 1
 
 function Addon:Now()
@@ -100,7 +100,7 @@ end
 local WELCOME_VERSION = "personal-chronicle-v3"
 
 -- One line shown on Home after an update; keep it in step with CHANGELOG.md.
-Addon.whatsNewText = "medal rows no longer overlap, sharper Home numbers, and login-day quests count this week correctly before launch."
+Addon.whatsNewText = "jumps count again, dungeons with guildmates are tracked, and the new Map tab shows opted-in guildmates live."
 
 function Addon:GetWhatsNew()
   local settings = self.db and self.db.settings

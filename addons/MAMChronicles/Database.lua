@@ -124,7 +124,7 @@ function Database:NormaliseSettings()
   local pins, seenPins = {}, {}
   if type(settings.pinnedMedals) == "table" then
     for _, id in ipairs(settings.pinnedMedals) do
-      if type(id) == "string" and #id > 0 and #id <= 40 and not seenPins[id] and #pins < 3 then seenPins[id] = true; table.insert(pins, id) end
+      if type(id) == "string" and #id > 0 and #id <= 40 and not seenPins[id] and #pins < 6 then seenPins[id] = true; table.insert(pins, id) end
     end
   end
   settings.pinnedMedals = pins

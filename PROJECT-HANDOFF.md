@@ -1,7 +1,7 @@
 # Moms Against Magic Chronicles — Project Handoff
 
 **Last updated:** 30 September 2026  
-**Current addon version:** `0.2.0-alpha21`  
+**Current addon version:** `0.2.0-alpha22`  
 **Current status:** alpha11 (recap, goals, safer data) complete in AUTOMATED testing (Chronicles 322/322; alpha10 polish before it) and published to both clients and the CurseForge package. Nothing new has been observed live; Forever and two-player guild sharing are still unproven.
 **Authoritative checkout:** `C:\Users\44750\.codex\worktrees\mam-chronicles-phase0\WoW`
 
@@ -476,7 +476,7 @@ First live look at the Modern theme and alpha21 fixes (30 Sep 2026):
 
 - **LIVE RETAIL EVIDENCE (user screenshots, alpha20):** the texture sheets LOAD on Retail 12.1 (interface 120100): ornate gold frame, hanging tabs with the crimson selected underline, inset cards, brown and red buttons, tier badges (bronze, silver, gold, platinum), art bars and the gold scrollbar thumb all render correctly and look like modern WoW windows. Forever not yet checked. Diagnostics (alpha20): `Handler errors: 0`, `Collector errors: 0`, `Statistics: ok, 441 read, 0 unreadable, scan 3049 ms`, `Guild sharing: not in guild` (that character is not in a guild, so sharing cannot run there).
 - **Fixed in alpha21 (automated tests only):** medal art progress bar overlapped the description (rows now 54 px, bar 8 px); Home tile numbers looked pixelated (now `GameFontNormalHuge` with a `pcall` fallback in `Theme:Text`); the "Log in on 2 different days" weekly quest showed 0/2 because the preview week started in the future (`Medals:GetWeek` now returns week, start and raw index; quest state is keyed by index so the preview week rolls every real week).
-- Suites: Chronicles **487/487**, Diagnostics **35/35**, Dashboard **39/39** (total **561**). Published on BOTH clients (34 files). ZIP SHA-256 `22F34002EEE1CC16155269C54B9C622FC118D4F7553193270792D58886AD440F` (release folder `MAMChronicles-0.2.0-alpha21`, commit `ad5b84e`).
+- Suites: Chronicles **487/487**, Diagnostics **35/35**, Dashboard **39/39** (total **561**). Published on BOTH clients (34 files). ZIP SHA-256 `22F34002EEE1CC16155269C54B9C622FC118D4F7553193270792D58886AD440F` (release folder `MAMChronicles-0.2.0-alpha22`, commit `ad5b84e`).
 
 Tester documents as HTML and friends bundle (30 Sep 2026): `tools/mam-chronicles/docs/build-html.mjs <folder>` builds `TESTER-CHECKLIST.html` (interactive: Pass/Fail/Skip per item, notes, answers saved in the browser, Copy results, print friendly) from `docs/testing/mam-chronicles-phase1-tester-checklist.md`, and `MOM-MEDALS-CATALOGUE.html` (search, category/tier/client filters) generated from the addon's real medal definitions (300 medals, 108 families, 9005 Mom Money; the old `docs/manuals/mom-medals-catalogue.md` is stale and no longer shipped). `scripts/publish-build.ps1` runs it into the release folder and also writes `MAMChronicles-<version>-FOR-FRIENDS.zip` (addon ZIP + SEND-TO-TESTERS.txt + USER-MANUAL.md + both HTML files). alpha21 friends bundle SHA-256 `E7F7804FA0C99687CB89727A4589EB54276B5EACA75C0F6FF76D9668B6538A88`. Tests: `html-docs.test.js` (6); total suites Chronicles 493, Diagnostics 35, Dashboard 39 (567). Interaction in a real browser was not exercised here (scripts syntax-checked only).
 
@@ -556,3 +556,8 @@ Do not write “complete” unless both automated verification and the required 
 - `40d522c` — supported Retail quest-acceptance events.
 - `18122bf` — completed Phase 1 acceptance coverage.
 - `5071a8a` — hardened full tester-build runtime coverage.
+
+
+## alpha22 (published to both clients)
+
+SHA-256 C8E19F45AC5825471038283FB6C64C9BD28AD84491FF994F434B6E8F9EB6890D. Jump fix, guild dungeons, live Map tab, 6 medal pins. Goal tracker NOT built: Tracker.lua is a placeholder; tests parked in tools/mam-chronicles/test/tracker.test.js.pending. Unverified live: location sharing between two players, C_Map waypoint and pins on Forever, jump accuracy. Another agent also commits guild-verified-medal work into this worktree.

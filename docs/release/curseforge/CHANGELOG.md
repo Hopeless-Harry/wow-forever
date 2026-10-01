@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0-alpha22
+
+Jump fix, guild dungeons and a live guild map.
+
+- Jumps are now counted by watching for the character leaving the ground (the jump key never reached the old hook). Short hops and ledge drops may also count.
+- Dungeons and raids with guildmates: new counters, medals, titles and a weekly Mom Quest.
+- New Map tab: live guildmate locations on the right, click a name to open the world map at them. Sharing your own location is opt-in (Settings, Guild map), off by default, never saved, never sent in instances. /mam map opens it.
+- You can now pin up to 6 medal goals (was 3).
+
 ## 0.2.0-alpha21
 
 Fixes from the first live Retail screenshots of the Modern theme.

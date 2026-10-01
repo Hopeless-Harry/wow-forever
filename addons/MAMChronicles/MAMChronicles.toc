@@ -3,7 +3,7 @@
 ## Notes: A private, persistent chronicle of your adventures.
 ## Author: Moms Against Magic
 ## X-License: All Rights Reserved
-## Version: 0.2.0-alpha21
+## Version: 0.2.0-alpha22
 ## IconTexture: Interface\AddOns\MAMChronicles\MAMChroniclesIcon
 ## Category: Chat & Communication
 ## SavedVariables: MAMChroniclesDB
