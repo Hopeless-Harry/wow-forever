@@ -255,6 +255,9 @@ function Dashboard:Refresh()
   local parts = {}
   if model.character.realm then table.insert(parts, tostring(model.character.realm)) end
   if model.character.level then table.insert(parts, "Level " .. tostring(model.character.level)) end
+  -- Rough play time to the cap, once a few levels have been timed (see the Levelling pace section of Statistics).
+  local pace = Addon.Statistics and Addon:SafeCall(Addon.Statistics.BuildLevelPace, Addon.Statistics)
+  if type(pace) == "table" and pace.remaining > 0 then table.insert(parts, "about " .. Addon.Statistics:FormatDuration(pace.eta) .. " to level " .. tostring(pace.cap)) end
   if model.character.zone and model.character.zone ~= "" then table.insert(parts, tostring(model.character.zone)) end
   if Addon.Medals then table.insert(parts, Addon.Medals:GetTitle()) end
   safeMethod(self.subtitle, "SetText", table.concat(parts, "  \194\183  "))

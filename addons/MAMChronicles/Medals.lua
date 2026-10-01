@@ -346,6 +346,15 @@ local function matchesAny(text, patterns)
   return false
 end
 
+-- Days in a row you have logged in. A streak is still alive if you last logged in today or yesterday.
+function Medals:GetStreak()
+  local counts = self:EnsureCounts()
+  local today = localDay(Addon:Now())
+  if not (today and counts.lastLoginDay) then return 0, tonumber(counts.bestStreak) or 0 end
+  local alive = today - counts.lastLoginDay <= 1
+  return alive and (tonumber(counts.streak) or 0) or 0, tonumber(counts.bestStreak) or 0
+end
+
 function Medals:CountLogin(counts, timestamp)
   if not dateFn then return end
   local hour = tonumber(dateFn("%H", timestamp))

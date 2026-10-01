@@ -297,3 +297,28 @@ test('muting is capped and unmuting when not muted says so', () => {
   const h = setup(); h.run('__m=MAMChronicles.Toast:Mute(99999)'); assert.equal(h.get('__m'), 480);
   h.run('MAMChronicles.Toast:Unmute(); MAMChronicles.UI:HandleSlash("unmute")'); assert.ok(h.calls.printed.join('\n').includes('not muted'));
 });
+
+test('the Home subtitle shows the rough play time to the level cap once levels are timed', () => {
+  const h = setup();
+  h.run('UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Home"); MAMChronicles.Dashboard:Refresh(); __none=MAMChronicles.Dashboard.subtitle.text');
+  assert.ok(!/to level/.test(h.get('__none')));
+  h.run(pacePrep + '; MAMChronicles.Dashboard:Refresh(); __sub=MAMChronicles.Dashboard.subtitle.text');
+  assert.match(h.get('__sub'), /about .+ to level \d+/);
+});
+
+test('the login streak stays alive today or yesterday, resets after a gap, and shows in the minimap tooltip', () => {
+  const h = setup();
+  h.run(ready + ' local c=MAMChronicles.Medals:EnsureCounts(); local today=math.floor(MAMChronicles:Now()/86400); c.lastLoginDay=today; c.streak=5; c.bestStreak=9; local s,b=MAMChronicles.Medals:GetStreak(); __s,__b=s,b');
+  assert.equal(h.get('__s'), 5); assert.equal(h.get('__b'), 9);
+  h.run('local c=MAMChronicles.Medals:EnsureCounts(); c.lastLoginDay=c.lastLoginDay-1; __y=(MAMChronicles.Medals:GetStreak())'); assert.equal(h.get('__y'), 5);
+  h.run('local c=MAMChronicles.Medals:EnsureCounts(); c.lastLoginDay=c.lastLoginDay-5; __g=(MAMChronicles.Medals:GetStreak())'); assert.equal(h.get('__g'), 0);
+  h.run('local c=MAMChronicles.Medals:EnsureCounts(); c.lastLoginDay=math.floor(MAMChronicles:Now()/86400); c.streak=5; local L=MAMChronicles.Launcher; L:Create(); L:ShowTooltip(L.button); __t=table.concat(GameTooltip.lines," | ")');
+  assert.match(h.get('__t'), /Login streak: 5 days \(best 9\)/);
+});
+
+test('clicking a guildmate medal toast opens the Guild tab', () => {
+  const h = setup();
+  h.fire('CHAT_MSG_ADDON', 'MAMCHR', 'M1|quest_machine_2|25|1', 'GUILD', 'Alice-Draenor');
+  h.run('MAMChronicles.Toast:Advance(1); __act=MAMChronicles.Toast.current and MAMChronicles.Toast.current.action; MAMChronicles.Toast:Click("LeftButton"); __tab=MAMChronicles.UI.activeTab');
+  assert.equal(h.get('__act'), 'Guild'); assert.equal(h.get('__tab'), 'Guild');
+});

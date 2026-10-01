@@ -233,7 +233,7 @@ function Comms:Record(sender, def)
   table.insert(database.guildFeed, 1, { sender = sender, id = def.id, name = def.name, points = def.points, at = now() })
   while #database.guildFeed > FEED_MAX do table.remove(database.guildFeed) end
   if Addon.Toast then
-    Addon.Toast:Show({ kind = "guild", title = shortName(sender) .. " earned " .. def.name, text = def.description, points = def.points, action = "Medals" })
+    Addon.Toast:Show({ kind = "guild", title = shortName(sender) .. " earned " .. def.name, text = def.description, points = def.points, action = "Guild" })
   end
   return true
 end

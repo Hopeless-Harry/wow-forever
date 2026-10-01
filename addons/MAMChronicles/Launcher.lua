@@ -70,6 +70,8 @@ function Launcher:StatusLines()
     if type(goals) == "table" and goals[1] then
       lines[#lines + 1] = { "Goal: " .. goals[1].def.name .. "  " .. tostring(math.floor(goals[1].current)) .. " / " .. tostring(goals[1].target), 0.6, 0.8, 1 }
     end
+    local streak, best = Addon:SafeCall(Medals.GetStreak, Medals)
+    if (streak or 0) >= 2 then lines[#lines + 1] = { "Login streak: " .. tostring(streak) .. " days" .. ((best or 0) > streak and (" (best " .. tostring(best) .. ")") or ""), 1, 0.6, 0.3 } end
     local quests = Addon:SafeCall(Medals.GetWeeklyQuests, Medals)
     if type(quests) == "table" and #quests > 0 then
       local done = 0

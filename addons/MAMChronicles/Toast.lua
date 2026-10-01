@@ -244,6 +244,6 @@ function Toast:Click(button)
   local spec = self.current
   local action = spec and (spec.action or (spec.kind == "medal" and "Medals" or nil))
   if button ~= "LeftButton" then return end
-  if action == "Medals" and Addon.UI then Addon.UI:Show(); Addon.UI:SetActiveTab("Medals") end
+  if (action == "Medals" or action == "Guild") and Addon.UI then Addon.UI:Show(); Addon.UI:SetActiveTab(action) end
   self:Finish()
 end
