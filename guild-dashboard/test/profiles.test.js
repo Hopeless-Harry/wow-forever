@@ -87,3 +87,20 @@ test("dashboard shows recent activity only when there are real events", async (t
   assert.match(body, /Recent activity/);
   assert.equal(body.includes("<b>Gone"), false);
 });
+
+test("profession cards label the crafter count and the chronicle opener reads naturally", async (t) => {
+  const members = [member("Al#1"), member("Bea#2", { profession1: "Mining" })];
+  const events = [{ type: "baseline", at: AT, name: "2" }];
+  const app = appWith(members, events);
+  t.after(() => app.close());
+
+  const professions = (await app.inject({ url: "/members/professions" })).body;
+  assert.match(professions, /Mining <small>2 crafters<\/small>/);
+  assert.match(professions, /Skinning <small>2 crafters<\/small>|Skinning <small>1 crafter<\/small>/);
+  assert.doesNotMatch(professions, /<small>\d+<\/small>/, "no bare numbers");
+
+  const chronicle = (await app.inject({ url: "/members/chronicle" })).body;
+  assert.match(chronicle, /The roll opened with 2 adventurers\./);
+  assert.equal(chronicle.includes("on the muster"), false);
+  assert.equal((chronicle.match(/<h2>Guild Chronicle<\/h2>/g) ?? []).length, 0, "page title is not repeated as a panel heading");
+});

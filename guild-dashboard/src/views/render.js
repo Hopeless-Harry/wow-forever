@@ -141,7 +141,7 @@ export function renderMembers(snapshot, memberData) {
 function memberEventText(event) {
   const name = escapeHtml(event.name);
   switch (event.type) {
-    case "baseline": return `The members' roll opened with ${escapeHtml(event.name)} on the muster.`;
+    case "baseline": return `The roll opened with ${escapeHtml(event.name)} ${Number(event.name) === 1 ? "adventurer" : "adventurers"}.`;
     case "joined": return `<strong>${name}</strong> joined as a ${escapeHtml(event.entry.race)} ${escapeHtml(event.entry.characterClass)} (${escapeHtml(event.entry.role)}) with ${escapeHtml(event.entry.profession1)} and ${escapeHtml(event.entry.profession2)}.`;
     case "left": return `<strong>${name}</strong> left the roll.`;
     case "changed": return `<strong>${name}</strong> changed ${escapeHtml(event.field)} from ${escapeHtml(event.from)} to ${escapeHtml(event.to)}.`;
@@ -152,7 +152,7 @@ function memberEventText(event) {
 export function renderMemberChronicle(snapshot, memberData) {
   const events = [...memberData.events].reverse();
   const items = events.map((event) => `<li class="chronicle-entry chronicle-${escapeHtml(event.type)}"><time datetime="${escapeHtml(event.at)}">${escapeHtml(event.at.slice(0, 16).replace("T", " "))} UTC</time><p>${memberEventText(event)}</p></li>`).join("");
-  const content = `${events.length ? `<section class="parchment-panel chronicle-panel"><div class="panel-heading"><div><span>Guild history</span><h2>Guild Chronicle</h2><p>Who joined, who left and who changed their plans.</p></div><strong>${events.length} ${events.length === 1 ? "entry" : "entries"}</strong></div><ol class="chronicle-list">${items}</ol></section>` : `<section class="parchment-panel empty-ledger"><h2>The Chronicle awaits its first page</h2><p>Changes are recorded after the next successful census sync.</p></section>`}`;
+  const content = `${events.length ? `<section class="parchment-panel chronicle-panel"><div class="panel-heading"><div><span>Guild history</span><h2>Roster changes</h2><p>Who joined, who left and who changed their plans.</p></div><strong>${events.length} ${events.length === 1 ? "entry" : "entries"}</strong></div><ol class="chronicle-list">${items}</ol></section>` : `<section class="parchment-panel empty-ledger"><h2>The Chronicle awaits its first page</h2><p>Changes are recorded after the next successful census sync.</p></section>`}`;
   return shell({ title: "Guild Chronicle", active: "/members/chronicle", snapshot, content });
 }
 
@@ -178,7 +178,7 @@ export function renderRaidPlan(snapshot, size = 40, memberData = { members: [] }
 
 export function renderProfessions(snapshot, memberData) {
   const directory = professionDirectory(memberData.members);
-  const cards = directory.map((entry) => `<section class="parchment-panel profession-card"><h2>${escapeHtml(entry.profession)} <small>${entry.crafters.length}</small></h2><ul>${entry.crafters.map((member) => `<li><strong>${escapeHtml(member.name)}</strong> <span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span></li>`).join("")}</ul></section>`).join("");
+  const cards = directory.map((entry) => `<section class="parchment-panel profession-card"><h2>${escapeHtml(entry.profession)} <small>${entry.crafters.length} ${entry.crafters.length === 1 ? "crafter" : "crafters"}</small></h2><ul>${entry.crafters.map((member) => `<li><strong>${escapeHtml(member.name)}</strong> <span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span></li>`).join("")}</ul></section>`).join("");
   const gaps = missingProfessions(memberData.members);
   const gapPanel = directory.length && (gaps.primary.length || gaps.secondary.length)
     ? `<section class="parchment-panel profession-card"><h2>Nobody yet</h2><p>${[...gaps.primary, ...gaps.secondary].map((name) => escapeHtml(name)).join(", ")}</p></section>`
