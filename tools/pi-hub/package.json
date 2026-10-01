@@ -1,6 +1,6 @@
 {
   "name": "mam-pi-hub",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "Moms Against Magic Chronicles guild hub for a Raspberry Pi. No dependencies: Node built-ins only.",

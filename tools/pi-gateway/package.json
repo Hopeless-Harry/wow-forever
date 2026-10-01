@@ -1,6 +1,6 @@
 {
   "name": "mam-pi-gateway",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "Companion for the owner's PC: reads the addon's SavedVariables, uploads to the Pi hub, writes the command inbox. No dependencies.",
