@@ -1,7 +1,7 @@
 import { ERROR_COPY } from "../data/errors.js";
 import { groupPlan, groupsToText } from "../domain/groups.js";
 import { buildSummary } from "../domain/summary.js";
-import { buildRaidPlan, gapCandidates, missingProfessions, professionDirectory, raidReadiness } from "../domain/raid.js";
+import { buildRaidPlan, factionProfessionGaps, gapCandidates, missingProfessions, professionDirectory, raidReadiness } from "../domain/raid.js";
 import { LAUNCH_AT, RAID_SIZES, comboWarning, factionOf, forRuleset, roleWarning, rulesetOptions } from "../domain/wow-data.js";
 import { escapeHtml } from "./escape.js";
 
@@ -219,13 +219,17 @@ export function renderRaidPlan(snapshot, size = 40, memberData = { members: [] }
 
 export function renderProfessions(snapshot, memberData) {
   const directory = professionDirectory(memberData.members);
-  const cards = directory.map((entry) => `<section class="parchment-panel profession-card"><h2>${escapeHtml(entry.profession)} <small>${entry.crafters.length} ${entry.crafters.length === 1 ? "crafter" : "crafters"}</small></h2><ul>${entry.crafters.map((member) => `<li><strong>${escapeHtml(member.name)}</strong> <span aria-hidden="true">·</span> <span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span></li>`).join("")}</ul></section>`).join("");
+  const cards = directory.map((entry) => `<section class="parchment-panel profession-card"><h2>${escapeHtml(entry.profession)} <small>${entry.crafters.length} ${entry.crafters.length === 1 ? "crafter" : "crafters"}</small></h2><ul>${entry.crafters.map((member) => `<li><a href="/member?name=${encodeURIComponent(member.name)}"><strong>${escapeHtml(member.name)}</strong></a> <span aria-hidden="true">·</span> <span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span> <span aria-hidden="true">·</span> <small class="faction-tag">${escapeHtml(factionOf(member.race))}</small></li>`).join("")}</ul></section>`).join("");
   const gaps = missingProfessions(memberData.members);
   const gapPanel = directory.length && (gaps.primary.length || gaps.secondary.length)
     ? `<section class="parchment-panel profession-card"><h2>Nobody yet</h2><p>${[...gaps.primary, ...gaps.secondary].map((name) => escapeHtml(name)).join(", ")}</p></section>`
     : "";
+  const sideGaps = factionProfessionGaps(memberData.members);
+  const sidePanel = sideGaps.length
+    ? `<section class="parchment-panel profession-card"><h2>Only one faction has these</h2><p>Horde and Alliance cannot trade, so these sides still need a crafter:</p><ul>${sideGaps.map((entry) => `<li><strong>${escapeHtml(entry.faction)}</strong> has no ${entry.missing.map((name) => escapeHtml(name)).join(", ")}</li>`).join("")}</ul></section>`
+    : "";
   const content = directory.length
-    ? `<p class="quiet">Who can craft or gather what. Professions listed on the Form only — skill levels are not tracked.</p><div class="statistics-grid">${gapPanel}${cards}</div>`
+    ? `<p class="quiet">Who can craft or gather what. Professions listed on the Form only — skill levels are not tracked.</p><div class="statistics-grid">${gapPanel}${sidePanel}${cards}</div>`
     : `<section class="parchment-panel empty-ledger"><h2>No professions recorded yet</h2><p>They appear after the next successful census sync.</p></section>`;
   return shell({ title: "Profession Directory", active: "/members/professions", snapshot, content });
 }

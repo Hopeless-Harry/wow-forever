@@ -18,7 +18,7 @@ A lightweight, privacy-first guild census for the **Moms Against Magic — WoW F
 - Ruleset filter on `/raid` (`?ruleset=PvP`): tabs appear when members chose more than one ruleset. Choosing one plans only the players who picked it plus anyone "happy with either", so a suggested group never mixes rulesets. In the all-rulesets view a highlighted note warns that the role totals pool players who cannot group together. Answers are matched to the Form's wording; ruleset names are unverified third-party information.
 - Suggested raid groups on `/raid`: names placed into groups of five per faction (a tank per group, healers spread out), with overflow benched and a ruleset breakdown, because players can only group within one faction and one ruleset.
 - Every page prints cleanly (black on white, no navigation or controls, cards kept whole), so a raid leader can print the suggested groups with the browser's Print or Save as PDF.
-- Profession Directory (`/members/professions`): who can craft or gather each profession, most-covered first, plus the professions nobody has yet.
+- Profession Directory (`/members/professions`): who can craft or gather each profession, most-covered first, with each crafter's faction and a link to their profile, the professions nobody has yet, and the professions only one faction covers (Horde and Alliance cannot trade, so the other side still needs a crafter).
 - Member profile pages (`/member?name=...`), a roster CSV download (`/members.csv`, formula-safe) and a recent-activity feed on the dashboard.
 - Soft sanity flags for impossible race/class and role/class answers (for example a Mage tank).
 - Launch countdown on the dashboard (reported launch: 4 November 2026, 3 PM PST).

@@ -529,3 +529,6 @@ th[scope="row"] a, .panel-heading p a, .empty-ledger a, .profile-card a { displa
   .table-scroll tbody th[scope="row"] a { max-width: 100%; overflow-wrap: break-word; }
   .table-scroll tbody th[scope="row"] { position: sticky; left: 0; z-index: 1; max-width: 8.5rem; white-space: normal; overflow-wrap: break-word; background: #dcc489; box-shadow: 2px 0 0 rgba(91, 55, 18, .25); }
 }
+
+.faction-tag { color: #3b2815; font-size: .85rem; }
+.profession-card li a { font-weight: 700; }

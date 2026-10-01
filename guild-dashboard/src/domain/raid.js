@@ -136,3 +136,22 @@ export function raidReadiness(records, sizes = RAID_SIZES) {
   }
   return rows;
 }
+
+// Professions someone in the guild has but nobody on a given faction has. Factions cannot
+// trade, so an officer on that side still has no crafter. Empty unless both factions are present.
+export function factionProfessionGaps(members) {
+  const byFaction = new Map();
+  for (const member of members) {
+    const faction = factionOf(member.race);
+    if (faction === "Unknown") continue;
+    if (!byFaction.has(faction)) byFaction.set(faction, []);
+    byFaction.get(faction).push(member);
+  }
+  if (byFaction.size < 2) return [];
+  const known = [...PRIMARY_PROFESSIONS, ...SECONDARY_PROFESSIONS];
+  const guildHas = new Set(members.flatMap((member) => [member.profession1, member.profession2]));
+  return ["Horde", "Alliance"].filter((faction) => byFaction.has(faction)).map((faction) => {
+    const mine = new Set(byFaction.get(faction).flatMap((member) => [member.profession1, member.profession2]));
+    return { faction, missing: known.filter((name) => guildHas.has(name) && !mine.has(name)) };
+  }).filter((entry) => entry.missing.length);
+}
