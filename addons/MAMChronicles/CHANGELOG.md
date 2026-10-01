@@ -32,6 +32,7 @@ Midnight (12.x) hardening and clean-up.
 - Optional LibDataBroker launcher, so Titan Panel, ElvUI, Bazooka and similar can open the Chronicle.
 - The ground check that counts jumps pauses while dead or on a flight path.
 - Settings now have a numbered migration list; /mam diag shows how many guild announcements are queued.
+- Discovery entries show the subzone (Dalaran: Krasus Landing), and a search typed on the Medals tab is cleared when you leave it.
 - Fixed: /reload counted as a logout and a login. A reload now carries the same session on and writes neither, so reloading can no longer be used to farm the quick-relog medals; a real logout is recorded when you next log in for real. Old Chronicles are cleaned once (logout-then-login pairs under 45 seconds apart are removed and the sessions joined).
 - Chronicle: the All filter no longer lists logins and logouts (they were half the list). Choose the new Sessions filter to see them; Home recent activity is cleaner too.
 - Readability: Statistics shows one statistic per line with spacing between groups, Characters has space between characters, and the Home month card is split into labelled sections (This month, Mom Money, Mom Quests, Goals, Awards).

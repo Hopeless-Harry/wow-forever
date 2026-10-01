@@ -47,6 +47,11 @@ local function clamp(value,minimum,maximum) return math.max(minimum,math.min(max
 
 function UI:SetActiveTab(name)
   if not validTabs[name] then return false end
+  -- A search typed on Medals is forgotten when you leave, so the list is not found half empty next time.
+  if self.activeTab=="Medals" and name~="Medals" and (self.medalSearch or "")~="" then
+    self.medalSearch=""
+    if self.medalSearchBox then safeMethod(self.medalSearchBox,"SetText","") end
+  end
   self.activeTab=name; self.textOffset=0
   if Addon.db and Addon.db.settings and Addon.db.settings.ui then Addon.db.settings.ui.activeTab=name end
   self:Refresh()

@@ -50,3 +50,9 @@ test('a discovery shows its subzone so two places in one zone do not look like a
   h.run('UI=MAMChronicles.UI; __a=UI.EventLabel({type="world.zone_discovered",payload={zone="Dalaran",subzone="Krasus Landing"}}); __b=UI.EventLabel({type="world.zone_discovered",payload={zone="Dalaran"}}); __c=UI.EventLabel({type="world.zone_discovered",payload={subzone="The Mill"}}); __d=UI.EventLabel({type="world.zone_discovered",payload={zone="Dalaran",subzone="Dalaran"}})');
   assert.equal(h.get('__a'), 'Dalaran: Krasus Landing'); assert.equal(h.get('__b'), 'Dalaran'); assert.equal(h.get('__c'), 'The Mill'); assert.equal(h.get('__d'), 'Dalaran');
 });
+
+test('a Medals search is cleared when you leave the tab', () => {
+  const h = setup();
+  h.run('UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Medals"); UI.medalSearchBox:SetText("guild"); UI:SetMedalSearch("guild"); __a=UI.medalSearch; UI:SetActiveTab("Home"); __b=UI.medalSearch; __box=UI.medalSearchBox:GetText(); UI:SetActiveTab("Medals"); __all=#UI.medalList');
+  assert.equal(h.get('__a'), 'guild'); assert.equal(h.get('__b'), ''); assert.equal(h.get('__box'), ''); assert.ok(h.get('__all') > 21);
+});
