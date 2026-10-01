@@ -27,6 +27,7 @@ export function loadConfig(env = process.env) {
     googleClientEmail: env.GOOGLE_CLIENT_EMAIL || "",
     googlePrivateKey: (env.GOOGLE_PRIVATE_KEY || "").replace(/\\n/g, "\n"),
     cachePath: env.CACHE_PATH || new URL("../data/cache.json", import.meta.url).pathname,
+    chroniclePath: env.CHRONICLE_PATH || new URL("../data/chronicle.json", import.meta.url).pathname,
     mapping: { ...DEFAULT_MAPPING },
     useFixture: env.USE_FIXTURE === "true" || env.NODE_ENV === "test"
   };

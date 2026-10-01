@@ -2,7 +2,7 @@ import Fastify from "fastify";
 import { readFileSync } from "node:fs";
 
 import { PUBLIC_FIELDS } from "./domain/normalize.js";
-import { renderDashboard, renderResponses, renderStatistics } from "./views/render.js";
+import { renderChronicles, renderDashboard, renderResponses, renderStatistics } from "./views/render.js";
 
 const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 const ASSETS = new Map([
@@ -39,6 +39,7 @@ export function buildApp({ dataService, logger = true }) {
 
   app.get("/", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderDashboard(dataService.snapshot())));
   app.get("/responses", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderResponses(dataService.snapshot())));
+  app.get("/chronicles", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderChronicles(dataService.snapshot())));
   app.get("/statistics", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderStatistics(dataService.snapshot())));
   app.get("/assets/:name", async (request, reply) => {
     const asset = ASSETS.get(request.params.name);

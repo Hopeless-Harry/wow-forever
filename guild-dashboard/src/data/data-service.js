@@ -1,11 +1,14 @@
+import { diffSnapshots } from "../domain/chronicle.js";
 import { buildStats } from "../domain/stats.js";
 
 export class DataService {
-  constructor({ source, normalize, mapping, cacheStore, refreshMs = 120_000, now = () => new Date(), logger = console }) {
+  constructor({ source, normalize, mapping, cacheStore, chronicleStore = null, refreshMs = 120_000, now = () => new Date(), logger = console }) {
     this.source = source;
     this.normalize = normalize;
     this.mapping = mapping;
     this.cacheStore = cacheStore;
+    this.chronicleStore = chronicleStore;
+    this.chronicle = [];
     this.refreshMs = refreshMs;
     this.now = now;
     this.logger = logger;
@@ -17,6 +20,7 @@ export class DataService {
 
   async start({ schedule = true, immediate = true } = {}) {
     this.current = await this.cacheStore.read();
+    this.chronicle = (await this.chronicleStore?.read()) ?? [];
     if (immediate) await this.refresh();
     if (schedule) {
       this.timer = setInterval(() => { void this.refresh(); }, this.refreshMs);
@@ -50,6 +54,7 @@ export class DataService {
         rejectedRows: normalized.rejectedRows
       };
       await this.cacheStore.write(next);
+      await this.#recordChronicle(this.current?.records ?? null, next);
       this.current = next;
       this.lastRefreshFailed = false;
       this.logger.info?.({ rowCount: next.records.length, rejectedRows: next.rejectedRows }, "Guild data refreshed");
@@ -61,11 +66,23 @@ export class DataService {
     }
   }
 
+  async #recordChronicle(previousRecords, next) {
+    if (!this.chronicleStore) return;
+    try {
+      const events = diffSnapshots(previousRecords, next.records, next.fetchedAt, { hasHistory: this.chronicle.length > 0 });
+      if (!events.length) return;
+      this.chronicle = await this.chronicleStore.write([...this.chronicle, ...events]);
+    } catch (error) {
+      this.logger.error?.({ errorType: error.name, message: error.message }, "Chronicle update failed");
+    }
+  }
+
   snapshot() {
     const records = this.current?.records || [];
     return {
       records,
       stats: buildStats(records),
+      chronicle: this.chronicle,
       fetchedAt: this.current?.fetchedAt || null,
       sourceRowCount: this.current?.sourceRowCount || 0,
       rejectedRows: this.current?.rejectedRows || 0,

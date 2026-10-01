@@ -6,6 +6,7 @@ A lightweight, privacy-first guild census for the **Moms Against Magic — WoW F
 
 - Shows anonymous class, role, race, realm, and profession summaries.
 - Provides a searchable and filterable Guild Census.
+- Keeps a Chronicle: an anonymous timeline of joiners, departures, roster milestones and leading-class/role/realm changes, built by comparing each sync with the last.
 - Refreshes from Google Sheets every two minutes without rebuilding.
 - Continues serving the last safe cache if Google is unavailable.
 - Runs as a small Node.js service on a Raspberry Pi 3.
@@ -99,6 +100,7 @@ Do not publish the Sheet to the web. Publishing it could reveal the excluded nam
 | `REFRESH_SECONDS` | `120` | Google refresh interval |
 | `STALE_AFTER_SECONDS` | `600` | Age at which the UI labels cached data stale |
 | `CACHE_PATH` | project `data/cache.json` | Sanitized cache location |
+| `CHRONICLE_PATH` | project `data/chronicle.json` | Chronicle history (allowlisted events only, capped at 200) |
 | `GOOGLE_SHEET_ID` | empty | ID from the response Sheet URL |
 | `GOOGLE_SHEET_RANGE` | `Form Responses 1!A:Z` | Response tab and columns |
 | `GOOGLE_CLIENT_EMAIL` | empty | Read-only service account email |

@@ -36,7 +36,7 @@ function shell({ title, active, snapshot, content, scripts = [] }) {
     <aside class="guild-rail" aria-label="Guild Ledger navigation">
       <a class="guild-seal" href="/" aria-label="Moms Against Magic Guild Ledger"><span>M</span></a>
       <div class="guild-name"><strong>Moms Against Magic</strong><span>Guild Ledger</span></div>
-      <nav>${navLink("/", "Dashboard", active)}${navLink("/responses", "Guild Census", active)}${navLink("/statistics", "Statistics", active)}</nav>
+      <nav>${navLink("/", "Dashboard", active)}${navLink("/responses", "Guild Census", active)}${navLink("/chronicles", "Chronicles", active)}${navLink("/statistics", "Statistics", active)}</nav>
       <p class="privacy-mark">Anonymous by design<br>Names never leave the vault</p>
     </aside>
     <main id="main-content" class="ledger-main">
@@ -95,4 +95,25 @@ export function renderStatistics(snapshot) {
   const d = snapshot.stats.distributions;
   const content = snapshot.records.length ? `<section class="statistics-intro"><p>${snapshot.stats.totalResponses} anonymous plans, counted exactly as submitted.</p></section><section class="statistics-grid">${bars("Class distribution", d.characterClass)}${bars("Role distribution", d.role)}${bars("Race distribution", d.race)}${bars("Realm preference", d.server)}${bars("Profession demand", d.professions, "wide")}</section>` : emptyPanel();
   return shell({ title: "Guild Statistics", active: "/statistics", snapshot, content, scripts: ["/assets/live-refresh.js"] });
+}
+
+function chronicleText(event) {
+  const plural = (count) => `${count} ${count === 1 ? "adventurer" : "adventurers"}`;
+  switch (event.type) {
+    case "census-opened": return `The census was opened with ${plural(event.count)} on the muster roll.`;
+    case "joined": return `A new ${event.entry.race} ${event.entry.characterClass} (${event.entry.role}) joined, bringing ${event.entry.profession1} and ${event.entry.profession2}. Realm preference: ${event.entry.server}.`;
+    case "departed": return `${plural(event.count)} withdrew or changed their plans.`;
+    case "milestone": return `The guild reached ${event.count} sealed names.`;
+    case "leader-change": return `The leading ${event.category} changed from ${event.from} to ${event.to}.`;
+    default: return "";
+  }
+}
+
+export function renderChronicles(snapshot) {
+  const events = [...(snapshot.chronicle || [])].reverse();
+  const items = events.map((event) => `<li class="chronicle-entry chronicle-${escapeHtml(event.type)}"><time datetime="${escapeHtml(event.at)}">${escapeHtml(event.at.slice(0, 16).replace("T", " "))} UTC</time><p>${escapeHtml(chronicleText(event))}</p></li>`).join("");
+  const content = events.length
+    ? `<section class="parchment-panel chronicle-panel"><div class="panel-heading"><div><span>Guild history</span><h2>The Chronicle</h2><p>Every change to the roster, recorded anonymously as it happens.</p></div><strong>${events.length} ${events.length === 1 ? "entry" : "entries"}</strong></div><ol class="chronicle-list">${items}</ol></section>`
+    : `<section class="parchment-panel empty-ledger"><h2>The Chronicle awaits its first page</h2><p>Roster changes will be recorded here after the next successful census sync.</p></section>`;
+  return shell({ title: "Guild Chronicles", active: "/chronicles", snapshot, content, scripts: ["/assets/live-refresh.js"] });
 }

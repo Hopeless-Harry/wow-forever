@@ -1,3 +1,4 @@
+import { ChronicleStore } from "./data/chronicle-store.js";
 import { CacheStore } from "./data/cache-store.js";
 import { DataService } from "./data/data-service.js";
 import { createAccessToken } from "./data/google-auth.js";
@@ -29,6 +30,7 @@ const dataService = new DataService({
   normalize: normalizeRows,
   mapping: config.mapping,
   cacheStore,
+  chronicleStore: new ChronicleStore(config.chroniclePath),
   refreshMs: config.refreshMs
 });
 

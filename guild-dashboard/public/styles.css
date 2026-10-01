@@ -409,3 +409,10 @@ footer {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+.chronicle-list { list-style: none; margin: 0; padding: 0 0 0 1.25rem; border-left: 2px solid var(--gold-dark); display: grid; gap: 1rem; }
+.chronicle-entry { position: relative; }
+.chronicle-entry::before { content: ""; position: absolute; left: -1.7rem; top: 0.45rem; width: 0.7rem; height: 0.7rem; background: var(--gold-dark); transform: rotate(45deg); }
+.chronicle-entry time { display: block; font-size: 0.85rem; opacity: 0.75; }
+.chronicle-entry p { margin: 0.15rem 0 0; }
+.chronicle-milestone::before, .chronicle-leader-change::before { background: var(--gold-bright); }
