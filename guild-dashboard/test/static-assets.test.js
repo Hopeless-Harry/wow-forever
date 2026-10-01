@@ -146,3 +146,18 @@ test("a print stylesheet hides navigation and controls and keeps cards whole", a
   assert.match(print, /background:\s*#fff/);
   assert.match(print, /\.statistics-grid[^}]*display:\s*block/, "grids collapse to one full-width column");
 });
+
+test("every class colour is readable on the darkest parchment", async () => {
+  const css = await readFile(path.join(projectRoot, "public", "styles.css"), "utf8");
+  const luminance = (hex) => {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const ratio = (a, b) => { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+  const classes = ["warrior", "paladin", "hunter", "rogue", "priest", "shaman", "mage", "warlock", "druid"];
+  for (const name of classes) {
+    const match = css.match(new RegExp(`\\.class-${name}\\s*\\{\\s*color:\\s*(#[0-9a-fA-F]{6})`));
+    assert.ok(match, `${name} has a colour`);
+    assert.ok(ratio(match[1], "#c3a363") >= 4.5, `${name} ${match[1]} is ${ratio(match[1], "#c3a363").toFixed(2)}:1`);
+  }
+});

@@ -328,15 +328,15 @@ tbody tr:nth-child(even) { background: rgba(91,55,18,.06); }
 tbody tr:hover { background: rgba(143,48,39,.09); }
 
 .class-chip { font-weight: 700; color: #4a2a15; }
-.class-warrior { color: #7b4f27; }
-.class-paladin { color: #a82b60; }
-.class-hunter { color: #3f6d22; }
-.class-rogue { color: #7c6200; }
-.class-priest { color: #635c50; }
-.class-shaman { color: #1d4ba7; }
-.class-mage { color: #16789b; }
-.class-warlock { color: #56348e; }
-.class-druid { color: #a84f0d; }
+.class-warrior { color: #52351a; }
+.class-paladin { color: #6d1c3e; }
+.class-hunter { color: #264215; }
+.class-rogue { color: #493a00; }
+.class-priest { color: #3f3b33; }
+.class-shaman { color: #15377c; }
+.class-mage { color: #0c4154; }
+.class-warlock { color: #472b76; }
+.class-druid { color: #602d07; }
 
 .census-tools {
   display: grid;
