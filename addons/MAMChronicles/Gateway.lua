@@ -288,6 +288,16 @@ function Gateway:Snapshot()
       end
     end
   end
+  -- The gateway's own character is never in Map.members (a client ignores its own messages), so add it here under the same rules
+  -- as sending: location sharing on, open world only.
+  if map and validName(name) and settings().shareLocation == true and not (IsInInstance and safe(IsInInstance)) and map.GetPosition then
+    local mapID, x, y = map:GetPosition()
+    if mapID and x and y then
+      local _, _, classID = safe(UnitClass, "player")
+      local zone = map.ZoneName and safe(map.ZoneName, map, mapID)
+      locations[name] = { mapID = mapID, x = x, y = y, level = tonumber(safe(UnitLevel, "player")) or 0, classID = tonumber(classID) or 0, at = t, zone = type(zone) == "string" and zone:sub(1, 40) or nil }
+    end
+  end
   data.locations = locations
   -- Names for the dashboard's command composer: guild-verified medals and this week's quest templates.
   local catalog = { verified = {}, templates = {} }

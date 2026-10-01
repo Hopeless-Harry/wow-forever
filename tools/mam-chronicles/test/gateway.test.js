@@ -107,6 +107,16 @@ test('the snapshot lists guild-verified medals, quest templates and zone names f
   assert.equal(h.get('#MAMChroniclesDB.gateway.catalog.templates')<=80,true);
 });
 
+test('the gateway includes its own position when location sharing is on and it is in the open world',()=>{
+  let h=setup();
+  h.run('MAMChronicles.Map.GetPosition=function() return 2022,0.5,0.4 end; MAMChronicles.Map.members={}; C_Map={GetMapInfo=function() return {name="Zone"} end}; MAMChronicles.Gateway:Snapshot()');
+  assert.equal(h.get('MAMChroniclesDB.gateway.locations.Mumtest.mapID'),2022);assert.equal(h.get('MAMChroniclesDB.gateway.locations.Mumtest.level'),42);assert.equal(h.get('MAMChroniclesDB.gateway.locations.Mumtest.classID'),8);assert.equal(h.get('MAMChroniclesDB.gateway.locations.Mumtest.zone'),'Zone');
+  h=setup();h.run('MAMChroniclesDB.settings.shareLocation=false; MAMChronicles.Map.GetPosition=function() return 2022,0.5,0.4 end; MAMChronicles.Gateway:Snapshot()');
+  assert.equal(h.get('MAMChroniclesDB.gateway.locations.Mumtest'),null);
+  h=setup();h.run('IsInInstance=function() return true end; MAMChronicles.Map.GetPosition=function() return 2022,0.5,0.4 end; MAMChronicles.Gateway:Snapshot()');
+  assert.equal(h.get('MAMChroniclesDB.gateway.locations.Mumtest'),null);
+});
+
 test('the gateway records its own character when sharing is consented',()=>{
   const h=setup('',true);h.run('MAMChroniclesDB.settings.shareStats=true; MAMChronicles.Gateway:Snapshot()');
   assert.equal(h.get('MAMChroniclesDB.gateway.members.Mumtest.level'),42);
