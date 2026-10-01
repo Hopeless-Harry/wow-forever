@@ -6,6 +6,7 @@ A lightweight, privacy-first guild census for the **Moms Against Magic — WoW F
 
 - Shows anonymous class, role, race, realm, and profession summaries.
 - Provides a searchable and filterable Guild Census.
+- Opens a members-only Members' Hall (passcode protected) with a named roster and a named chronicle of who joined, left or changed their plans.
 - Keeps a Chronicle: an anonymous timeline of joiners, departures, roster milestones and leading-class/role/realm changes, built by comparing each sync with the last.
 - Refreshes from Google Sheets every two minutes without rebuilding.
 - Continues serving the last safe cache if Google is unavailable.
@@ -100,6 +101,8 @@ Do not publish the Sheet to the web. Publishing it could reveal the excluded nam
 | `REFRESH_SECONDS` | `120` | Google refresh interval |
 | `STALE_AFTER_SECONDS` | `600` | Age at which the UI labels cached data stale |
 | `CACHE_PATH` | project `data/cache.json` | Sanitized cache location |
+| `MEMBER_PATH` | project `data/members.json` | Private named roster and history (mode 0600) |
+| `GUILD_PASSCODE` | empty | Opens the Members' Hall; min 8 characters. Empty keeps it sealed |
 | `CHRONICLE_PATH` | project `data/chronicle.json` | Chronicle history (allowlisted events only, capped at 200) |
 | `GOOGLE_SHEET_ID` | empty | ID from the response Sheet URL |
 | `GOOGLE_SHEET_RANGE` | `Form Responses 1!A:Z` | Response tab and columns |
@@ -225,7 +228,18 @@ node --version
 
 Node must be version 20 or newer. Do not paste environment-file contents into support messages because they contain the private key.
 
-## Privacy behaviour
+## Members' Hall (named data)
+
+The public pages stay anonymous. Names live in a separate private path:
+
+- `/members` and `/members/chronicle` require the `GUILD_PASSCODE` and are never cached or indexed.
+- With no passcode set, those routes return 404 and no names are shown anywhere.
+- Names come from the Form's BattleTag/name column and are matched case-insensitively across syncs; a later submission with the same name replaces the earlier one.
+- Named data is stored only in `MEMBER_PATH` (mode 0600). Comments, emails, timestamps and unknown columns are still never read.
+- Login uses a signed, HttpOnly, SameSite=Strict cookie (7 days) and locks an IP for 5 minutes after 5 wrong passcodes. Sessions reset when the service restarts.
+- Use a Cloudflare tunnel with HTTPS so the passcode is never sent in the clear. Choose a passcode you don't use elsewhere.
+
+## Privacy behaviour (public pages)
 
 The privacy rule is an allowlist, not a visual hide:
 

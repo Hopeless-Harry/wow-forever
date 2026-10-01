@@ -416,3 +416,9 @@ footer {
 .chronicle-entry time { display: block; font-size: 0.85rem; opacity: 0.75; }
 .chronicle-entry p { margin: 0.15rem 0 0; }
 .chronicle-milestone::before, .chronicle-leader-change::before { background: var(--gold-bright); }
+
+.member-tabs { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1rem; }
+.member-tabs a[aria-current="page"] { color: var(--gold-bright); }
+.member-tabs form { margin-left: auto; }
+.login-error { color: #8a1f17; font-weight: 700; }
+.login-panel form { align-items: end; }
