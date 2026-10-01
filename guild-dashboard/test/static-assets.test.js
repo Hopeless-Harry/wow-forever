@@ -111,3 +111,27 @@ test("text colours on parchment meet 4.5:1 contrast even at the darkest end of t
   }
   assert.doesNotMatch(css, /\.chronicle-entry time[^{]*\{[^}]*opacity/);
 });
+
+test("every table is named and filter feedback is announced to screen readers", async (t) => {
+  const records = [{ anonymousId: "Response #1", server: "Normal", race: "Orc", characterClass: "Warrior", role: "Tank", profession1: "Mining", profession2: "Skinning" }];
+  const memberData = { members: [{ name: "Al#1", ...records[0] }], events: [], fetchedAt: "2026-09-22T12:00:00.000Z" };
+  const snapshot = { records, stats: buildStats(records), fetchedAt: memberData.fetchedAt, status: "fresh", lastRefreshFailed: false };
+  const app = buildApp({ dataService: { snapshot: () => snapshot, memberSnapshot: () => memberData }, logger: false, rateLimitPerMinute: 0 });
+  t.after(() => app.close());
+
+  let tables = 0;
+  for (const url of ["/", "/responses", "/statistics", "/members", "/members/chronicle", "/members/professions", "/raid", "/member?name=Al%231"]) {
+    const body = (await app.inject({ url })).body;
+    for (const tag of body.match(/<table[^>]*>/g) ?? []) {
+      tables += 1;
+      assert.match(tag, /aria-label="[^"]+"/, `${url} has an unnamed table: ${tag}`);
+    }
+  }
+  assert.ok(tables >= 5, "tables were actually checked");
+
+  for (const url of ["/responses", "/members"]) {
+    const body = (await app.inject({ url })).body;
+    assert.match(body, /id="visible-count" aria-live="polite" aria-atomic="true"/);
+    assert.match(body, /class="no-results" role="status" hidden/);
+  }
+});
