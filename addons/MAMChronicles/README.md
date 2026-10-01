@@ -18,6 +18,10 @@ The installer accepts `_retail_` and `_classic_beta_` client roots, refuses to r
 - Bind a key under Key Bindings > AddOns > Moms Against Magic Chronicles.
 - Titan Panel, ElvUI, Bazooka and other data-broker displays can open it too, if you use one.
 
+## New here?
+
+A short guided tour opens the first time you log in. Click the **?** button at the top of the window, or type `/mam tutorial`, to see it again. New installs start in **Simple view** (only Home, Chronicle, Medals and Settings in the tab bar); turn it off in Settings to see every tab.
+
 ## Tabs
 
 Home, Chronicle (your timeline), Medals, Statistics (including levelling pace), Characters, Map, Guild, Settings and Diagnostics. Settings has a category list, a search box and an info pane that explains whatever option you point at.
@@ -37,6 +41,7 @@ Home, Chronicle (your timeline), Medals, Statistics (including levelling pace), 
 - `/mam export` — a copyable, private Courier export.
 - `/mam diag` — redacted diagnostics for bug reports.
 - `/mam share`, `/mam gateway` — the optional guild hub (see below).
+- `/mam tutorial` — the guided tour.
 - `/mam help` — list commands.
 
 ## What it records on your computer

@@ -32,6 +32,17 @@ This first version stores everything locally on your computer. It does not yet s
 
 The Chronicle window opens on the **Home** tab. New installs show a **Getting started** card there that explains `/mam`, where Medals and Settings are, what is shared with your guild and how to opt out. Click **Got it** to hide it for good. After an update Home shows a one-line **What's new** note with an x button to dismiss it.
 
+## New here? Start with the tour
+
+The first time you log in, a short **guided tour** opens beside the window. It has nine steps, one for each part of the addon, and it switches the window to the page it is describing. Use **Next** and **Back**, or **Skip tour** if you would rather explore.
+
+- The **?** button at the top right of the window opens the tour again at any time.
+- You can also type `/mam tutorial`, or use Settings > Help > Show the tutorial.
+
+### Simple view
+
+New installs start in **Simple view**, which shows only Home, Chronicle, Medals and Settings in the tab bar so the window is not overwhelming. The other pages (Statistics, Characters, Map and Guild) still open from their commands such as `/mam map` and `/mam guild`, and the page you are on is always shown. Turn Simple view off in Settings > Appearance to see every tab. If you upgraded from an earlier build, all tabs stay visible until you choose Simple view yourself. Diagnostics only appears when you open it with `/mam diag`.
+
 ## Opening the Chronicle
 
 - **Minimap button:** left-click opens or closes the Chronicle, right-click opens Settings, and dragging moves the button around the minimap.
@@ -234,6 +245,11 @@ Click **Copy diagnostics**, press `Ctrl+C`, and paste the report into your messa
 | `/mam toast` | Shows a sample toast so you can check alerts (click again for the medal and guildmate looks). |
 | `/mam export` | Opens and selects the copyable Courier export. Press `Ctrl+C` to copy it. |
 | `/mam diag` | Opens and selects the redacted diagnostic report. Press `Ctrl+C` to copy it. |
+| `/mam tutorial` | Opens the guided tour (the ? button in the window does the same). |
+| `/mam tracker` | Shows or hides the small goal tracker window. |
+| `/mam mute [minutes]` | Holds all toasts for a while (30 minutes by default); `/mam unmute` shows them again. |
+| `/mam guild` | Opens the Guild tab (leaderboard and recent guild medals); `/mam guild send` shares your totals now. |
+| `/mam map follow <name>` | Moves your map waypoint with a guildmate who shares their location; `/mam map follow off` stops. |
 | `/mam help` | Prints every command in chat. An unknown command points here. |
 
 Example:

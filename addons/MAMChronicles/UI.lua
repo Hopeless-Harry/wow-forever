@@ -44,7 +44,30 @@ function UI:SetActiveTab(name)
   return true
 end
 
+-- Simple view keeps only the everyday tabs. The page you are on is always shown, and Diagnostics only appears when opened.
+local simpleTabs={Home=true,Chronicle=true,Medals=true,Settings=true}
+function UI:TabVisible(name)
+  if name==self.activeTab then return true end
+  if name=="Diagnostics" then return false end
+  if Addon.db and Addon.db.settings and Addon.db.settings.simpleView==true then return simpleTabs[name]==true end
+  return true
+end
+
+function UI:LayoutTabs()
+  if not (self.tabButtons and self.frame) then return end
+  local slot=0
+  for index,name in ipairs(self.tabs) do
+    local button=self.tabButtons[index]
+    if button then
+      if self:TabVisible(name) then
+        safeMethod(button,"ClearAllPoints"); safeMethod(button,"SetPoint","TOPLEFT",self.frame,"TOPLEFT",12+slot*67,-38); safeMethod(button,"Show"); slot=slot+1
+      else safeMethod(button,"Hide") end
+    end
+  end
+end
+
 function UI:UpdateTabStates()
+  self:LayoutTabs()
   for index,name in ipairs(self.tabs) do
     local button=self.tabButtons and self.tabButtons[index]
     if button then
@@ -224,7 +247,7 @@ function UI:GetVisibleTimeline()
   local result={}; for index=offset+1,math.min(offset+30,#events) do table.insert(result,events[index]) end return result,#events
 end
 
-local booleanSettings={enabled=true,recordCoordinates=true,recordQuestAccepts=true,recordStatistics=true,recordGoldStatistics=true,toastsEnabled=true,toastSound=true,quietInstances=true,animations=true,shareLocation=true,showGuildMap=true,trackerEnabled=true,trackerQuests=true,trackerLocked=true,announceMedals=true,announceGuildChat=true,receiveGuildAlerts=true}
+local booleanSettings={enabled=true,recordCoordinates=true,recordQuestAccepts=true,recordStatistics=true,recordGoldStatistics=true,toastsEnabled=true,toastSound=true,quietInstances=true,animations=true,shareLocation=true,showGuildMap=true,trackerEnabled=true,trackerQuests=true,trackerLocked=true,simpleView=true,announceMedals=true,announceGuildChat=true,receiveGuildAlerts=true}
 function UI:SetSetting(key,value)
   if key=="showMinimapButton" and Addon.SettingsPanel then return Addon.SettingsPanel:ApplySetting(key,value==true) end
   local settings=Addon.db.settings
@@ -249,6 +272,7 @@ function UI:SetSetting(key,value)
   else return false end
   settings[key]=value; Addon.db.meta.updatedAt=Addon:Now()
   if (key=="trackerEnabled" or key=="trackerQuests") and Addon.Tracker then Addon.Tracker:Refresh() end
+  if key=="simpleView" then self:LayoutTabs() end
   if key=="recordGoldStatistics" and not value and Addon.AchievementStats then Addon.AchievementStats:PurgeGold() end
   return true
 end
@@ -644,6 +668,7 @@ function UI:BuildSettingsPage(frame)
   y = y - 34
   check("showMinimapButton", "Show minimap button")
   check("animations", "Animations (fades, pulses and bounces)", "Turn this off for a perfectly still interface.")
+  check("simpleView", "Simple view (fewer tabs)", "Shows only Home, Chronicle, Medals and Settings in the tab bar. The other pages still open from their commands, such as /mam map or /mam guild.")
 
   heading("Alerts")
   check("toastsEnabled", "Show toast alerts", "Toasts are held while you are in combat and appear once combat ends.")
@@ -733,6 +758,11 @@ function UI:BuildSettingsPage(frame)
   y = y - 34
   local resetMinimap = button("Reset Minimap Button", 220, 8, function() if Addon.SettingsPanel then Addon.SettingsPanel:ResetMinimap() end end)
   attachTooltip(resetMinimap, "Reset Minimap Button", "Put the minimap button back in its default place.")
+  y = y - 34
+
+  heading("Help")
+  self.tutorialButton = button("Show the tutorial", 220, 8, function() if Addon.Tutorial then Addon.Tutorial:Open(1) end end)
+  attachTooltip(self.tutorialButton, "Tutorial", "A short guided tour of every page. The ? button at the top of the window opens it too.")
   y = y - 34
 
   heading("Danger zone")
@@ -1455,6 +1485,11 @@ function UI:Create()
   safeMethod(close, "SetPoint", "RIGHT", bar, "RIGHT", -6, 0)
   safeMethod(close, "SetScript", "OnClick", function() UI:Hide() end)
   self.closeButton = close
+  local help = T:Button(bar, "?", 28, 22)
+  safeMethod(help, "SetPoint", "RIGHT", close, "LEFT", -4, 0)
+  safeMethod(help, "SetScript", "OnClick", function() if Addon.Tutorial then Addon.Tutorial:Open(1) end end)
+  attachTooltip(help, "Help and tutorial", "Click for a short guided tour of the Chronicle. You can open it again at any time.")
+  self.helpButton = help
 
   -- tabs
   self.tabButtons = {}
@@ -1707,6 +1742,7 @@ UI.helpLines={
   "/mam share on|off|forget - share your stats with the guild hub, stop, or ask it to forget you",
   "/mam gateway on|off|sync - guild hub gateway for the owner (rank 0 or 1 only)",
   "/mam toast - show a sample toast (test alerts)",
+  "/mam tutorial - open the guided tour (the ? button in the window does the same)",
   "/mam help - show this list",
 }
 
@@ -1744,6 +1780,8 @@ function UI:HandleSlash(command)
     Addon:Print(minutes and ("Toasts are held for " .. minutes .. " minutes. /mam unmute shows them now.") or "Toasts are unavailable.")
   elseif verb=="unmute" then
     Addon:Print(Addon.Toast and Addon.Toast:Unmute() and "Toasts are back." or "Toasts were not muted.")
+  elseif verb=="tutorial" or verb=="tour" then
+    if Addon.Tutorial then Addon.Tutorial:Open(1) else Addon:Print("The tutorial is not available in this build.") end
   elseif verb=="tracker" then
     local on = Addon.db.settings.trackerEnabled == false
     self:SetSetting("trackerEnabled", on); self:SyncSettingsControls()

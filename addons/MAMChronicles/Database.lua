@@ -15,7 +15,7 @@ local function clamp(value, minimum, maximum) return math.max(minimum, math.min(
 local uiDefaults = { point="CENTER", x=0, y=0, width=780, height=560, activeTab="Home", minimapAngle=225 }
 local validPoints = { CENTER=true, TOP=true, BOTTOM=true, LEFT=true, RIGHT=true, TOPLEFT=true, TOPRIGHT=true, BOTTOMLEFT=true, BOTTOMRIGHT=true }
 local validThemes = { modern=true, midnight=true, parchment=true, crimson=true, slate=true }
-local booleanDefaults = { toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, gettingStartedDismissed=false, quietInstances=true, animations=true, shareLocation=true, showGuildMap=true, gatewayMode=false, trackerEnabled=true, trackerQuests=true, trackerLocked=false }
+local booleanDefaults = { toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, gettingStartedDismissed=false, quietInstances=true, animations=true, shareLocation=true, showGuildMap=true, gatewayMode=false, trackerEnabled=true, trackerQuests=true, trackerLocked=false, tutorialSeen=false, simpleView=false }
 -- Settings migrations run once each, in order. Add a new function and raise SETTINGS_VERSION instead of adding another one-off flag.
 local SETTINGS_VERSION = 1
 local settingsMigrations = {
@@ -37,10 +37,77 @@ function Database:Fresh(reason)
     schemaVersion = 1,
     meta = { createdAt = timestamp, updatedAt = timestamp, loadCount = 0, addonVersion = Addon.version, clientBuild = select(2, Addon:SafeCall(GetBuildInfo)) },
     settings = freshSettings(),
-    characters = {}, sessions = {}, events = {}, eventIds = {}, questCompletion = {}, professionSnapshots = {}, aggregates = {}, diagnostics = {}, statistics = {}, statisticCatalog = {}, medals = {}, guildFeed = {}, guildRoster = {}, counters = {}, medalTallies = {}, challenges = {}, emoteTargets = {},
+    characters = {}, sessions = {}, events = {}, eventIds = {}, questCompletion = {}, professionSnapshots = {}, aggregates = {}, diagnostics = {}, statistics = {}, statisticCatalog = {}, medals = {}, guildFeed = {}, guildRoster = {}, discoveries = {}, counters = {}, medalTallies = {}, challenges = {}, emoteTargets = {},
   }
   if reason then db.diagnostics.recovery = { recoveredAt = timestamp, reason = reason } end
+  -- Brand new installs start with the short tab bar; upgraders keep every tab until they choose Simple view.
+  db.settings.simpleView = true
   return db
+end
+
+-- Places a character has already been to. A "discovery" is the first visit to a zone/subzone, never a return.
+local MAX_DISCOVERIES = 5000
+local function discoveryKey(payload)
+  payload = type(payload) == "table" and payload or {}
+  local map = tonumber(payload.mapID)
+  return (map and string.format("%d", map) or "") .. "|" .. string.lower(tostring(payload.zone or "")) .. "|" .. string.lower(tostring(payload.subzone or ""))
+end
+Database.DiscoveryKey = discoveryKey
+
+-- True when this place was not known yet (and is now remembered).
+function Database:MarkDiscovered(characterKey, key)
+  local database = self.db
+  if not (database and characterKey and key) then return false end
+  database.discoveries = tableOr(database.discoveries)
+  local known = database.discoveries[characterKey]
+  if type(known) ~= "table" then known = { count = 0 }; database.discoveries[characterKey] = known end
+  if known[key] then return false end
+  if (tonumber(known.count) or 0) >= MAX_DISCOVERIES then return false end
+  known[key] = true
+  known.count = (tonumber(known.count) or 0) + 1
+  return true
+end
+
+-- One-time clean-up of builds that logged every zone-change as a discovery: keeps the first visit per character and place,
+-- remembers those places, and takes the repeats off the Explorer tally.
+function Database:DedupeDiscoveries(db)
+  db.meta = tableOr(db.meta)
+  if db.meta.discoveriesDeduped == true then return 0 end
+  local seen, kept, removed = {}, {}, {}
+  local total = 0
+  db.discoveries = tableOr(db.discoveries)
+  for _, event in ipairs(db.events or {}) do
+    if event.type == "world.zone_discovered" then
+      local character = tostring(event.characterKey or "unknown")
+      local key = character .. "#" .. discoveryKey(event.payload)
+      if seen[key] then
+        removed[character] = (removed[character] or 0) + 1; total = total + 1
+      else
+        seen[key] = true
+        local known = db.discoveries[character]
+        if type(known) ~= "table" then known = { count = 0 }; db.discoveries[character] = known end
+        local place = discoveryKey(event.payload)
+        if not known[place] then known[place] = true; known.count = (tonumber(known.count) or 0) + 1 end
+        kept[#kept + 1] = event
+      end
+    else
+      kept[#kept + 1] = event
+    end
+  end
+  if total > 0 then
+    db.events = kept
+    for character, count in pairs(removed) do
+      local tally = db.medalTallies and db.medalTallies[character]
+      if type(tally) == "table" then
+        tally["world.zone_discovered"] = math.max(0, (tonumber(tally["world.zone_discovered"]) or 0) - count)
+        tally.total = math.max(0, (tonumber(tally.total) or 0) - count)
+      end
+    end
+    db.diagnostics = tableOr(db.diagnostics)
+    db.diagnostics.discoveryCleanup = { removed = total, at = now() }
+  end
+  db.meta.discoveriesDeduped = true
+  return total
 end
 
 function Database:Open(saved)
@@ -49,7 +116,7 @@ function Database:Open(saved)
   if type(saved) ~= "table" then if saved~=nil then reason="corrupt root" end
   elseif saved.schemaVersion ~= 1 then reason = "unsupported schema" end
   if not reason and type(saved)=="table" then
-    for _,key in ipairs({"meta","settings","characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics","statistics","statisticCatalog","medals","guildFeed","guildRoster","counters","medalTallies","challenges","emoteTargets"}) do
+    for _,key in ipairs({"meta","settings","characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics","statistics","statisticCatalog","medals","guildFeed","guildRoster","discoveries","counters","medalTallies","challenges","emoteTargets"}) do
       if saved[key]~=nil and type(saved[key])~="table" then reason="corrupt root"; break end
     end
     if not reason and type(saved.events)=="table" then
@@ -64,7 +131,8 @@ function Database:Open(saved)
   end
   local db = reason and self:Fresh(reason) or (type(saved) == "table" and saved or self:Fresh())
   db.meta = tableOr(db.meta); db.settings = tableOr(db.settings)
-  for _, key in ipairs({"characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics","statistics","statisticCatalog","medals","guildFeed","guildRoster","counters","medalTallies","challenges","emoteTargets"}) do db[key] = tableOr(db[key]) end
+  for _, key in ipairs({"characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics","statistics","statisticCatalog","medals","guildFeed","guildRoster","discoveries","counters","medalTallies","challenges","emoteTargets"}) do db[key] = tableOr(db[key]) end
+  self:DedupeDiscoveries(db)
   db.eventIds={}; for _,event in ipairs(db.events) do db.eventIds[event.id]=true end
   if droppedEvents>0 and not reason then db.diagnostics.recovery={recoveredAt=now(),reason="dropped "..droppedEvents.." invalid event"..(droppedEvents==1 and "" or "s")} end
   db.schemaVersion = 1; self.db = db; self:NormaliseSettings()
@@ -169,6 +237,7 @@ function Database:ClearHistory()
   self.db.statistics, self.db.statisticCatalog = {}, {}
   self.db.medals, self.db.guildFeed, self.db.counters, self.db.medalTallies = {}, {}, {}, {}
   self.db.guildRoster = {}
+  self.db.discoveries = {}
   self.db.challenges = {}
   self.db.emoteTargets = {}
   if Addon.Medals then Addon.Medals:Reset() end

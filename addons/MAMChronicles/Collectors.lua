@@ -27,6 +27,15 @@ function Collectors:CaptureLocation()
   return payload
 end
 
+-- Zone-change events also fire when you walk back into somewhere you have been, so a discovery is only the first visit
+-- to a zone/subzone (remembered per character in Database:MarkDiscovered).
+function Collectors:RecordDiscovery()
+  local payload=self:CaptureLocation()
+  if (payload.zone==nil or payload.zone=="") and (payload.subzone==nil or payload.subzone=="") then return nil end
+  if not Addon.Database:MarkDiscovered(Addon.characterKey,Addon.Database.DiscoveryKey(payload)) then return nil end
+  return Addon.EventStore:Append("world.zone_discovered",payload)
+end
+
 function Collectors:QuestName(questID)
   if C_QuestLog and C_QuestLog.GetTitleForQuestID then return safe(C_QuestLog.GetTitleForQuestID,questID) end
   return nil
@@ -144,7 +153,7 @@ function Collectors:HandleEvent(eventName,...)
     elseif eventName=="QUEST_TURNED_IN" then
       local questID=args[1]; Addon.EventStore:Append("quest.completed",{questID=questID,questName=self:QuestName(questID)})
       if type(questID)=="number" then local completed=Addon.db.questCompletion[Addon.characterKey]; if type(completed)~="table" then completed={}; Addon.db.questCompletion[Addon.characterKey]=completed end; completed[questID]=Addon:Now() end
-    elseif eventName=="ZONE_CHANGED" or eventName=="ZONE_CHANGED_INDOORS" or eventName=="ZONE_CHANGED_NEW_AREA" then Addon.EventStore:Append("world.zone_discovered",self:CaptureLocation())
+    elseif eventName=="ZONE_CHANGED" or eventName=="ZONE_CHANGED_INDOORS" or eventName=="ZONE_CHANGED_NEW_AREA" then self:RecordDiscovery()
     elseif eventName=="PLAYER_ENTERING_WORLD" then self:CaptureInstance()
     elseif eventName=="CHAT_MSG_LOOT" then self:CaptureLoot(args[1])
     elseif eventName=="GET_ITEM_INFO_RECEIVED" then local itemID,success=args[1],args[2]; if success and self.pendingItems[itemID] then local p=self.pendingItems[itemID]; self:ResolveItem(itemID,p.itemLink,p.quantity) end

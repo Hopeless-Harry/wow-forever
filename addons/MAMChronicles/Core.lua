@@ -168,6 +168,7 @@ function Addon:HandleEvent(eventName, ...)
   end
   if not self.booted then self:Boot() end
   if eventName == "PLAYER_REGEN_ENABLED" then self:RunAfterCombat() end
+  if eventName == "PLAYER_LOGIN" and self.Tutorial then self:Guard("Tutorial", self.Tutorial.Schedule, self.Tutorial) end
   if eventName == "PLAYER_LOGIN" and self.Comms and self.Comms.ScheduleSummary then self:Guard("Comms", self.Comms.ScheduleSummary, self.Comms) end
   if self.db.settings.enabled ~= false and self.Counters and self.Counters.handles[eventName] then self:Guard("Counters", self.Counters.OnEvent, self.Counters, eventName, ...) end
   if eventName == "CHAT_MSG_ADDON" then

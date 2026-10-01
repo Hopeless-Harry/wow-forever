@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHarness } from './harness.js';
 
-const files = ['Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Counters.lua','Export.lua','Theme.lua','Toast.lua','Comms.lua','Map.lua','Tracker.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua'];
+const files = ['Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Counters.lua','Export.lua','Theme.lua','Toast.lua','Comms.lua','Map.lua','Tracker.lua','Dashboard.lua','UI.lua','Tutorial.lua','Launcher.lua','SettingsPanel.lua'];
 const NOW = 1790704800;
 function setup(pre = '', saved) {
   const h = createHarness({ savedVariables: saved }); h.load(files.slice(0, 1));
@@ -321,4 +321,86 @@ test('clicking a guildmate medal toast opens the Guild tab', () => {
   h.fire('CHAT_MSG_ADDON', 'MAMCHR', 'M1|quest_machine_2|25|1', 'GUILD', 'Alice-Draenor');
   h.run('MAMChronicles.Toast:Advance(1); __act=MAMChronicles.Toast.current and MAMChronicles.Toast.current.action; MAMChronicles.Toast:Click("LeftButton"); __tab=MAMChronicles.UI.activeTab');
   assert.equal(h.get('__act'), 'Guild'); assert.equal(h.get('__tab'), 'Guild');
+});
+
+// ---- help button, tutorial and simple view
+test('the window has a ? button that opens the tutorial at step one', () => {
+  const h = setup();
+  h.run('UI=MAMChronicles.UI; UI:Show(); __has=UI.helpButton~=nil; UI.helpButton.scripts.OnClick(UI.helpButton); T=MAMChronicles.Tutorial; __open=T:IsOpen(); __head=T.frame.heading.text; __ctr=T.frame.counter.text');
+  assert.equal(h.get('__has'), true); assert.equal(h.get('__open'), true); assert.match(h.get('__head'), /Welcome/); assert.equal(h.get('__ctr'), 'Step 1 of 9');
+});
+
+test('the ? button explains itself with a tooltip', () => {
+  const h = setup();
+  h.run('UI=MAMChronicles.UI; UI:Show(); GameTooltip.lines={}; UI.helpButton.scripts.OnEnter(UI.helpButton); __t=table.concat(GameTooltip.lines," | ")');
+  assert.match(h.get('__t'), /Help and tutorial/);
+});
+
+test('the tour walks through every step, switches to the page it describes and finishes with Done', () => {
+  const h = setup();
+  h.run('UI=MAMChronicles.UI; T=MAMChronicles.Tutorial; T:Open(1); __backHidden=not T.frame.back.shown; __n=T:Count()');
+  assert.equal(h.get('__n'), 9); assert.equal(h.get('__backHidden'), true);
+  const expectedTabs = ['Home', 'Home', 'Chronicle', 'Medals', 'Home', 'Statistics', 'Guild', 'Settings', 'Home'];
+  for (let step = 1; step <= 9; step++) {
+    h.run(`T:Go(${step}); __tab=UI.activeTab; __next=T.frame.nextButton.text; __skip=T.frame.skip.shown; __text=T.frame.body.text`);
+    assert.equal(h.get('__tab'), expectedTabs[step - 1], `step ${step}`);
+    assert.equal(h.get('__next'), step === 9 ? 'Done' : 'Next'); assert.equal(h.get('__skip'), step !== 9);
+    assert.ok(String(h.get('__text')).length > 30);
+  }
+  h.run('T.frame.nextButton.scripts.OnClick(T.frame.nextButton); __open=T:IsOpen(); __seen=MAMChroniclesDB.settings.tutorialSeen');
+  assert.equal(h.get('__open'), false); assert.equal(h.get('__seen'), true);
+});
+
+test('Next and Back move between steps and Skip closes and remembers', () => {
+  const h = setup();
+  h.run('T=MAMChronicles.Tutorial; T:Open(1); T.frame.nextButton.scripts.OnClick(T.frame.nextButton); __a=T.step; T.frame.nextButton.scripts.OnClick(T.frame.nextButton); T.frame.back.scripts.OnClick(T.frame.back); __b=T.step; T.frame.skip.scripts.OnClick(T.frame.skip); __open=T:IsOpen(); __seen=MAMChroniclesDB.settings.tutorialSeen');
+  assert.equal(h.get('__a'), 2); assert.equal(h.get('__b'), 2); assert.equal(h.get('__open'), false); assert.equal(h.get('__seen'), true);
+});
+
+test('the tour is offered once after login, never in combat, and not again once seen', () => {
+  const h = setup('__timers={}; C_Timer={After=function(d,f) table.insert(__timers,f) end}; __combat=false; function InCombatLockdown() return __combat end');
+  h.run('__timers={}'); h.fire('PLAYER_LOGIN');
+  h.run('__combat=true; for _,f in ipairs(__timers) do f() end; __during=MAMChronicles.Tutorial:IsOpen()'); assert.equal(h.get('__during'), false);
+  h.run('__combat=false; MAMChronicles.Tutorial:MaybeStart(); __open=MAMChronicles.Tutorial:IsOpen()'); assert.equal(h.get('__open'), true);
+  h.run('MAMChronicles.Tutorial:Close(); __timers={}'); h.fire('PLAYER_LOGIN'); assert.equal(h.get('#__timers') >= 0, true);
+  h.run('MAMChronicles.Tutorial:MaybeStart(); __again=MAMChronicles.Tutorial:IsOpen()'); assert.equal(h.get('__again'), false);
+});
+
+test('/mam tutorial and /mam tour open the tour and /mam help lists it', () => {
+  const h = setup();
+  h.slash('tutorial'); h.run('__a=MAMChronicles.Tutorial:IsOpen(); MAMChronicles.Tutorial:Close()'); assert.equal(h.get('__a'), true);
+  h.slash('tour'); h.run('__b=MAMChronicles.Tutorial:IsOpen()'); assert.equal(h.get('__b'), true);
+  h.slash('help'); assert.ok(h.calls.printed.join('\n').includes('/mam tutorial'));
+});
+
+test('Simple view shows only the everyday tabs, keeps the page you are on, and never shows Diagnostics by default', () => {
+  const h = setup();
+  const visible = 'local v={}; for i,n in ipairs(UI.tabs) do if UI.tabButtons[i].shown then v[#v+1]=n end end; __v=table.concat(v,",")';
+  // New installs start in Simple view; players who upgrade keep every tab until they choose otherwise.
+  h.run('UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Home"); ' + visible);
+  assert.equal(h.get('__v'), 'Home,Chronicle,Medals,Settings');
+  h.run('UI:SetSetting("simpleView",false); UI:SetActiveTab("Home"); ' + visible);
+  assert.equal(h.get('__v'), 'Home,Chronicle,Medals,Statistics,Characters,Map,Guild,Settings');
+  h.run('UI:SetSetting("simpleView",true); UI:SetActiveTab("Home"); ' + visible); assert.equal(h.get('__v'), 'Home,Chronicle,Medals,Settings');
+  h.run('UI:SetActiveTab("Map"); ' + visible); assert.equal(h.get('__v'), 'Home,Chronicle,Medals,Map,Settings');
+  h.run('UI:SetSetting("simpleView",false); UI:SetActiveTab("Diagnostics"); ' + visible); assert.match(h.get('__v'), /Diagnostics/);
+  h.run('UI:SetActiveTab("Home"); ' + visible); assert.ok(!/Diagnostics/.test(h.get('__v')));
+});
+
+test('visible tabs sit side by side without gaps', () => {
+  const h = setup();
+  h.run('UI=MAMChronicles.UI; UI:Show(); UI:SetSetting("simpleView",true); UI:SetActiveTab("Home"); local xs={}; for i,n in ipairs(UI.tabs) do local b=UI.tabButtons[i]; if b.shown then xs[#xs+1]=b.point[4] end end; __xs=table.concat(xs,",")');
+  assert.equal(h.get('__xs'), '12,79,146,213');
+});
+
+test('Settings offers Simple view and a button that opens the tutorial', () => {
+  const h = setup();
+  h.run('UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Settings"); __a=UI.settingChecks.simpleView~=nil; UI.tutorialButton.scripts.OnClick(UI.tutorialButton); __open=MAMChronicles.Tutorial:IsOpen()');
+  assert.equal(h.get('__a'), true); assert.equal(h.get('__open'), true);
+});
+
+test('upgraders keep all tabs while a brand new install starts in Simple view', () => {
+  const upgraded = setup('', { schemaVersion: 1, settings: { theme: 'modern' } });
+  assert.equal(upgraded.get('MAMChroniclesDB.settings.simpleView'), false);
+  assert.equal(setup().get('MAMChroniclesDB.settings.simpleView'), true);
 });

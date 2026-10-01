@@ -32,6 +32,9 @@ Midnight (12.x) hardening and clean-up.
 - Optional LibDataBroker launcher, so Titan Panel, ElvUI, Bazooka and similar can open the Chronicle.
 - The ground check that counts jumps pauses while dead or on a flight path.
 - Settings now have a numbered migration list; /mam diag shows how many guild announcements are queued.
+- Fixed: places were rediscovered every time you walked back into them (the Chronicle showed 50 "discoveries" of Darkshore and Stormwind City). A discovery is now only the first visit to a zone or subzone for each character, and Explorer medals and Mom Quests count those only. On first load the addon cleans old Chronicles once: it keeps the first visit to each place and removes the repeats (the count is in /mam diag). Medals you already earned stay earned.
+- Help and tutorial: a ? button in the window title bar opens a nine-step guided tour that switches to the page it describes. It also opens once automatically after login for players who have not seen it, and from /mam tutorial or Settings > Help.
+- Simple view: new installs show only Home, Chronicle, Medals and Settings in the tab bar (turn it off in Settings > Appearance). Upgraders keep every tab. Diagnostics no longer takes a tab unless you open it with /mam diag.
 - The Home subtitle shows roughly how much play is left to the level cap, the minimap tooltip shows your login streak, and clicking a guildmate's medal toast opens the Guild tab.
 - Tidy-up: one shared safe-method helper instead of six copies, six unused functions removed, /mam help lists /mam map follow, and the README now matches what the addon records and shares.
 - Map: removed a duplicated test helper. Counters: the ten-times-a-second ground check no longer allocates.

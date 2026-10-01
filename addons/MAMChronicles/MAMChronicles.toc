@@ -31,5 +31,6 @@ Orders.lua
 Tracker.lua
 Dashboard.lua
 UI.lua
+Tutorial.lua
 Launcher.lua
 SettingsPanel.lua

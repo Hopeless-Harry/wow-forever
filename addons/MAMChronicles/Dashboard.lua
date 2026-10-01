@@ -27,10 +27,9 @@ local function visibleTiles()
   return list
 end
 
-local startText = "Type /mam (or click the minimap button) to open this window.\n"
-  .. "Medals tab: Mom Medals you earn, worth Mom Money. Settings tab: themes, alerts and what is recorded.\n"
-  .. "Shared with your guild: medals you earn (id and points), your map position in the open world, and only if you say yes a small stats summary for the guild hub (level, class, race, title, medal count, Mom Money and a few activity counts). Never chat, whispers, gold, item names or BattleTag. It all travels as hidden addon messages.\n"
-  .. "To opt out: Settings > Alerts (medals), Settings > Guild map (position), /mam share off (stats)."
+local startText = "New here? Click the ? button at the top for a short tour, or type /mam tutorial.\n"
+  .. "Medals you earn are shared with your guild, and so is your map position in the open world. A stats summary for a guild hub is only sent if you say yes; chat, whispers and gold are never sent.\n"
+  .. "Change any of this in Settings, or type /mam share off."
 
 local safeMethod = Addon.SafeMethod
 local function safe(fn, ...) return Addon:SafeCall(fn, ...) end
