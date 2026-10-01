@@ -105,12 +105,15 @@
     if (copyStatus) copyStatus.textContent = "";
   }
 
+  // Names are pasted into Discord: break mentions and escape markdown (mirrors src/domain/discord.js).
+  const discordSafe = (text) => text.replace(/[\\*_~`|>[\]]/g, "\\$&").replace(/@/g, "@\u200b").replace(/<(?=[@#:])/g, "<\u200b");
+
   // Roster only: copy the names of the rows currently shown, in the order shown, as a comma-separated list.
   const copyButton = document.querySelector("[data-copy-names]");
   if (copyButton) {
     const label = copyButton.textContent;
     copyButton.addEventListener("click", async () => {
-      const names = [...body.rows].filter((row) => !row.hidden).map((row) => row.cells[0].textContent.trim());
+      const names = [...body.rows].filter((row) => !row.hidden).map((row) => discordSafe(row.cells[0].textContent.trim()));
       if (!names.length) {
         if (copyStatus) copyStatus.textContent = "Nothing to copy: no members match the filters.";
         return;

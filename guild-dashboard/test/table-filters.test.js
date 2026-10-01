@@ -47,7 +47,7 @@ function harness({ saved = null, storageThrows = false, missing = false, withFac
   const fire = () => { handlers.input?.(); handlers.change?.(); };
   const visible = () => body.rows.filter((r) => !r.hidden).map((r) => r.dataset.sort);
   const order = () => body.rows.map((r) => r.dataset.sort);
-  return { form, count, noResults, store, fire, visible, order, handlers, urls, copyButton, copyStatus, timers, scratch };
+  return { rows, form, count, noResults, store, fire, visible, order, handlers, urls, copyButton, copyStatus, timers, scratch };
 }
 
 test("dropdowns list each distinct non-empty value once, sorted", () => {
@@ -304,4 +304,16 @@ test("the copy message is cleared when the filters change so it never describes 
   h.form.elements.search.value = "";
   h.fire();
   assert.equal(h.copyStatus.textContent, "", "so the empty-result warning does not linger");
+});
+
+test("Copy names cannot ping anyone or turn a name into Discord formatting", async () => {
+  let written = null;
+  const h = harness({ copy: { clipboard: { writeText: async (text) => { written = text; } } } });
+  h.rows[0].cells[0].textContent = "@everyone";
+  h.rows[1].cells[0].textContent = "<@&123>";
+  h.rows[2].cells[0].textContent = "**Loud_Name**";
+  await h.copyButton.handlers.click();
+  assert.ok(!written.includes("@everyone") && !written.includes("<@"), "mentions are broken up");
+  assert.ok(written.includes("\\*\\*Loud\\_Name\\*\\*"), "markdown is escaped");
+  assert.ok(written.endsWith("Kor"), "plain names are untouched");
 });
