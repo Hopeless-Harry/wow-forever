@@ -10,6 +10,7 @@ Group=guild-ledger
 WorkingDirectory=/opt/guild-ledger/app
 Environment=NODE_ENV=production
 Environment=CACHE_PATH=/var/lib/guild-ledger/cache.json
+Environment=MEMBER_PATH=/var/lib/guild-ledger/members.json
 EnvironmentFile=/etc/guild-ledger.env
 ExecStart=/usr/bin/node src/server.js
 Restart=on-failure

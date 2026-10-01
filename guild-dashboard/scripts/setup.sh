@@ -22,8 +22,8 @@ if ! id guild-ledger >/dev/null 2>&1; then
 fi
 
 install -d -o guild-ledger -g guild-ledger -m 0750 "${APP_DIR}" "${DATA_DIR}"
-rm -rf "${APP_DIR}/src" "${APP_DIR}/public" "${APP_DIR}/config" "${APP_DIR}/test"
-cp -R "${PROJECT_DIR}/src" "${PROJECT_DIR}/public" "${PROJECT_DIR}/config" "${PROJECT_DIR}/test" "${APP_DIR}/"
+rm -rf "${APP_DIR}/src" "${APP_DIR}/public" "${APP_DIR}/config" "${APP_DIR}/test" "${APP_DIR}/scripts"
+cp -R "${PROJECT_DIR}/src" "${PROJECT_DIR}/public" "${PROJECT_DIR}/config" "${PROJECT_DIR}/test" "${PROJECT_DIR}/scripts" "${APP_DIR}/"
 install -m 0644 "${PROJECT_DIR}/package.json" "${PROJECT_DIR}/package-lock.json" "${APP_DIR}/"
 chown -R guild-ledger:guild-ledger /opt/guild-ledger "${DATA_DIR}"
 

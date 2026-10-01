@@ -202,7 +202,7 @@ git pull --ff-only
 sudo ./scripts/update.sh
 ```
 
-The update script performs a locked install, runs the complete test suite, copies the verified source, installs production dependencies, and only then restarts the service. If tests fail, the running service is left untouched.
+The update script also reinstalls the systemd service file when it changed (and reloads systemd), so new data paths such as `MEMBER_PATH` reach existing installs. The service file sets safe defaults for `CACHE_PATH` and `MEMBER_PATH` inside `/var/lib/guild-ledger`, the only writable directory, so an older `/etc/guild-ledger.env` without those lines still works. The update script performs a locked install, runs the complete test suite, copies the verified source, installs production dependencies, and only then restarts the service. If tests fail, the running service is left untouched.
 
 ## Troubleshooting
 
