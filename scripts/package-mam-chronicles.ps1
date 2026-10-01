@@ -4,7 +4,7 @@ $ErrorActionPreference='Stop'
 $repositoryRoot=Split-Path -Parent $PSScriptRoot
 $sourceRoot=Join-Path $repositoryRoot 'addons\MAMChronicles'
 if(-not $OutputRoot){$OutputRoot=Join-Path $repositoryRoot 'dist'}
-$allowlist=@('MAMChronicles.toc','Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Counters.lua','Export.lua','Theme.lua','Toast.lua','Comms.lua','Share.lua','Map.lua','Tracker.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua','MAMChroniclesIcon.tga','LICENSE.txt','CHANGELOG.md','README.md')
+$allowlist=@('MAMChronicles.toc','Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Counters.lua','Export.lua','Theme.lua','Toast.lua','Comms.lua','Share.lua','Map.lua','Gateway.lua','Tracker.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua','MAMChroniclesIcon.tga','LICENSE.txt','CHANGELOG.md','README.md')
 $allowlist+=@('Badge','Bar','ButtonBrown','ButtonRed','Checkbox','Divider','Frame','Glow','Inset','Scroll','Shadow','Tab','Toast')|ForEach-Object{"Art\$_.tga"}
 $manifestPath=Join-Path $sourceRoot 'MAMChronicles.toc'
 if(-not(Test-Path -LiteralPath $manifestPath -PathType Leaf)){throw "Addon manifest is missing: $manifestPath"}

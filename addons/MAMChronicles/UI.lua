@@ -231,6 +231,7 @@ function UI:SetSetting(key,value)
   elseif key=="notableQuality" then value=math.max(4,math.min(5,tonumber(value) or 4))
   elseif key=="maxEvents" then value=math.max(100,math.min(10000,math.floor(tonumber(value) or 10000)))
   elseif key=="shareStats" then if not Addon.Share then return false end return Addon.Share:SetConsent(value==true)
+  elseif key=="gatewayMode" then if not Addon.Gateway then return false end return Addon.Gateway:SetEnabled(value==true)
   elseif key=="shareLocation" then value=value==true; if Addon.Map then Addon.Map:SetShare(value) end; Addon.db.meta.updatedAt=Addon:Now(); return true
   elseif booleanSettings[key] then value=value==true
   else return false end
@@ -591,6 +592,11 @@ function UI:BuildSettingsPage(frame)
   attachTooltip(self.testToastButton, "Send a test toast", "Shows a sample toast so you can check they appear. Click again for the medal and guildmate looks.")
   y = y - 34
 
+  heading("Guild hub (owner only)")
+  check("gatewayMode", "Act as the guild hub gateway", "Only for the owner, on a rank 0 or 1 character. Announces the hub, collects members' shared stats and locations and keeps them for the companion app. Does nothing for other ranks.")
+  self.syncButton = button("Sync now (reloads the interface)", 260, 8, function() if Addon.Gateway then Addon.Gateway:SyncNow() end end)
+  attachTooltip(self.syncButton, "Sync now", "The game only writes saved data to disk when the interface reloads. Click this to save the latest hub data so the companion app can upload it.")
+  y = y - 34
   if Addon.Medals then
     heading("Mom Money shop")
     self.shopBalance = label("")
@@ -1465,6 +1471,7 @@ UI.helpLines={
   "/mam quests - show this week's Mom Quests and your progress",
   "/mam map - open the live guild map (/mam map fake adds pretend guildmates to try it)",
   "/mam share on|off|forget - share your stats with the guild hub, stop, or ask it to forget you",
+  "/mam gateway on|off|sync - guild hub gateway for the owner (rank 0 or 1 only)",
   "/mam toast - show a sample toast (test alerts)",
   "/mam help - show this list",
 }
@@ -1502,6 +1509,13 @@ function UI:HandleSlash(command)
     elseif word == "off" then Addon.Share:SetConsent(false); self:SyncSettingsControls(); Addon:Print("Stats sharing off. Nothing more will be sent.")
     elseif word == "forget" then Addon.Share:Forget(); self:SyncSettingsControls(); Addon:Print("Sharing is off and the guild hub will be asked to forget you the next time it is online.")
     else Addon:Print(Addon.Share:Describe() .. ". Use /mam share on, off or forget.") end
+  elseif verb=="gateway" then
+    local word = ((rest or ""):match("^(%S+)") or "status"):lower()
+    if not Addon.Gateway then Addon:Print("Gateway mode is not available.")
+    elseif word == "on" then Addon.Gateway:SetEnabled(true); self:SyncSettingsControls(); Addon:Print(Addon.Gateway:Describe())
+    elseif word == "off" then Addon.Gateway:SetEnabled(false); self:SyncSettingsControls(); Addon:Print("Gateway mode off.")
+    elseif word == "sync" then Addon:Print("Saving hub data and reloading the interface..."); Addon.Gateway:SyncNow()
+    else Addon:Print(Addon.Gateway:Describe() .. ". Use /mam gateway on, off or sync.") end
   elseif verb=="help" then self:PrintHelp()
   else self.lastMessage='Unknown command "'..verb..'". Type /mam help for the list.'; Addon:Print(self.lastMessage) end
 end
