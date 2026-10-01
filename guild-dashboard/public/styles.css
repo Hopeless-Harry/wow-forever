@@ -494,3 +494,8 @@ th[scope="row"] a, .panel-heading p a, .empty-ledger a, .profile-card a { displa
 .raid-panel th:nth-child(3) { width: 26%; }
 .raid-panel th, .raid-panel td { padding: .6rem .5rem; overflow-wrap: anywhere; }
 .raid-panel tbody th { white-space: normal; }
+
+.summary-label { display: block; margin-bottom: .3rem; color: #3b2815; font-size: .8rem; font-weight: 700; }
+.summary-text { width: 100%; box-sizing: border-box; padding: .8rem; color: var(--bone); background: #1d1812; border: 1px solid var(--gold-dark); font: .9rem/1.5 ui-monospace, Menlo, Consolas, monospace; resize: vertical; min-height: 15rem; field-sizing: content; }
+.summary-panel .quiet { min-height: 1.4rem; margin: .5rem 0 0; }
+@media print { .summary-panel { display: none !important; } }

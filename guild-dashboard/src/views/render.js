@@ -1,5 +1,6 @@
 import { ERROR_COPY } from "../data/errors.js";
 import { groupPlan } from "../domain/groups.js";
+import { buildSummary } from "../domain/summary.js";
 import { buildRaidPlan, missingProfessions, professionDirectory } from "../domain/raid.js";
 import { LAUNCH_AT, RAID_SIZES, comboWarning, factionOf, forRuleset, roleWarning, rulesetOptions } from "../domain/wow-data.js";
 import { escapeHtml } from "./escape.js";
@@ -88,14 +89,19 @@ function recentRows(records) {
   return records.slice(-5).reverse().map((record) => `<tr><th scope="row">${escapeHtml(record.anonymousId)}</th><td><span class="class-chip${classToken(record.characterClass)}">${escapeHtml(record.characterClass)}</span></td><td>${escapeHtml(record.role)}</td><td>${escapeHtml(record.race)}</td><td>${escapeHtml(record.profession1)} <span aria-hidden="true">+</span> ${escapeHtml(record.profession2)}</td></tr>`).join("");
 }
 
-function activityPanel(events) {
+function summaryPanel(snapshot, memberData) {
+  const text = buildSummary(snapshot, memberData);
+  return `<section class="parchment-panel summary-panel"><div class="panel-heading"><div><span>Share it</span><h2>Guild summary for Discord</h2><p>Counts only, no names. Paste it into your channel.</p></div><button class="wow-button" type="button" data-copy-summary>Copy for Discord</button></div><label for="guild-summary" class="summary-label">Summary text</label><textarea id="guild-summary" class="summary-text" readonly rows="9">${escapeHtml(text)}</textarea><p id="copy-status" class="quiet" role="status"></p></section>`;
+}
+
+function activityPanel(events = []) {
   const recent = [...events].filter((event) => event.type !== "baseline").slice(-5).reverse();
   if (!recent.length) return "";
   const items = recent.map((event) => `<li class="chronicle-entry chronicle-${escapeHtml(event.type)}"><time datetime="${escapeHtml(event.at)}">${escapeHtml(event.at.slice(0, 10))}</time><p>${memberEventText(event)}</p></li>`).join("");
   return `<section class="parchment-panel chronicle-panel"><div class="panel-heading"><div><span>Latest news</span><h2>Recent activity</h2></div><a class="wow-button" href="/members/chronicle">Open chronicle</a></div><ol class="chronicle-list">${items}</ol></section>`;
 }
 
-export function renderDashboard(snapshot, memberData = { events: [] }) {
+export function renderDashboard(snapshot, memberData = { members: [], events: [] }) {
   if (!snapshot.records.length) return shell({ title: "Guild Ledger", active: "/", snapshot, content: emptyPanel(snapshot), scripts: ["/assets/live-refresh.js"] });
   const { leaders, distributions, totalResponses } = snapshot.stats;
   const content = `<aside class="launch-banner" data-launch="${escapeHtml(LAUNCH_AT)}"><span>WoW Forever launches</span><strong id="launch-countdown">4 November 2026, 3 PM PST</strong><small>Reported launch date</small></aside>
@@ -104,9 +110,10 @@ export function renderDashboard(snapshot, memberData = { events: [] }) {
     <div class="stat-rack">${leaderCard("Favoured ruleset", leaders.server)}${leaderCard("Largest class", leaders.characterClass, "class-ledger")}${leaderCard("Main calling", leaders.role)}${leaderCard("Top profession", leaders.professions)}</div>
   </section>
   <section class="dashboard-grid">${bars("Class muster", distributions.characterClass, "wide")}${bars("Role balance", distributions.role)}${bars("Ruleset preference", distributions.server)}</section>
+  ${summaryPanel(snapshot, memberData)}
   ${activityPanel(memberData.events)}
   <section class="parchment-panel recent-panel"><div class="panel-heading"><div><span>Latest entries</span><h2>Recent roster entries</h2></div><a class="wow-button" href="/responses">Open full census</a></div><div class="table-scroll"><table aria-label="Recent roster entries"><thead><tr><th>Entry</th><th>Class</th><th>Role</th><th>Race</th><th>Professions</th></tr></thead><tbody>${recentRows(snapshot.records)}</tbody></table></div></section>`;
-  return shell({ title: "Guild Ledger", active: "/", snapshot, content, scripts: ["/assets/countdown.js", "/assets/live-refresh.js"] });
+  return shell({ title: "Guild Ledger", active: "/", snapshot, content, scripts: ["/assets/countdown.js", "/assets/copy-summary.js", "/assets/live-refresh.js"] });
 }
 
 export function renderResponses(snapshot) {

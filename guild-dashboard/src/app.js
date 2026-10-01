@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import { readFileSync } from "node:fs";
 
 import { membersToCsv } from "./domain/export.js";
+import { buildSummary } from "./domain/summary.js";
 import { createRateLimiter, isLoopback, limiterKey } from "./rate-limit.js";
 import { RAID_SIZES, rulesetOptions } from "./domain/wow-data.js";
 import { PUBLIC_FIELDS } from "./domain/normalize.js";
@@ -12,6 +13,7 @@ const ASSETS = new Map([
   ["styles.css", { type: "text/css; charset=utf-8", body: readFileSync(new URL("../public/styles.css", import.meta.url), "utf8") }],
   ["table-filters.js", { type: "text/javascript; charset=utf-8", body: readFileSync(new URL("../public/table-filters.js", import.meta.url), "utf8") }],
   ["countdown.js", { type: "text/javascript; charset=utf-8", body: readFileSync(new URL("../public/countdown.js", import.meta.url), "utf8") }],
+  ["copy-summary.js", { type: "text/javascript; charset=utf-8", body: readFileSync(new URL("../public/copy-summary.js", import.meta.url), "utf8") }],
   ["live-refresh.js", { type: "text/javascript; charset=utf-8", body: readFileSync(new URL("../public/live-refresh.js", import.meta.url), "utf8") }]
 ]);
 
@@ -76,6 +78,7 @@ export function buildApp({ dataService, rateLimitPerMinute = 300, logger = true 
     const ruleset = rulesetOptions([...snapshot.records, ...memberData.members]).find((option) => option.toLowerCase() === asked.toLowerCase()) ?? "";
     return html(reply).send(renderRaidPlan(snapshot, size, memberData, ruleset));
   });
+  app.get("/summary.txt", async (_request, reply) => reply.type("text/plain; charset=utf-8").send(buildSummary(dataService.snapshot(), dataService.memberSnapshot?.() ?? { members: [] })));
   app.get("/members.csv", async (_request, reply) => {
     const members = dataService.memberSnapshot?.().members ?? [];
     return reply.type("text/csv; charset=utf-8").header("content-disposition", 'attachment; filename="guild-roster.csv"').send(membersToCsv(members));
@@ -89,7 +92,7 @@ export function buildApp({ dataService, rateLimitPerMinute = 300, logger = true 
   app.get("/members", memberPage(renderMembers));
   app.get("/members/chronicle", memberPage(renderMemberChronicle));
 
-  app.get("/", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderDashboard(dataService.snapshot(), dataService.memberSnapshot?.() ?? { events: [] })));
+  app.get("/", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderDashboard(dataService.snapshot(), dataService.memberSnapshot?.() ?? { members: [], events: [] })));
   app.get("/responses", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderResponses(dataService.snapshot())));
   app.get("/statistics", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderStatistics(dataService.snapshot())));
   app.get("/assets/:name", async (request, reply) => {

@@ -7,6 +7,7 @@ A lightweight, privacy-first guild census for the **Moms Against Magic — WoW F
 - Shows anonymous class, role, race, ruleset, and profession summaries.
 - Provides a searchable and filterable Guild Census.
 - Raid Planner (`/raid?size=10|20|40`): per-faction role balance against rough community targets (about 4 tanks, 11 healers, 25 DPS for 40 players) and class coverage (Warrior tank, Druid, Hunter, Paladin, Shaman, Priest, Mage, Warlock). Factions are planned separately because they cannot group together.
+- Discord summary on the dashboard (and as plain text at `/summary.txt`): totals, faction split, roles per faction, top classes, ruleset preferences, professions nobody has and days to launch, as counts only with no names, with a one-click Copy for Discord button.
 - Ruleset filter on `/raid` (`?ruleset=PvP`): tabs appear when members chose more than one ruleset. Choosing one plans only the players who picked it plus anyone "happy with either", so a suggested group never mixes rulesets. Answers are matched to the Form's wording; ruleset names are unverified third-party information.
 - Suggested raid groups on `/raid`: names placed into groups of five per faction (a tank per group, healers spread out), with overflow benched and a ruleset breakdown, because players can only group within one faction and one ruleset.
 - Every page prints cleanly (black on white, no navigation or controls, cards kept whole), so a raid leader can print the suggested groups with the browser's Print or Save as PDF.
