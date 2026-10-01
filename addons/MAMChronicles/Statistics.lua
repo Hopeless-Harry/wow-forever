@@ -302,6 +302,9 @@ function Statistics:BuildGuild()
 end
 
 function Statistics:DescribeGuild()
+  if type(IsInGuild)=="function" and IsInGuild()~=true then
+    return "Guild leaderboard\n  You are not in a guild. Join one to see a leaderboard of guildmates who use the addon and the medals they earn.\n\nYour own totals are on the Medals tab."
+  end
   local rows=self:BuildGuild()
   local lines={"Guild leaderboard ("..#rows.." shown)"}
   if #rows<=1 then table.insert(lines,"  No guildmate totals yet. They arrive when guildmates log in with the addon and Announce my Mom Medals switched on.") end

@@ -266,31 +266,40 @@ function Dashboard:Refresh()
     safeMethod(tile.delta, "SetText", data.delta and ("+" .. tostring(data.delta) .. " this month") or "")
   end
   local month = model.month
-  local lines = {
-    tostring(month.events) .. " events in " .. tostring(month.sessions) .. " sessions",
-    "Deaths " .. tostring(month.deaths) .. "   Quests " .. tostring(month.quests) .. "   Discoveries " .. tostring(month.discoveries) .. "   Loot " .. tostring(month.loot),
-  }
-  table.insert(lines, T:Colorize("Mom Money " .. tostring(model.medals.total), C.gold) .. "  \194\183  " .. tostring(model.medals.count) .. " of " .. tostring(model.medals.possible) .. " medals")
+  -- Sections with a gold heading and a blank line between them, labels quiet and numbers bright, so the card can be scanned.
+  local function label(text) return T:Colorize(text, C.muted) end
+  local function stat(name, value) return label(name) .. " " .. tostring(value) end
+  local lines = {}
   local since = Addon.Statistics:DescribeSinceLastLogin(Addon.Statistics:BuildSinceLastLogin())
-  if since then table.insert(lines, 1, T:Colorize(escapeText(since), C.muted)) end
+  if since then table.insert(lines, T:Colorize(escapeText(since), C.muted)); table.insert(lines, "") end
+  table.insert(lines, T:Colorize("This month", C.gold) .. "  " .. label(tostring(month.events) .. " events in " .. tostring(month.sessions) .. " sessions"))
+  table.insert(lines, "  " .. stat("Deaths", month.deaths) .. "     " .. stat("Quests", month.quests) .. "     " .. stat("Discoveries", month.discoveries) .. "     " .. stat("Loot", month.loot))
+  table.insert(lines, "")
+  table.insert(lines, T:Colorize("Mom Money " .. tostring(model.medals.total), C.gold) .. "  " .. label(tostring(model.medals.count) .. " of " .. tostring(model.medals.possible) .. " medals"))
   if Addon.Medals then
     local week, questLines = Addon.Medals:DescribeQuests()
     if #questLines > 0 then
+      table.insert(lines, "")
       table.insert(lines, T:Colorize("Week " .. tostring(week) .. " Mom Quests", C.gold))
       for _, questLine in ipairs(questLines) do table.insert(lines, "  " .. escapeText(questLine)) end
     end
   end
   local goals = Addon.Medals and Addon.Medals:GetGoals() or {}
+  table.insert(lines, "")
   if #goals == 0 then
-    table.insert(lines, T:Colorize("Pin up to 3 medals as goals on the Medals tab (click a medal).", C.muted))
+    table.insert(lines, T:Colorize("Pin up to 6 medals as goals on the Medals tab (click a medal).", C.muted))
   else
+    table.insert(lines, T:Colorize("Goals", C.gold))
     for _, goal in ipairs(goals) do
-      table.insert(lines, T:Colorize("Goal: " .. escapeText(goal.def.name), C.gold) .. "  " .. tostring(math.floor(math.min(goal.current, goal.target))) .. " / " .. tostring(goal.target))
+      table.insert(lines, "  " .. escapeText(goal.def.name) .. "  " .. label(tostring(math.floor(math.min(goal.current, goal.target))) .. " / " .. tostring(goal.target)))
     end
   end
-  for _, award in ipairs(model.awards) do table.insert(lines, T:Colorize(award.name, C.gold) .. " " .. tostring(award.count)) end
+  local awardParts = {}
+  for _, award in ipairs(model.awards) do awardParts[#awardParts + 1] = escapeText(award.name) .. " " .. tostring(award.count) end
+  if #awardParts > 0 then table.insert(lines, ""); table.insert(lines, T:Colorize("Awards", C.gold) .. "  " .. table.concat(awardParts, "   ")) end
   local statistics = model.status.statistics == "ok" and (tostring(model.status.statCount) .. " lifetime statistics tracked")
     or (model.status.statistics == "unavailable" and "Statistics: not reported by this client" or ("Statistics: " .. tostring(model.status.statistics)))
+  table.insert(lines, "")
   table.insert(lines, T:Colorize(statistics, C.muted))
   local sharing = Addon.Comms and Addon.Comms.status
   table.insert(lines, T:Colorize("Guild sharing: " .. tostring(sharing and sharing.state or "off"), C.muted))

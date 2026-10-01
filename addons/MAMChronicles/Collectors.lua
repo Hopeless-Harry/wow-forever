@@ -132,12 +132,28 @@ function Collectors:RecordManualMemory(text)
   return Addon.EventStore:Append("memory.manual",payload,{pinned=true})
 end
 
+-- First entering-world after PLAYER_LOGIN. The game tells us here whether this is a UI reload (args: isInitialLogin, isReloadingUi).
+function Collectors:StartSession(isReload)
+  local meta=Addon.db.meta
+  local pending=meta.pendingLogout
+  meta.pendingLogout=nil
+  if isReload and pending and Addon.Database:ResumeSession(pending.sessionId) then return "resumed" end
+  if pending then Addon.EventStore:Append("session.logout",{duration=pending.duration},{occurredAt=pending.at}) end
+  Addon.Database:BeginSession()
+  Addon.EventStore:Append("session.login",{})
+  return "login"
+end
+
 function Collectors:HandleEvent(eventName,...)
   if not Addon.db.settings.enabled and eventName~="PLAYER_LOGOUT" then return end
   local args={...}
   local ok,err=pcall(function()
-    if eventName=="PLAYER_LOGIN" then Addon.Database:BeginSession(); Addon.EventStore:Append("session.login",{})
-    elseif eventName=="PLAYER_LOGOUT" then local session=Addon.Database.currentSession; Addon.EventStore:Append("session.logout",{duration=session and session.startedAt and math.max(0,Addon:Now()-session.startedAt) or nil}); Addon.Database:EndSession(); local record=Addon.db.characters[Addon.characterKey]; if record then record.lastSeenAt=Addon:Now() end
+    if eventName=="PLAYER_LOGIN" then self.awaitingEntry=true
+    elseif eventName=="PLAYER_LOGOUT" then
+      -- A logout is only written once we know it was a real one (the next login says so); a reload carries the session on.
+      local session=Addon.Database.currentSession
+      Addon.db.meta.pendingLogout={at=Addon:Now(),duration=session and session.startedAt and math.max(0,Addon:Now()-session.startedAt) or nil,sessionId=session and session.id or nil}
+      Addon.Database:EndSession(); local record=Addon.db.characters[Addon.characterKey]; if record then record.lastSeenAt=Addon:Now() end
     elseif eventName=="PLAYER_LEVEL_UP" then Addon.EventStore:Append("character.level_up",{level=args[1]}); local record=Addon.db.characters[Addon.characterKey]; if record and tonumber(args[1]) then record.level=args[1] end
     elseif eventName=="PLAYER_DEAD" then
       local payload=self:CaptureLocation()
@@ -154,7 +170,9 @@ function Collectors:HandleEvent(eventName,...)
       local questID=args[1]; Addon.EventStore:Append("quest.completed",{questID=questID,questName=self:QuestName(questID)})
       if type(questID)=="number" then local completed=Addon.db.questCompletion[Addon.characterKey]; if type(completed)~="table" then completed={}; Addon.db.questCompletion[Addon.characterKey]=completed end; completed[questID]=Addon:Now() end
     elseif eventName=="ZONE_CHANGED" or eventName=="ZONE_CHANGED_INDOORS" or eventName=="ZONE_CHANGED_NEW_AREA" then self:RecordDiscovery()
-    elseif eventName=="PLAYER_ENTERING_WORLD" then self:CaptureInstance()
+    elseif eventName=="PLAYER_ENTERING_WORLD" then
+      if self.awaitingEntry then self.awaitingEntry=false; self:StartSession(args[2]==true) end
+      self:CaptureInstance()
     elseif eventName=="CHAT_MSG_LOOT" then self:CaptureLoot(args[1])
     elseif eventName=="GET_ITEM_INFO_RECEIVED" then local itemID,success=args[1],args[2]; if success and self.pendingItems[itemID] then local p=self.pendingItems[itemID]; self:ResolveItem(itemID,p.itemLink,p.quantity) end
     elseif eventName=="SKILL_LINES_CHANGED" or eventName=="TRADE_SKILL_SHOW" then self:CaptureProfessionSnapshot()

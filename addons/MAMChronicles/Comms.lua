@@ -220,6 +220,12 @@ function Comms:RosterRank(name)
   return nil
 end
 
+-- True when this character may run the guild hub gateway: rank 0 or 1 on the cached roster. Fails closed while the roster loads.
+function Comms:CanOwnHub()
+  local player = Addon:SafeCall(UnitName, "player")
+  return player ~= nil and self:IsAwarder(player)
+end
+
 function Comms:IsGuildmate(name) return self:RosterRank(name) ~= nil end
 function Comms:IsGuildLead(name) return self:RosterRank(name) == 0 end
 -- Ranks 0 (Guild Master) and 1 may confirm and award guild-verified medals.

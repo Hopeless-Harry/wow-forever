@@ -9,7 +9,7 @@ for (const client of [
 ]) {
   test(`full ${client.name} startup, login, UI, memory and logout smoke test`,()=>{
     const h=createHarness({globals:{GetBuildInfo:client.build}}); h.load(files);
-    h.fire('ADDON_LOADED','MAMChronicles'); h.fire('PLAYER_LOGIN'); h.slash('remember Smoke test'); h.slash(''); h.fire('PLAYER_LOGOUT');
+    h.fire('ADDON_LOADED','MAMChronicles'); h.fire('PLAYER_LOGIN'); h.fire('PLAYER_ENTERING_WORLD',true,false); h.slash('remember Smoke test'); h.slash(''); h.fire('PLAYER_LOGOUT');
     assert.equal(h.get('MAMChronicles.booted'),true); assert.equal(h.get('MAMChroniclesDB.meta.clientBuild'),client.name==='Retail'?'69933':'70009');
     assert.equal(h.get('MAMChronicles.EventStore:Count("session.login")'),1); assert.equal(h.get('MAMChronicles.EventStore:Count("memory.manual")'),1); assert.equal(h.get('MAMChroniclesDB.sessions[1].endedAt'),1790704800);
     assert.equal(h.get('MAMChronicles.UI.frame:IsShown()'),true); assert.equal(h.get('#MAMChronicles.UI.rowPool'),30);
@@ -17,9 +17,9 @@ for (const client of [
 }
 
 test('a second loaded session retains and searches the first session journal',()=>{
-  let now=1790704800; const h=createHarness({globals:{GetServerTime:()=>now}}); h.load(files); h.fire('ADDON_LOADED','MAMChronicles'); h.fire('PLAYER_LOGIN'); h.slash('remember First session tea'); h.fire('PLAYER_LOGOUT');
+  let now=1790704800; const h=createHarness({globals:{GetServerTime:()=>now}}); h.load(files); h.fire('ADDON_LOADED','MAMChronicles'); h.fire('PLAYER_LOGIN'); h.fire('PLAYER_ENTERING_WORLD',true,false); h.slash('remember First session tea'); h.fire('PLAYER_LOGOUT');
   now+=10;
-  h.run('MAMChronicles=nil'); h.load(files); h.fire('ADDON_LOADED','MAMChronicles'); h.fire('PLAYER_LOGIN');
+  h.run('MAMChronicles=nil'); h.load(files); h.fire('ADDON_LOADED','MAMChronicles'); h.fire('PLAYER_LOGIN'); h.fire('PLAYER_ENTERING_WORLD',true,false);
   h.run('__retained=MAMChronicles.EventStore:Query({text="First session tea"})');
   assert.equal(h.get('MAMChroniclesDB.meta.loadCount'),2); assert.equal(h.get('#MAMChroniclesDB.sessions'),2); assert.equal(h.get('MAMChronicles.EventStore:Count("session.login")'),2);
   assert.equal(h.get('#__retained'),1); assert.equal(h.get('__retained[1].payload.text'),'First session tea'); assert.equal(h.get('__retained[1].pinned'),true);

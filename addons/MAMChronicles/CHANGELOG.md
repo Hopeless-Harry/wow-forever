@@ -32,6 +32,13 @@ Midnight (12.x) hardening and clean-up.
 - Optional LibDataBroker launcher, so Titan Panel, ElvUI, Bazooka and similar can open the Chronicle.
 - The ground check that counts jumps pauses while dead or on a flight path.
 - Settings now have a numbered migration list; /mam diag shows how many guild announcements are queued.
+- Fixed: /reload counted as a logout and a login. A reload now carries the same session on and writes neither, so reloading can no longer be used to farm the quick-relog medals; a real logout is recorded when you next log in for real. Old Chronicles are cleaned once (logout-then-login pairs under 45 seconds apart are removed and the sessions joined).
+- Chronicle: the All filter no longer lists logins and logouts (they were half the list). Choose the new Sessions filter to see them; Home recent activity is cleaner too.
+- Readability: Statistics shows one statistic per line with spacing between groups, Characters has space between characters, and the Home month card is split into labelled sections (This month, Mom Money, Mom Quests, Goals, Awards).
+- Tutorial opens beside the window instead of over your action bars, with larger text and a shorter title.
+- Simple view is now the default for everyone (once). A More tab opens Statistics, Characters, Map and Guild; the tab bar spreads out when it has few tabs. Guild and Map tabs are hidden when you are not in a guild, and those pages say so. Guild hub owner settings only show to guild leaders.
+- Medals header is one Mom Money number and one quiet line, and every medal now has a category icon on its badge.
+- The default window is larger (920 x 640, and scaled up a little on very high resolution screens). Anyone still on the old default size gets the new one once.
 - Fixed: places were rediscovered every time you walked back into them (the Chronicle showed 50 "discoveries" of Darkshore and Stormwind City). A discovery is now only the first visit to a zone or subzone for each character, and Explorer medals and Mom Quests count those only. On first load the addon cleans old Chronicles once: it keeps the first visit to each place and removes the repeats (the count is in /mam diag). Medals you already earned stay earned.
 - Help and tutorial: a ? button in the window title bar opens a nine-step guided tour that switches to the page it describes. It also opens once automatically after login for players who have not seen it, and from /mam tutorial or Settings > Help.
 - Simple view: new installs show only Home, Chronicle, Medals and Settings in the tab bar (turn it off in Settings > Appearance). Upgraders keep every tab. Diagnostics no longer takes a tab unless you open it with /mam diag.

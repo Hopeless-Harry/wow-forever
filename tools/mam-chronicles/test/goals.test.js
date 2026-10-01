@@ -25,7 +25,7 @@ test('goals list progress and drop medals once earned',()=>{
   assert.equal(h.get('__n2'),1); assert.equal(h.get('__left'),'wine_1');
 });
 test('Home shows goals and a hint when none are pinned',()=>{
-  const h=setup(); h.run('MAMChronicles.UI:Show()'); assert.match(h.get('MAMChronicles.Dashboard.monthBody.text'),/Pin up to 3 medals/);
+  const h=setup(); h.run('MAMChronicles.UI:Show()'); assert.match(h.get('MAMChronicles.Dashboard.monthBody.text'),/Pin up to 6 medals/);
   h.run('MAMChronicles.Medals:SetPinned("wine_1",true); MAMChronicles.Dashboard:Refresh()'); const t=h.get('MAMChronicles.Dashboard.monthBody.text'); assert.match(t,/Goal/); assert.match(t,/Wine O'Clock I/); assert.match(t,/0 \/ 1/);
 });
 test('clicking a medal row pins it, shows GOAL and clicking again unpins',()=>{

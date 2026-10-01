@@ -55,7 +55,7 @@ test('junk cosmetics in saved data are repaired',()=>{
 });
 test('the title appears on Home, on the Medals tab and in the recap, and Mom Money shows what was spent',()=>{
   const h=setup(); h.run(give(200)+'; '+count('wine',1)+'; MAMChronicles.Medals:SetTitleChoice("wine"); MAMChronicles.Medals:Buy("style_rose"); local UI=MAMChronicles.UI; UI:Show(); __sub=MAMChronicles.Dashboard.subtitle.text; UI:SetActiveTab("Medals"); __head=UI.medalHeader.text; __subm=UI.medalSub.text; __r=MAMChronicles.Export:BuildWeeklyRecap()');
-  assert.match(h.get('__sub'),/Wine Mom/); assert.match(h.get('__subm'),/Wine Mom/); assert.match(h.get('__head'),/spent|earned/i);
+  assert.match(h.get('__sub'),/Wine Mom/); assert.match(h.get('__subm'),/Wine Mom/); assert.match(h.get('__head'),/^Mom Money \d+$/);
   h.run('local f,t=MAMChronicles.UI:GetCurrentMonthRange(); __m=MAMChronicles.Export:BuildMonthlyRecap(f,t)'); assert.match(h.get('__m'),/Title: Wine Mom/);
 });
 test('the settings page has a shop with one button per item that buys, equips and explains failures',()=>{

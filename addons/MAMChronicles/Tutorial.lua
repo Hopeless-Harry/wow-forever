@@ -5,11 +5,11 @@ Addon.Tutorial = Tutorial
 -- A short guided tour, opened from the ? button in the window title bar, from /mam tutorial, and once automatically for
 -- players who have not seen it. Each step can switch the Chronicle window to the page it is talking about.
 local safeMethod = Addon.SafeMethod
-local WIDTH, HEIGHT = 470, 236
+local WIDTH, HEIGHT = 500, 310
 local START_DELAY = 5
 
 Tutorial.steps = {
-  { title = "Welcome to Moms Against Magic Chronicles", tab = "Home",
+  { title = "Welcome to Chronicles", tab = "Home",
     text = "This addon keeps a private diary of your adventures and turns everyday play into silly Mom Medals.\n\nThis short tour shows you around. You can open it again at any time with the ? button at the top of the window. Nothing here changes how the game plays." },
   { title = "Home: your summary", tab = "Home",
     text = "Home is the quick look: your totals, your latest moments and the goals you are working on.\n\nStart here whenever you log in." },
@@ -50,8 +50,8 @@ function Tutorial:CreateFrame()
   safeMethod(frame.heading, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1)
   frame.counter = T:Text(frame, "GameFontDisableSmall")
   safeMethod(frame.counter, "SetPoint", "TOPRIGHT", frame, "TOPRIGHT", -20, -22)
-  frame.body = T:Text(frame, "GameFontHighlight")
-  safeMethod(frame.body, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 20, -56); safeMethod(frame.body, "SetWidth", WIDTH - 40)
+  frame.body = T:Text(frame, "GameFontHighlightLarge")
+  safeMethod(frame.body, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 20, -58); safeMethod(frame.body, "SetWidth", WIDTH - 40); safeMethod(frame.body, "SetSpacing", 4)
   safeMethod(frame.body, "SetJustifyH", "LEFT"); safeMethod(frame.body, "SetJustifyV", "TOP"); safeMethod(frame.body, "SetWordWrap", true)
   frame.back = T:Button(frame, "Back", 90, 26)
   safeMethod(frame.back, "SetPoint", "BOTTOMLEFT", frame, "BOTTOMLEFT", 20, 16)
@@ -73,8 +73,17 @@ function Tutorial:Place()
   local frame, UI = self.frame, Addon.UI
   if not frame then return end
   safeMethod(frame, "ClearAllPoints")
-  -- Sits just under the Chronicle window so the page being described stays visible.
-  if UI and UI.frame then safeMethod(frame, "SetPoint", "TOP", UI.frame, "BOTTOM", 0, -8) else safeMethod(frame, "SetPoint", "CENTER", UIParent, "CENTER", 0, 0) end
+  -- Beside the Chronicle window (right side if there is room, otherwise left) so the page being described stays visible and
+  -- the action bars at the bottom of the screen stay clear. Under the window only when there is no room at either side.
+  local main = UI and UI.frame
+  if not main then safeMethod(frame, "SetPoint", "CENTER", UIParent, "CENTER", 0, 0); return end
+  local right = main.GetRight and tonumber(main:GetRight())
+  local left = main.GetLeft and tonumber(main:GetLeft())
+  local ok, screen = pcall(function() return UIParent.GetWidth and UIParent:GetWidth() end)
+  screen = ok and tonumber(screen) or nil
+  if right and screen and right + WIDTH + 12 <= screen then safeMethod(frame, "SetPoint", "TOPLEFT", main, "TOPRIGHT", 8, 0)
+  elseif left and left - WIDTH - 12 >= 0 then safeMethod(frame, "SetPoint", "TOPRIGHT", main, "TOPLEFT", -8, 0)
+  else safeMethod(frame, "SetPoint", "TOP", main, "BOTTOM", 0, -8) end
 end
 
 function Tutorial:Go(step)

@@ -34,7 +34,7 @@ test('following someone who is not sharing fails cleanly and /mam map follow rep
 
 test('settings migrations run once and keep a later Midnight choice', () => {
   const old = setup('', { schemaVersion: 1, settings: { theme: 'midnight' } });
-  assert.equal(old.get('MAMChroniclesDB.settings.theme'), 'modern'); assert.equal(old.get('MAMChroniclesDB.settings.settingsVersion'), 1);
+  assert.equal(old.get('MAMChroniclesDB.settings.theme'), 'modern'); assert.equal(old.get('MAMChroniclesDB.settings.settingsVersion'), 3);
   const chosen = setup('', { schemaVersion: 1, settings: { theme: 'midnight', settingsVersion: 1 } });
   assert.equal(chosen.get('MAMChroniclesDB.settings.theme'), 'midnight');
   const legacy = setup('', { schemaVersion: 1, settings: { theme: 'midnight', themeMigrated: true } });
@@ -390,7 +390,7 @@ test('Simple view shows only the everyday tabs, keeps the page you are on, and n
 test('visible tabs sit side by side without gaps', () => {
   const h = setup();
   h.run('UI=MAMChronicles.UI; UI:Show(); UI:SetSetting("simpleView",true); UI:SetActiveTab("Home"); local xs={}; for i,n in ipairs(UI.tabs) do local b=UI.tabButtons[i]; if b.shown then xs[#xs+1]=b.point[4] end end; __xs=table.concat(xs,",")');
-  assert.equal(h.get('__xs'), '12,79,146,213');
+  assert.equal(h.get('__xs'), '12,112,212,312');
 });
 
 test('Settings offers Simple view and a button that opens the tutorial', () => {
@@ -399,8 +399,73 @@ test('Settings offers Simple view and a button that opens the tutorial', () => {
   assert.equal(h.get('__a'), true); assert.equal(h.get('__open'), true);
 });
 
-test('upgraders keep all tabs while a brand new install starts in Simple view', () => {
-  const upgraded = setup('', { schemaVersion: 1, settings: { theme: 'modern' } });
-  assert.equal(upgraded.get('MAMChroniclesDB.settings.simpleView'), false);
+test('Simple view is the default for everyone once, and a later choice to turn it off is kept', () => {
+  assert.equal(setup('', { schemaVersion: 1, settings: { theme: 'modern' } }).get('MAMChroniclesDB.settings.simpleView'), true);
   assert.equal(setup().get('MAMChroniclesDB.settings.simpleView'), true);
+  assert.equal(setup('', { schemaVersion: 1, settings: { theme: 'modern', settingsVersion: 3, simpleView: false } }).get('MAMChroniclesDB.settings.simpleView'), false);
+});
+
+test('the old default window size becomes the new default once; a size the player chose is kept', () => {
+  const old = setup('', { schemaVersion: 1, settings: { ui: { width: 780, height: 560 } } });
+  assert.equal(old.get('MAMChroniclesDB.settings.ui.width'), 920); assert.equal(old.get('MAMChroniclesDB.settings.ui.height'), 640);
+  const mine = setup('', { schemaVersion: 1, settings: { ui: { width: 700, height: 600 } } });
+  assert.equal(mine.get('MAMChroniclesDB.settings.ui.width'), 700);
+  const big = setup('', { schemaVersion: 1, settings: { ui: { width: 1100, height: 800 } } });
+  assert.equal(big.get('MAMChroniclesDB.settings.ui.width'), 1100); assert.equal(big.get('MAMChroniclesDB.settings.ui.height'), 800);
+});
+
+test('very high resolution screens start with a larger window scale', () => {
+  const h = setup('GetPhysicalScreenSize=function() return 3840,2160 end', { schemaVersion: 1, settings: { theme: 'modern' } });
+  assert.equal(h.get('MAMChroniclesDB.settings.windowScale'), 1.25);
+  const kept = setup('GetPhysicalScreenSize=function() return 3840,2160 end', { schemaVersion: 1, settings: { theme: 'modern', windowScale: 0.9 } });
+  assert.equal(kept.get('MAMChroniclesDB.settings.windowScale'), 0.9);
+  assert.equal(setup('GetPhysicalScreenSize=function() return 1920,1080 end', { schemaVersion: 1, settings: { theme: 'modern' } }).get('MAMChroniclesDB.settings.windowScale'), 1);
+});
+
+test('More opens a menu with the pages Simple view leaves out, and Guild and Map are left out of a non-guild character', () => {
+  const h = setup('__guild=true; function IsInGuild() return __guild end');
+  h.run('UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Home"); __more=table.concat(UI.moreTabs,","); __shown=UI.moreButton.shown; UI:OpenMoreMenu(); __first=UI.menuButtons[1].text');
+  assert.equal(h.get('__more'), 'Statistics,Characters,Map,Guild'); assert.equal(h.get('__shown'), true); assert.equal(h.get('__first'), 'Statistics');
+  h.run('UI.menuButtons[3].scripts.OnClick(); __tab=UI.activeTab'); assert.equal(h.get('__tab'), 'Map');
+  h.run('__guild=false; UI:SetActiveTab("Home"); __more2=table.concat(UI.moreTabs,",")'); assert.equal(h.get('__more2'), 'Statistics,Characters');
+  h.run('UI:SetSetting("simpleView",false); UI:SetActiveTab("Home"); local v={}; for i,n in ipairs(UI.tabs) do if UI.tabButtons[i].shown then v[#v+1]=n end end; __v=table.concat(v,","); __moreShown=UI.moreButton.shown');
+  assert.equal(h.get('__v'), 'Home,Chronicle,Medals,Statistics,Characters,Settings'); assert.equal(h.get('__moreShown'), false);
+});
+
+// ---- not in a guild / hub owner settings
+test('outside a guild the Guild and Map tabs are not shown and their pages explain why', () => {
+  const h = setup('__guild=false; function IsInGuild() return __guild end');
+  h.run('UI=MAMChronicles.UI; UI:Show(); UI:SetSetting("simpleView",false); UI:SetActiveTab("Home"); local v={}; for i,n in ipairs(UI.tabs) do if UI.tabButtons[i].shown then v[#v+1]=n end end; __v=table.concat(v,",")');
+  assert.equal(h.get('__v'), 'Home,Chronicle,Medals,Statistics,Characters,Settings');
+  h.run('UI:SetActiveTab("Guild"); __g=UI.content.text'); assert.match(h.get('__g'), /not in a guild/);
+  h.run('UI:SetActiveTab("Map"); __intro=UI.mapIntro.text; __empty=UI.mapEmpty.text; __where=UI.mapWhere.text; __count=UI.mapCount.text');
+  assert.match(h.get('__intro'), /Join a guild/); assert.equal(h.get('__empty'), 'You are not in a guild.'); assert.equal(h.get('__where'), ''); assert.equal(h.get('__count'), '');
+});
+
+test('in a guild with nobody sharing, the Map page says so once', () => {
+  const h = setup('function IsInGuild() return true end');
+  h.run('UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Map"); __empty=UI.mapEmpty.text; __where=UI.mapWhere.text; __count=UI.mapCount.text');
+  assert.match(h.get('__empty'), /Nobody is sharing/); assert.equal(h.get('__where'), ''); assert.equal(h.get('__count'), '');
+});
+
+test('the guild hub owner settings are shown only to hub owners or when the gateway is already on', () => {
+  const plain = setup(); plain.run('UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Settings"); __a=UI.settingChecks.gatewayMode~=nil; __h=false; for _,s in ipairs(UI.settingSections) do if s.label:find("Guild hub") then __h=true end end');
+  assert.equal(plain.get('__a'), false); assert.equal(plain.get('__h'), false);
+  const owner = setup(); owner.run('MAMChronicles.Comms.CanOwnHub=function() return true end');
+  owner.run('UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Settings"); __a=UI.settingChecks.gatewayMode~=nil'); assert.equal(owner.get('__a'), true);
+  const on = setup('', { schemaVersion: 1, settings: { gatewayMode: true } });
+  on.run('UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Settings"); __a=UI.settingChecks.gatewayMode~=nil'); assert.equal(on.get('__a'), true);
+});
+
+// ---- Medals header and category icons
+test('the Medals header is one money number and one quiet line, and each medal row has a category icon', () => {
+  const h = setup();
+  h.run(ready + ' UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Medals"); __head=UI.medalHeader.text; __sub=UI.medalSub.text; local row=UI.medalRows[1]; __icon=row.icon and row.icon.texture or "none"; __cat=UI.medalRows[1].entry.def.category');
+  assert.match(h.get('__head'), /^Mom Money \d+$/); assert.match(h.get('__sub'), /^\d+ of \d+ medals earned/); assert.ok(!/showing|earned\)/.test(h.get('__head') + h.get('__sub')));
+});
+
+test('every medal category has its own icon path and the paths use proper backslashes', () => {
+  const h = setup();
+  h.run('local n,seen,bad=0,{},false; for _,c in ipairs(MAMChronicles.Medals.categories) do local p=MAMChronicles.UI.categoryIcons[c.key]; if not p or seen[p] or p:find("Interface",1,true)~=1 or p:find("Icons",11,true)~=11 then bad=true end if p then seen[p]=true end n=n+1 end __bad=bad; __n=n');
+  assert.equal(h.get('__bad'), false); assert.equal(h.get('__n'), 8);
 });

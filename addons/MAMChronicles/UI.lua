@@ -3,7 +3,13 @@ Addon.UI=Addon.UI or {}
 local UI=Addon.UI
 
 UI.tabs={"Home","Chronicle","Medals","Statistics","Characters","Map","Guild","Settings","Diagnostics"}
-UI.filters={"All","Deaths","Quests","World","Instances","Loot","Memories","Medals"}
+UI.filters={"All","Deaths","Quests","World","Instances","Loot","Memories","Medals","Sessions"}
+-- A small game icon per medal category sits on each medal's tier badge, so rows are told apart at a glance.
+UI.categoryIcons={
+  progress="Interface\\Icons\\INV_Misc_Map_01", kitchen="Interface\\Icons\\INV_Misc_Food_15", habits="Interface\\Icons\\INV_Misc_PocketWatch_01",
+  emotes="Interface\\Icons\\Spell_Holy_PrayerOfHealing", pattern="Interface\\Icons\\INV_Misc_Gear_01", guild="Interface\\Icons\\INV_BannerPVP_02",
+  seasonal="Interface\\Icons\\INV_Misc_Gift_01", forever="Interface\\Icons\\INV_Misc_Book_09",
+}
 UI.dateRanges={"All","30 Days","This Month"}
 UI.activeTab="Home"; UI.activeFilter="All"; UI.activeRange="All"; UI.search=""; UI.rowPool={}
 
@@ -14,6 +20,7 @@ local groups={
   World={ ["world.zone_discovered"]=true },
   Instances={ ["instance.entered"]=true,["instance.exited"]=true },
   Loot={ ["loot.notable"]=true }, Memories={ ["memory.manual"]=true }, Medals={ ["medal.earned"]=true },
+  Sessions={ ["session.login"]=true,["session.logout"]=true },
 }
 local function shortDuration(seconds)
   seconds=math.floor(tonumber(seconds) or 0)
@@ -46,24 +53,52 @@ end
 
 -- Simple view keeps only the everyday tabs. The page you are on is always shown, and Diagnostics only appears when opened.
 local simpleTabs={Home=true,Chronicle=true,Medals=true,Settings=true}
+function UI:InGuild()
+  return type(IsInGuild)~="function" or IsInGuild()==true
+end
+
 function UI:TabVisible(name)
   if name==self.activeTab then return true end
   if name=="Diagnostics" then return false end
+  -- Guild and Map are about guildmates, so they stay out of the way when you are not in a guild.
+  if (name=="Guild" or name=="Map") and not self:InGuild() then return false end
   if Addon.db and Addon.db.settings and Addon.db.settings.simpleView==true then return simpleTabs[name]==true end
   return true
 end
 
 function UI:LayoutTabs()
   if not (self.tabButtons and self.frame) then return end
+  local visible=0
+  for _,name in ipairs(self.tabs) do if self:TabVisible(name) then visible=visible+1 end end
+  -- Five tabs or fewer have room to breathe, so they share the window width (up to 100 each); more keep the compact 67.
+  local pitch=67
+  local width=tonumber(self.frame.GetWidth and self.frame:GetWidth()) or 0
+  if visible<=5 and visible>0 and width>0 then pitch=math.max(67,math.min(100,math.floor((width-24)/visible))) end
   local slot=0
+  local hidden={}
   for index,name in ipairs(self.tabs) do
     local button=self.tabButtons[index]
     if button then
+      if not self:TabVisible(name) and name~="Diagnostics" and not ((name=="Guild" or name=="Map") and not self:InGuild()) then hidden[#hidden+1]=name end
       if self:TabVisible(name) then
-        safeMethod(button,"ClearAllPoints"); safeMethod(button,"SetPoint","TOPLEFT",self.frame,"TOPLEFT",12+slot*67,-38); safeMethod(button,"Show"); slot=slot+1
+        safeMethod(button,"SetSize",pitch-1,28)
+        safeMethod(button,"ClearAllPoints"); safeMethod(button,"SetPoint","TOPLEFT",self.frame,"TOPLEFT",12+slot*pitch,-38); safeMethod(button,"Show"); slot=slot+1
       else safeMethod(button,"Hide") end
     end
   end
+  -- "More" reaches the pages Simple view leaves out of the tab bar.
+  self.moreTabs=hidden
+  if self.moreButton then
+    if #hidden>0 then
+      safeMethod(self.moreButton,"SetSize",pitch-1,28)
+      safeMethod(self.moreButton,"ClearAllPoints"); safeMethod(self.moreButton,"SetPoint","TOPLEFT",self.frame,"TOPLEFT",12+slot*pitch,-38); safeMethod(self.moreButton,"Show")
+    else safeMethod(self.moreButton,"Hide") end
+  end
+end
+
+function UI:OpenMoreMenu(anchor)
+  if not self.moreTabs or #self.moreTabs==0 then return end
+  self:OpenMenu(anchor or self.moreButton,self.moreTabs,self.activeTab,function(value) UI:CloseMenu(); UI:SetActiveTab(value) end)
 end
 
 function UI:UpdateTabStates()
@@ -238,7 +273,9 @@ function UI:BuildTimeline(options)
     if self.activeRange=="30 Days" then fromTime=Addon:Now()-2678400
     elseif self.activeRange=="This Month" and date and time then local parts=date("*t",Addon:Now()); parts.day,parts.hour,parts.min,parts.sec=1,0,0,0; fromTime=time(parts) end
   end
-  local source=Addon.EventStore:Query({text=options.search or self.search,fromTime=fromTime,toTime=toTime}); if filter=="All" then return source end
+  local source=Addon.EventStore:Query({text=options.search or self.search,fromTime=fromTime,toTime=toTime})
+  -- "All" leaves out logins and logouts: they were half of the list and hid the interesting entries. Pick Sessions to see them.
+  if filter=="All" then local trimmed={}; for _,event in ipairs(source) do if not groups.Sessions[event.type] then trimmed[#trimmed+1]=event end end return trimmed end
   local result={}; for _,event in ipairs(source) do if groups[filter] and groups[filter][event.type] then table.insert(result,event) end end return result
 end
 
@@ -341,6 +378,7 @@ end
 
 function UI:ApplyLayout(width, height)
   width = tonumber(width) or 780; height = tonumber(height) or 560
+  self:LayoutTabs()
   self.textWidth = width - SIDE * 2 - TEXT_SCROLLBAR; self.layoutHeight = height
   safeMethod(self.content, "SetWidth", self.textWidth); safeMethod(self.copyBox, "SetWidth", self.textWidth)
   self:LayoutRows(height - ROW_TOP - FOOTER)
@@ -390,17 +428,31 @@ function UI:ShowTextArea(copy)
   safeMethod(self.textScroll, "Show"); self:UpdateTextScroll()
 end
 
+-- "Quests completed 2,629  \194\183  Quests abandoned 436" becomes one line per statistic: the name quiet, the number bright.
+local function statLines(line)
+  local T = Addon.Theme
+  local result = {}
+  for item in (line:gsub("^%s+", "") .. "  \194\183  "):gmatch("(.-)%s+\194\183%s+") do
+    local name, value = item:match("^(.-)%s+(%S+)$")
+    if name and value and value:find("%d") then table.insert(result, "  " .. T:Colorize(name, T.colors.muted) .. "  " .. value)
+    elseif item ~= "" then table.insert(result, "  " .. item) end
+  end
+  return result
+end
+
 function UI:ColouriseStatistics(text)
   local T = Addon.Theme; local groups = {}
   if Addon.AchievementStats then for _, name in ipairs(Addon.AchievementStats.groupOrder) do groups[name] = true end end
   local lines = {}
+  local function heading(line) if #lines > 0 and lines[#lines] ~= "" then table.insert(lines, "") end table.insert(lines, line) end
   for line in (text .. "\n"):gmatch("(.-)\n") do
     local head, rest = line:match("^(Lifetime statistics)(.*)$")
-    if head then line = T:Colorize(head, T.colors.gold) .. T:Colorize(rest, T.colors.muted)
-    elseif line == "Moms Against Magic Chronicles" or line == "Hall of Shame" or line == "Hall of Fame" or groups[line] then line = T:Colorize(line, T.colors.gold)
-    elseif line:match("^  %+") then line = T:Colorize(line, T.kindColors.world)
-    elseif line:match("^Changes shown") or line:match("^Coverage") or line:match("^Reporting window") then line = T:Colorize(line, T.colors.muted) end
-    table.insert(lines, line)
+    if head then heading(T:Colorize(head, T.colors.gold) .. T:Colorize(rest, T.colors.muted))
+    elseif line == "Moms Against Magic Chronicles" or line == "Hall of Shame" or line == "Hall of Fame" or groups[line] then heading(T:Colorize(line, T.colors.gold))
+    elseif line:match("^  %+") then table.insert(lines, T:Colorize(line, T.kindColors.world))
+    elseif line:match("^  .*%s%s\194\183%s%s") then for _, item in ipairs(statLines(line)) do table.insert(lines, item) end
+    elseif line:match("^Changes shown") or line:match("^Coverage") or line:match("^Reporting window") then table.insert(lines, T:Colorize(line, T.colors.muted))
+    elseif line ~= "" or lines[#lines] ~= "" then table.insert(lines, line) end
   end
   return table.concat(lines, "\n")
 end
@@ -410,7 +462,9 @@ function UI:ColouriseCharacters(text)
   local lines = {}
   for line in (text .. "\n"):gmatch("(.-)\n") do
     if line:match("^Characters on this account") then line = T:Colorize(line, T.colors.gold)
-    elseif line ~= "" and not line:match("^%s") then line = T:Colorize(line, T.colors.gold)
+    elseif line ~= "" and not line:match("^%s") then
+      if #lines > 1 and lines[#lines] ~= "" then table.insert(lines, "") end
+      line = T:Colorize(line, T.colors.gold)
     elseif line:match("^  Last played") then line = T:Colorize(line, T.colors.muted) end
     table.insert(lines, line)
   end
@@ -693,11 +747,15 @@ function UI:BuildSettingsPage(frame)
   attachTooltip(self.testToastButton, "Send a test toast", "Shows a sample toast so you can check they appear. Click again for the medal and guildmate looks.")
   y = y - 34
 
+  -- Only the guild's owner (rank 0 or 1) needs the hub gateway switches; everyone else is not shown them.
+  local showHubOwner = Addon.db.settings.gatewayMode == true or (Addon.Comms ~= nil and Addon.Comms.CanOwnHub ~= nil and Addon.Comms:CanOwnHub() == true)
+  if showHubOwner then
   heading("Guild hub (owner only)")
   check("gatewayMode", "Act as the guild hub gateway", "Only for the owner, on a rank 0 or 1 character. Announces the hub, collects members' shared stats and locations and keeps them for the companion app. Does nothing for other ranks.")
   self.syncButton = button("Sync now (reloads the interface)", 260, 8, function() if Addon.Gateway then Addon.Gateway:SyncNow() end end)
   attachTooltip(self.syncButton, "Sync now", "The game only writes saved data to disk when the interface reloads. Click this to save the latest hub data so the companion app can upload it.")
   y = y - 34
+  end
   if Addon.Medals then
     heading("Mom Money shop")
     self.shopBalance = label("")
@@ -980,6 +1038,8 @@ local function createMedalRow(ui, index)
     safeMethod(row.stripe, "Hide")
     row.badge = row:CreateTexture(nil, "ARTWORK")
     safeMethod(row.badge, "SetTexture", T.ART .. "Badge"); safeMethod(row.badge, "SetSize", 36, 36); safeMethod(row.badge, "SetPoint", "LEFT", row, "LEFT", 10, 0)
+    row.icon = row:CreateTexture(nil, "OVERLAY")
+    safeMethod(row.icon, "SetSize", 20, 20); safeMethod(row.icon, "SetPoint", "CENTER", row.badge, "CENTER", 0, 0)
   end
   row.name = Addon.Theme:Text(row, "GameFontNormal")
   safeMethod(row.name, "SetPoint", "TOPLEFT", row, "TOPLEFT", art and 54 or 14, -7); safeMethod(row.name, "SetJustifyH", "LEFT")
@@ -1088,6 +1148,10 @@ function UI:BindMedalRow(row, entry, position)
     local tier = ({ bronze = 0, silver = 1, gold = 2, platinum = 3 })[def.tier] or 0
     safeMethod(row.badge, "SetTexCoord", tier * 0.25, (tier + 1) * 0.25, 0, 1)
     safeMethod(row.badge, "SetDesaturated", not earned); safeMethod(row.badge, "SetAlpha", earned and 1 or 0.55)
+    if row.icon then
+      safeMethod(row.icon, "SetTexture", UI.categoryIcons[def.category] or UI.categoryIcons.progress)
+      safeMethod(row.icon, "SetDesaturated", not earned); safeMethod(row.icon, "SetAlpha", earned and 1 or 0.6)
+    end
   end
   local rowWidth = (self.textWidth or 700) - 4
   local trackWidth = math.max(20, rowWidth - 54 - 132)
@@ -1222,8 +1286,9 @@ function UI:RefreshMedals()
   self.medalList = order
   local summary = Addon.Medals:GetSummary(Addon.characterKey)
   local available, earnedMoney = Addon.Medals:GetMomMoney(), Addon.Medals:GetEarnedMoney()
-  safeMethod(self.medalHeader, "SetText", "Mom Money " .. tostring(available) .. (available ~= earnedMoney and (" (" .. tostring(earnedMoney) .. " earned)") or ""))
-  safeMethod(self.medalSub, "SetText", tostring(summary.count) .. " of " .. tostring(summary.possible) .. " Mom Medals earned  \194\183  " .. Addon.Medals:GetTitle() .. "  \194\183  " .. tostring(Addon.Medals:GetTitleCounts().earned) .. " of " .. tostring(Addon.Medals:GetTitleCounts().total) .. " titles" .. ((self.medalFilter ~= "All" or needle ~= "" or self.medalCategory ~= "all") and ("  \194\183  showing " .. tostring(#order)) or ""))
+  -- One headline number and one quiet line: the old header repeated three counts and two money figures.
+  safeMethod(self.medalHeader, "SetText", "Mom Money " .. tostring(available))
+  safeMethod(self.medalSub, "SetText", tostring(summary.count) .. " of " .. tostring(summary.possible) .. " medals earned  \194\183  " .. Addon.Medals:GetTitle() .. "  \194\183  " .. tostring(Addon.Medals:GetTitleCounts().earned) .. " of " .. tostring(Addon.Medals:GetTitleCounts().total) .. " titles")
   for index, name in ipairs(self.medalFilters) do
     local b = self.medalFilterButtons[index]
     safeMethod(b, "SetText", name .. " (" .. tostring(counts[name]) .. ")")
@@ -1406,8 +1471,16 @@ function UI:RefreshMap()
   table.sort(order, function(a, b) if counts[a] ~= counts[b] then return counts[a] > counts[b] end return a < b end)
   local parts = {}
   for _, zone in ipairs(order) do parts[#parts + 1] = zone .. " (" .. tostring(counts[zone]) .. ")" end
-  safeMethod(self.mapWhere, "SetText", #parts > 0 and table.concat(parts, "  \194\183  ") or "Nobody is sharing yet.")
-  safeMethod(self.mapCount, "SetText", #list == 0 and "Nobody sharing yet" or (tostring(#list) .. " guildmate" .. (#list == 1 and "" or "s") .. " sharing"))
+  -- One empty message, not three: the list on the right says it; the left card stays quiet until there is something to show.
+  safeMethod(self.mapWhere, "SetText", #parts > 0 and table.concat(parts, "  \194\183  ") or "")
+  safeMethod(self.mapCount, "SetText", #list == 0 and "" or (tostring(#list) .. " guildmate" .. (#list == 1 and "" or "s") .. " sharing"))
+  if self.mapIntro then
+    safeMethod(self.mapIntro, "SetText", self:InGuild() and "Guildmates who share their location appear on the right. Click a name to open the world map at their position, with a tracking arrow to follow. Pin a guildmate to keep them on your goal tracker."
+      or "The guild map shows guildmates who share their location with you. Join a guild to use it. Your own position and the world map button still work.")
+  end
+  if self.mapEmpty then
+    safeMethod(self.mapEmpty, "SetText", self:InGuild() and "Nobody is sharing their location yet. Tick Share my location with the guild, and ask your guildmates to do the same on their Map tab." or "You are not in a guild.")
+  end
 end
 
 function UI:MapVisible()
@@ -1500,6 +1573,12 @@ function UI:Create()
     safeMethod(tab, "SetScript", "OnClick", function() UI:SetActiveTab(name) end)
     self.tabButtons[index] = tab
   end
+  local more = T:Tab(frame, "More", 66, 28)
+  safeMethod(more, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 12 + #self.tabs * 67, -38)
+  safeMethod(more, "SetScript", "OnClick", function(button) UI:OpenMoreMenu(button) end)
+  attachTooltip(more, "More pages", "Statistics, Characters, Map and Guild. Turn Simple view off in Settings to show them as tabs.")
+  safeMethod(more, "Hide")
+  self.moreButton = more
   local tabLine = frame:CreateTexture(nil, "BORDER")
   safeMethod(tabLine, "SetColorTexture", C.border[1], C.border[2], C.border[3], 1)
   safeMethod(tabLine, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 1, -68); safeMethod(tabLine, "SetPoint", "TOPRIGHT", frame, "TOPRIGHT", -1, -68); safeMethod(tabLine, "SetHeight", 1)
@@ -1542,7 +1621,7 @@ function UI:Create()
   self.textScroll, self.textChild = textScroll, textChild
   self.content = Addon.Theme:Text(textChild, "GameFontHighlight")
   safeMethod(self.content, "SetPoint", "TOPLEFT", textChild, "TOPLEFT", 0, 0); safeMethod(self.content, "SetJustifyH", "LEFT"); safeMethod(self.content, "SetJustifyV", "TOP")
-  safeMethod(self.content, "SetTextColor", C.text[1], C.text[2], C.text[3], 1); safeMethod(self.content, "SetSpacing", 3)
+  safeMethod(self.content, "SetTextColor", C.text[1], C.text[2], C.text[3], 1); safeMethod(self.content, "SetSpacing", 5)
   local textSlider = CreateFrame("Slider", nil, frame, "BackdropTemplate")
   safeMethod(textSlider, "SetOrientation", "VERTICAL"); safeMethod(textSlider, "SetWidth", 10); safeMethod(textSlider, "SetMinMaxValues", 0, 0); safeMethod(textSlider, "SetValueStep", 1)
   T:Scrollbar(textSlider)

@@ -12,15 +12,32 @@ local function copyTable(value)
 end
 local function finite(value) return type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge end
 local function clamp(value, minimum, maximum) return math.max(minimum, math.min(maximum, value)) end
-local uiDefaults = { point="CENTER", x=0, y=0, width=780, height=560, activeTab="Home", minimapAngle=225 }
+local uiDefaults = { point="CENTER", x=0, y=0, width=920, height=640, activeTab="Home", minimapAngle=225 }
 local validPoints = { CENTER=true, TOP=true, BOTTOM=true, LEFT=true, RIGHT=true, TOPLEFT=true, TOPRIGHT=true, BOTTOMLEFT=true, BOTTOMRIGHT=true }
 local validThemes = { modern=true, midnight=true, parchment=true, crimson=true, slate=true }
 local booleanDefaults = { toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, gettingStartedDismissed=false, quietInstances=true, animations=true, shareLocation=true, showGuildMap=true, gatewayMode=false, trackerEnabled=true, trackerQuests=true, trackerLocked=false, tutorialSeen=false, simpleView=false }
 -- Settings migrations run once each, in order. Add a new function and raise SETTINGS_VERSION instead of adding another one-off flag.
-local SETTINGS_VERSION = 1
+local SETTINGS_VERSION = 3
 local settingsMigrations = {
   -- 1: the old default theme (Midnight) moves to the Modern art theme; choosing Midnight again afterwards sticks.
   [1] = function(settings) if settings.theme == "midnight" then settings.theme = "modern" end end,
+  -- 2: the short tab bar is the default for everyone; the other pages stay one click away under "More".
+  [2] = function(settings) settings.simpleView = true end,
+  -- 3: the window was small on big monitors. Anyone still on the old default size gets the new default, and the whole window
+  -- is scaled up a little on very high resolution screens. Sizes a player chose themselves are left alone.
+  [3] = function(settings)
+    local ui = type(settings.ui) == "table" and settings.ui or {}
+    if (tonumber(ui.width) or 780) <= 780 and (tonumber(ui.height) or 560) <= 560 then ui.width, ui.height = 920, 640 end
+    settings.ui = ui
+    if tonumber(settings.windowScale) == nil or settings.windowScale == 1 then
+      local height = 0
+      if type(GetPhysicalScreenSize) == "function" then
+        local ok, _, physicalHeight = pcall(GetPhysicalScreenSize)
+        height = ok and tonumber(physicalHeight) or 0
+      end
+      if height >= 2000 then settings.windowScale = 1.25 elseif height >= 1400 then settings.windowScale = 1.1 end
+    end
+  end,
 }
 local validTabs = { Home=true, Chronicle=true, Medals=true, Statistics=true, Characters=true, Map=true, Guild=true, Settings=true, Diagnostics=true }
 local function freshSettings()
@@ -40,7 +57,6 @@ function Database:Fresh(reason)
     characters = {}, sessions = {}, events = {}, eventIds = {}, questCompletion = {}, professionSnapshots = {}, aggregates = {}, diagnostics = {}, statistics = {}, statisticCatalog = {}, medals = {}, guildFeed = {}, guildRoster = {}, discoveries = {}, counters = {}, medalTallies = {}, challenges = {}, emoteTargets = {},
   }
   if reason then db.diagnostics.recovery = { recoveredAt = timestamp, reason = reason } end
-  -- Brand new installs start with the short tab bar; upgraders keep every tab until they choose Simple view.
   db.settings.simpleView = true
   return db
 end
@@ -110,6 +126,59 @@ function Database:DedupeDiscoveries(db)
   return total
 end
 
+-- One-time clean-up of builds that counted every /reload as a logout and a login. A logout followed by a login within
+-- RELOAD_GAP seconds is far quicker than a real log out and back in (character select alone takes longer), so both are
+-- removed and the two sessions are joined into one.
+local RELOAD_GAP = 45
+function Database:DedupeSessions(db)
+  db.meta = tableOr(db.meta)
+  if db.meta.sessionsDeduped == true then return 0 end
+  local events, drop, removed = db.events or {}, {}, {}
+  local total = 0
+  local lastLogout = {}
+  for index, event in ipairs(events) do
+    local character = tostring(event.characterKey or "unknown")
+    if event.type == "session.logout" then
+      lastLogout[character] = index
+    elseif event.type == "session.login" and lastLogout[character] then
+      local out = events[lastLogout[character]]
+      if tonumber(event.occurredAt) and tonumber(out.occurredAt) and event.occurredAt - out.occurredAt >= 0 and event.occurredAt - out.occurredAt <= RELOAD_GAP then
+        drop[lastLogout[character]] = true; drop[index] = true
+        removed[character] = (removed[character] or 0) + 1; total = total + 1
+      end
+      lastLogout[character] = nil
+    end
+  end
+  if total > 0 then
+    local kept = {}
+    for index, event in ipairs(events) do if not drop[index] then kept[#kept + 1] = event end end
+    db.events = kept
+    for character, count in pairs(removed) do
+      local tally = db.medalTallies and db.medalTallies[character]
+      if type(tally) == "table" then
+        tally["session.login"] = math.max(0, (tonumber(tally["session.login"]) or 0) - count)
+        tally["session.logout"] = math.max(0, (tonumber(tally["session.logout"]) or 0) - count)
+        tally.total = math.max(0, (tonumber(tally.total) or 0) - 2 * count)
+      end
+    end
+    -- join the matching sessions
+    local joined, lastByCharacter = {}, {}
+    for _, session in ipairs(db.sessions or {}) do
+      local previous = lastByCharacter[session.characterKey]
+      if previous and tonumber(previous.endedAt) and tonumber(session.startedAt) and session.startedAt - previous.endedAt >= 0 and session.startedAt - previous.endedAt <= RELOAD_GAP then
+        previous.endedAt = session.endedAt
+      else
+        joined[#joined + 1] = session; lastByCharacter[session.characterKey] = session
+      end
+    end
+    db.sessions = joined
+    db.diagnostics = tableOr(db.diagnostics)
+    db.diagnostics.reloadCleanup = { removed = total, at = now() }
+  end
+  db.meta.sessionsDeduped = true
+  return total
+end
+
 function Database:Open(saved)
   local reason
   local droppedEvents=0
@@ -133,6 +202,7 @@ function Database:Open(saved)
   db.meta = tableOr(db.meta); db.settings = tableOr(db.settings)
   for _, key in ipairs({"characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics","statistics","statisticCatalog","medals","guildFeed","guildRoster","discoveries","counters","medalTallies","challenges","emoteTargets"}) do db[key] = tableOr(db[key]) end
   self:DedupeDiscoveries(db)
+  self:DedupeSessions(db)
   db.eventIds={}; for _,event in ipairs(db.events) do db.eventIds[event.id]=true end
   if droppedEvents>0 and not reason then db.diagnostics.recovery={recoveredAt=now(),reason="dropped "..droppedEvents.." invalid event"..(droppedEvents==1 and "" or "s")} end
   db.schemaVersion = 1; self.db = db; self:NormaliseSettings()
@@ -261,6 +331,20 @@ function Database:BeginSession()
   local session = { id = Addon.characterKey .. ":" .. tostring(now()) .. ":" .. tostring(#self.db.sessions + 1), characterKey = Addon.characterKey, startedAt = now() }
   table.insert(self.db.sessions, session); while #self.db.sessions > SESSIONS_MAX do table.remove(self.db.sessions, 1) end
   self.currentSession = session; Addon.sessionId = session.id; return session
+end
+
+-- A /reload (or any UI reload) is not a logout: the session carries on instead of a new one starting.
+function Database:ResumeSession(sessionId)
+  if not (self.db and sessionId) then return false end
+  for index = #self.db.sessions, 1, -1 do
+    local session = self.db.sessions[index]
+    if session.id == sessionId and session.characterKey == Addon.characterKey then
+      session.endedAt = nil
+      self.currentSession = session; Addon.sessionId = session.id
+      return true
+    end
+  end
+  return false
 end
 
 function Database:EndSession()
