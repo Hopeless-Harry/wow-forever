@@ -38,7 +38,7 @@ test("serves the CSV download with attachment headers", async (t) => {
   const res = await app.inject({ url: "/members.csv" });
   assert.equal(res.statusCode, 200);
   assert.match(res.headers["content-type"], /text\/csv/);
-  assert.match(res.headers["content-disposition"], /attachment; filename="guild-roster.csv"/);
+  assert.match(res.headers["content-disposition"], /attachment; filename="guild-roster-2026-09-22\.csv"/, "named after the data date so saved exports can be told apart");
   assert.match(res.body, /Al#1,Warrior,Tank,Orc,Horde,Normal,Mining,Skinning/);
 });
 
@@ -301,4 +301,35 @@ test("chronicle, profile and dashboard activity mark their times for local conve
   assert.match(dashboard, /<time datetime="2026-09-23T07:05:00.000Z" data-local-time="date">2026-09-23<\/time>/);
   assert.match(dashboard, /\/assets\/local-time\.js/);
   assert.equal((await app.inject({ url: "/assets/local-time.js" })).statusCode, 200);
+});
+
+test("the CSV starts with a UTF-8 byte-order mark so Excel keeps accents and non-Latin names", async (t) => {
+  const { CSV_BOM, membersToCsv } = await import("../src/domain/export.js");
+  assert.equal(CSV_BOM, "\uFEFF");
+  const csv = membersToCsv([member("Ünïcödé 龍#9"), member("Plain#1")]);
+  const bytes = Buffer.from(csv, "utf8");
+  assert.deepEqual([...bytes.subarray(0, 3)], [0xef, 0xbb, 0xbf], "the file begins with EF BB BF");
+  assert.equal(csv.startsWith("\uFEFFName,Class,Role,"), true, "the header follows the mark directly");
+  assert.equal(csv.slice(1).includes("\uFEFF"), false, "only one mark");
+  assert.match(bytes.toString("utf8"), /Ünïcödé 龍#9/, "names survive a UTF-8 round trip");
+
+  const app = appWith([member("Ünïcödé 龍#9")]);
+  t.after(() => app.close());
+  const res = await app.inject({ url: "/members.csv" });
+  assert.equal(Buffer.from(res.rawPayload).subarray(0, 3).toString("hex"), "efbbbf");
+  assert.match(res.headers["content-type"], /charset=utf-8/);
+});
+
+test("the CSV filename uses the data date and falls back to today for an unusable one", async (t) => {
+  const make = (fetchedAt) => buildApp({ dataService: { snapshot: () => ({ records: [], stats: buildStats([]), status: "fresh", fetchedAt, lastRefreshFailed: false }), memberSnapshot: () => ({ members: [member("Al#1")], events: [], fetchedAt }) }, logger: false, rateLimitPerMinute: 0 });
+  const dated = make("2026-11-04T23:00:00.000Z");
+  t.after(() => dated.close());
+  assert.match((await dated.inject({ url: "/members.csv" })).headers["content-disposition"], /filename="guild-roster-2026-11-04\.csv"/);
+
+  for (const odd of [null, "", "garbage", "<script>x</script>"]) {
+    const app = make(odd);
+    t.after(() => app.close());
+    const header = (await app.inject({ url: "/members.csv" })).headers["content-disposition"];
+    assert.match(header, /^attachment; filename="guild-roster-\d{4}-\d{2}-\d{2}\.csv"$/, `fallback for ${JSON.stringify(odd)}`);
+  }
 });

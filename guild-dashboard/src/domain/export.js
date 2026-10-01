@@ -9,9 +9,12 @@ function cell(value) {
   return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
+// The leading byte-order mark makes Excel read the file as UTF-8 so accents and non-Latin names survive.
+export const CSV_BOM = "\uFEFF";
+
 export function membersToCsv(members) {
   const rows = [...members]
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((m) => [m.name, m.characterClass, m.role, m.race, factionOf(m.race), m.server, m.profession1, m.profession2]);
-  return `${[COLUMNS, ...rows].map((row) => row.map(cell).join(",")).join("\r\n")}\r\n`;
+  return `${CSV_BOM}${[COLUMNS, ...rows].map((row) => row.map(cell).join(",")).join("\r\n")}\r\n`;
 }

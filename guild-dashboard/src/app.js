@@ -116,7 +116,10 @@ export function buildApp({ dataService: source, rateLimitPerMinute = 300, formUr
   app.get("/summary.txt", async (_request, reply) => reply.type("text/plain; charset=utf-8").send(buildSummary(dataService.snapshot(), dataService.memberSnapshot?.() ?? { members: [] })));
   app.get("/members.csv", async (_request, reply) => {
     const members = dataService.memberSnapshot?.().members ?? [];
-    return reply.type("text/csv; charset=utf-8").header("content-disposition", 'attachment; filename="guild-roster.csv"').send(membersToCsv(members));
+    // Dated after the data (not the download) so saved exports can be told apart.
+    const stamp = String(dataService.snapshot().fetchedAt ?? "").slice(0, 10);
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(stamp) ? stamp : new Date().toISOString().slice(0, 10);
+    return reply.type("text/csv; charset=utf-8").header("content-disposition", `attachment; filename="guild-roster-${date}.csv"`).send(membersToCsv(members));
   });
   app.get("/member", async (request, reply) => {
     const name = String(request.query?.name ?? "").slice(0, 200);
