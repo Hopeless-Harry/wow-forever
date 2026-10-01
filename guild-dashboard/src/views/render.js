@@ -282,3 +282,16 @@ export function renderMemberProfile(snapshot, memberData, name) {
   <section class="parchment-panel chronicle-panel"><div class="panel-heading"><div><span>History</span><h2>${escapeHtml(member.name)}'s chronicle</h2></div></div>${items ? `<ol class="chronicle-list">${items}</ol>` : '<p class="quiet">No changes recorded since the roll opened.</p>'}</section>`;
   return shell({ title: member.name, active: "/members", snapshot, content });
 }
+
+const ERROR_PAGES = {
+  404: { title: "Page not found", heading: "That page isn't here", text: "The link may be old or mistyped." },
+  4: { title: "Link problem", heading: "That link doesn't look right", text: "Check the address and try again." },
+  5: { title: "Something went wrong", heading: "The ledger hit a problem", text: "Please try again in a minute. If it keeps happening, tell a guild officer." }
+};
+
+// Friendly error page. It never repeats the requested address or any error detail.
+export function renderErrorPage(snapshot, status) {
+  const page = ERROR_PAGES[status] ?? ERROR_PAGES[Math.floor(status / 100)] ?? ERROR_PAGES[5];
+  const content = `<section class="parchment-panel empty-ledger"><h2>${escapeHtml(page.heading)}</h2><p>${escapeHtml(page.text)}</p><p><a class="wow-button" href="/">Back to the dashboard</a></p><p>Or go to the <a href="/members">roster</a>, the <a href="/raid">raid planner</a> or the <a href="/statistics">statistics</a>.</p></section>`;
+  return shell({ title: page.title, active: "", snapshot: snapshot ?? { status: "fresh", fetchedAt: null, lastRefreshFailed: false, records: [] }, content });
+}
