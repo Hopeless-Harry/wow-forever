@@ -177,6 +177,8 @@ end
 function Map:GetList()
   local list, t = {}, now()
   for name, member in pairs(self.members) do
+    if member.fake then member.at = t end
+    if member.fake then member.at = t end
     local age = t - member.at
     if age > self.EXPIRE then self.members[name] = nil
     else
@@ -289,6 +291,55 @@ function Map:OpenMyMap()
   self:HookWorldMap()
   self:ShowPins()
   return true
+end
+
+-- Test helper: adds pretend guildmates (in memory only) near you and in another zone, so the map can be tried alone.
+function Map:SetFake(on)
+  for name, member in pairs(self.members) do if member.fake then self.members[name] = nil end end
+  if not on then
+    if self.UpdateViews then self:UpdateViews() end
+    return 0
+  end
+  local mapID, x, y = self:GetPosition()
+  mapID = mapID or 2022
+  local function clamp(v) return math.max(0.02, math.min(0.98, v)) end
+  local t = now()
+  local list = {
+    { "Testmom", mapID, clamp((x or 0.5) + 0.06), clamp((y or 0.5) + 0.04), 90, 5 },
+    { "Fakewizard", mapID, clamp((x or 0.5) - 0.08), clamp((y or 0.5) + 0.07), 88, 8 },
+    { "Faraway", 2248, 0.45, 0.55, 74, 2 },
+  }
+  for _, info in ipairs(list) do
+    self.members[info[1]] = { mapID = info[2], x = info[3], y = info[4], level = info[5], classID = info[6], at = t, fake = true }
+  end
+  if Addon.UI and Addon.UI.RefreshMapIfVisible then Addon.UI:RefreshMapIfVisible() end
+  self:ShowPins()
+  return #list
+end
+
+-- Test helper: adds pretend guildmates (in memory only) near you and in another zone, so the map can be tried alone.
+function Map:SetFake(on)
+  for name, member in pairs(self.members) do if member.fake then self.members[name] = nil end end
+  if not on then
+    if Addon.UI and Addon.UI.RefreshMapIfVisible then Addon.UI:RefreshMapIfVisible() end
+    self:ShowPins()
+    return 0
+  end
+  local mapID, x, y = self:GetPosition()
+  mapID = mapID or 2022
+  local function clamp(v) return math.max(0.02, math.min(0.98, v)) end
+  local t = now()
+  local list = {
+    { "Testmom", mapID, clamp((x or 0.5) + 0.06), clamp((y or 0.5) + 0.04), 90, 5 },
+    { "Fakewizard", mapID, clamp((x or 0.5) - 0.08), clamp((y or 0.5) + 0.07), 88, 8 },
+    { "Faraway", 2248, 0.45, 0.55, 74, 2 },
+  }
+  for _, info in ipairs(list) do
+    self.members[info[1]] = { mapID = info[2], x = info[3], y = info[4], level = info[5], classID = info[6], at = t, fake = true }
+  end
+  if Addon.UI and Addon.UI.RefreshMapIfVisible then Addon.UI:RefreshMapIfVisible() end
+  self:ShowPins()
+  return #list
 end
 
 function Map:Describe()

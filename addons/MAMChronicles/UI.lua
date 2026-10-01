@@ -984,6 +984,16 @@ function UI:RefreshMedals()
   self:UpdateMedalsScroll()
 end
 
+-- Counters change while the page is open (jumps, food): redraw so the bars move live.
+function UI:RefreshMedalsIfVisible()
+  if self.activeTab == "Medals" and self.medalsArea and self.frame and self.frame.IsShown and self.frame:IsShown() then self:RefreshMedals() end
+end
+
+-- Counters change while the page is open (jumps, food): redraw so the bars move live.
+function UI:RefreshMedalsIfVisible()
+  if self.activeTab == "Medals" and self.medalsArea and self.frame and self.frame.IsShown and self.frame:IsShown() then self:RefreshMedals() end
+end
+
 function UI:ShowMedalsPage()
   local area = self.medalsArea
   area:Place(self.frame, 84, FOOTER + 4, SIDE, TEXT_SCROLLBAR); area:Show()
@@ -1451,7 +1461,7 @@ UI.helpLines={
   "/mam export - show the Courier export text to copy",
   "/mam diag - show the diagnostics report to paste into a bug report",
   "/mam quests - show this week's Mom Quests and your progress",
-  "/mam map - open the live guild map",
+  "/mam map - open the live guild map (/mam map fake adds pretend guildmates to try it)",
   "/mam toast - show a sample toast (test alerts)",
   "/mam help - show this list",
 }
@@ -1474,6 +1484,7 @@ function UI:HandleSlash(command)
     if string.lower(rest or "")=="week" then self:ShowCopy(Addon.Export:BuildWeeklyRecap())
     else local from,to=self:GetCurrentMonthRange(); self:ShowCopy(Addon.Export:BuildMonthlyRecap(from,to)) end
   elseif verb=="book" then self:ShowCopy(Addon.Statistics:DescribeMemoryBook())
+  elseif verb=="map" and (rest or ""):match("^fake") then local on = not (rest or ""):match("off"); local n = Addon.Map and Addon.Map:SetFake(on) or 0; Addon:Print(on and ("Pretend guildmates added: " .. tostring(n) .. ". Run /mam map fake off to remove them.") or "Pretend guildmates removed."); self.activeTab="Map"; Addon.db.settings.ui.activeTab="Map"; self:Show()
   elseif verb=="map" then self.activeTab="Map"; Addon.db.settings.ui.activeTab="Map"; self:Show()
   elseif verb=="quests" then
     local week,questLines=Addon.Medals:DescribeQuests()

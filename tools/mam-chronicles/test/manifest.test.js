@@ -4,7 +4,7 @@ import { addonPath, readAddonFile } from './harness.js';
 test('manifest declares the tester build and exact load order', () => {
   const toc=readAddonFile('MAMChronicles.toc');
   assert.match(toc,/## Interface: 120100, 120105, 16001/); assert.match(toc,/## SavedVariables: MAMChroniclesDB/);
-  assert.match(toc,/## Version: 0.2.0-alpha22/);
+  assert.match(toc,/## Version: 0.2.0-alpha23/);
   const files=toc.split(/\r?\n/).filter(x=>x.endsWith('.lua'));
   assert.deepEqual(files,['Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Counters.lua','Export.lua','Theme.lua','Toast.lua','Comms.lua','Map.lua','Tracker.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua']);
 });
@@ -13,7 +13,7 @@ test('manifest declares icon and Addon Compartment metadata',()=>{
   assert.match(toc,/## IconTexture: Interface\\AddOns\\MAMChronicles\\MAMChroniclesIcon/);
   for(const key of ['AddonCompartmentFunc: MAMChronicles_AddonCompartmentClick','AddonCompartmentFuncOnEnter: MAMChronicles_AddonCompartmentEnter','AddonCompartmentFuncOnLeave: MAMChronicles_AddonCompartmentLeave'])assert.match(toc,new RegExp('## '+key));
   assert.doesNotMatch(toc,/## X-Website/);
-  assert.match(readAddonFile('Core.lua'),/Addon\.version = "0.2.0-alpha22"/);
+  assert.match(readAddonFile('Core.lua'),/Addon\.version = "0.2.0-alpha23"/);
 });
 test('icon is a square power-of-two uncompressed 32-bit TGA',()=>{
   const data=readFileSync(addonPath('MAMChroniclesIcon.tga'));

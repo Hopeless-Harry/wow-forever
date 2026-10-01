@@ -129,7 +129,7 @@ function Counters:Add(name, amount)
   if C_Timer and C_Timer.After then
     if self.evaluatePending then return end
     self.evaluatePending = true
-    C_Timer.After(EVALUATE_DELAY, function() Counters.evaluatePending = false; Addon.Medals:Evaluate("counter") end)
+    C_Timer.After(EVALUATE_DELAY, function() Counters.evaluatePending = false; Addon.Medals:Evaluate("counter"); if Addon.UI and Addon.UI.RefreshMedalsIfVisible then Addon:Guard("Counters", Addon.UI.RefreshMedalsIfVisible, Addon.UI) end end)
   else
     Addon.Medals:Evaluate("counter")
   end

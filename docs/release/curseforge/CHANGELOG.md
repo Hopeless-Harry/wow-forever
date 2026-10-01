@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0-alpha23
+
+- Medal progress bars (jumps, food and so on) now update live while the Medals tab is open.
+- /mam map fake adds three pretend guildmates (in memory only) so you can try the Map tab, click-to-go and world-map pins alone. /mam map fake off removes them.
+
 ## 0.2.0-alpha22
 
 Jump fix, guild dungeons and a live guild map.
