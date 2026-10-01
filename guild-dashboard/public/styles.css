@@ -392,7 +392,7 @@ footer {
   .guild-name { margin: 0; text-align: left; }
   .guild-name strong { font-size: 1rem; }
   .guild-name span { font-size: .74rem; }
-  .guild-rail nav { grid-column: 1 / -1; display: flex; gap: .25rem; overflow-x: auto; }
+  .guild-rail nav { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .25rem; }
   .guild-rail nav a { flex: 1 0 auto; padding: .6rem .7rem; text-align: center; }
   .ledger-main { padding: 1rem .75rem; }
   .ledger-topbar { align-items: flex-start; }
@@ -429,8 +429,10 @@ footer {
 .profession-card ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; }
 .combo-flag { color: #8a1f17; }
 
-.launch-count { display: grid; gap: 0.2rem; }
-.launch-count strong { font-size: 1.4rem; color: var(--gold-bright); }
+.launch-banner { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem 1rem; max-width: 93rem; margin: 0 auto 1.1rem; padding: .75rem 1rem; border: 1px solid var(--gold-dark); border-left-width: .25rem; background: rgba(255,255,255,.03); }
+.launch-banner span { color: var(--parchment); }
+.launch-banner strong { font-size: 1.3rem; color: var(--gold-bright); }
+.launch-banner small { opacity: .7; }
 .group-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0.75rem; }
 .group-card { border: 1px solid var(--gold-dark); padding: 0.6rem 0.8rem; }
 .group-card h3 { margin: 0 0 0.4rem; }

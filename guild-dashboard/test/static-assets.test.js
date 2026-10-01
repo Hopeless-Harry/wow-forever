@@ -76,3 +76,17 @@ test("the sync badge cannot be crushed by a long page title", async () => {
   assert.match(css, /\.ledger-topbar\s*\{[^}]*flex-wrap:\s*wrap/);
   assert.match(css, /\.sync-rune\s*\{[^}]*min-width:\s*9rem/);
 });
+
+test("launch countdown is a banner outside the overview grid and phone nav wraps instead of hiding links", async (t) => {
+  const css = await readFile(path.join(projectRoot, "public", "styles.css"), "utf8");
+  assert.match(css, /\.launch-banner\s*\{/);
+  assert.match(css, /\.guild-rail nav\s*\{[^}]*flex-wrap:\s*wrap/);
+  assert.doesNotMatch(css, /\.guild-rail nav\s*\{[^}]*overflow-x:\s*auto/);
+
+  const app = buildApp({ dataService: safeService(), logger: false });
+  t.after(() => app.close());
+  const body = (await app.inject({ url: "/" })).body;
+  const banner = body.indexOf('class="launch-banner"');
+  assert.ok(banner > 0 && banner < body.indexOf('class="ledger-overview"'), "banner precedes the overview");
+  assert.match(body, /id="launch-countdown"/);
+});

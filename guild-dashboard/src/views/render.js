@@ -94,8 +94,8 @@ function activityPanel(events) {
 export function renderDashboard(snapshot, memberData = { events: [] }) {
   if (!snapshot.records.length) return shell({ title: "Guild Ledger", active: "/", snapshot, content: emptyPanel(snapshot), scripts: ["/assets/live-refresh.js"] });
   const { leaders, distributions, totalResponses } = snapshot.stats;
-  const content = `<section class="ledger-overview" aria-labelledby="muster-heading">
-    <div class="launch-count" data-launch="${escapeHtml(LAUNCH_AT)}"><span>WoW Forever launches</span><strong id="launch-countdown">4 November 2026, 3 PM PST</strong><small>Reported launch date</small></div>
+  const content = `<aside class="launch-banner" data-launch="${escapeHtml(LAUNCH_AT)}"><span>WoW Forever launches</span><strong id="launch-countdown">4 November 2026, 3 PM PST</strong><small>Reported launch date</small></aside>
+  <section class="ledger-overview" aria-labelledby="muster-heading">
     <div class="muster-count"><span>Names sealed</span><strong>${totalResponses}</strong><h2 id="muster-heading">Adventurers mustered</h2></div>
     <div class="stat-rack">${leaderCard("Favoured ruleset", leaders.server)}${leaderCard("Largest class", leaders.characterClass, "class-ledger")}${leaderCard("Main calling", leaders.role)}${leaderCard("Top profession", leaders.professions)}</div>
   </section>
