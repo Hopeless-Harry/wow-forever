@@ -37,14 +37,35 @@ function Collectors:CaptureInstance()
   if inInstance==self.inInstance then return end
   local name,_,difficultyID,_,_,_,_,mapID=safe(GetInstanceInfo)
   if inInstance then
+    self.instanceEnteredAt=Addon:Now()
     Addon.EventStore:Append("instance.entered",{instanceName=name,instanceType=instanceType,difficultyID=difficultyID,mapID=mapID})
     if Addon.Counters and Addon.Counters.OnInstanceEntered then Addon:Guard("Counters",Addon.Counters.OnInstanceEntered,Addon.Counters,instanceType) end
   elseif self.inInstance then
     local previous=self.lastInstance or {}
     Addon.EventStore:Append("instance.exited",previous)
+    self:SummariseInstance(previous,self.instanceEnteredAt)
   end
   self.inInstance=inInstance
   if inInstance then self.lastInstance={instanceName=name,instanceType=instanceType,difficultyID=difficultyID,mapID=mapID} end
+end
+
+-- Toasts are held inside instances (quiet mode), so give one short wrap-up when you come out.
+function Collectors:SummariseInstance(instance,enteredAt)
+  if not enteredAt or not Addon.Toast or not Addon.EventStore.db then return end
+  local deaths,loot,quests=0,0,0
+  for index=#Addon.EventStore.db.events,1,-1 do
+    local event=Addon.EventStore.db.events[index]
+    if event.occurredAt<enteredAt then break end
+    if event.characterKey==Addon.characterKey then
+      if event.type=="character.death" then deaths=deaths+1 elseif event.type=="loot.notable" then loot=loot+1 elseif event.type=="quest.completed" then quests=quests+1 end
+    end
+  end
+  if deaths+loot+quests==0 then return end
+  local parts={}
+  if loot>0 then table.insert(parts,loot.." notable drop"..(loot==1 and "" or "s")) end
+  if quests>0 then table.insert(parts,quests.." quest"..(quests==1 and "" or "s")) end
+  if deaths>0 then table.insert(parts,deaths.." death"..(deaths==1 and "" or "s")) end
+  Addon.Toast:Show({kind="info",title="Out of "..tostring(instance and instance.instanceName or "the instance"),text=table.concat(parts,", ").." recorded."})
 end
 
 function Collectors:ResolveItem(itemID,itemLink,quantity)
@@ -57,7 +78,7 @@ function Collectors:ResolveItem(itemID,itemLink,quantity)
 end
 
 function Collectors:CaptureLoot(message)
-  if type(message)~="string" then return end
+  if type(message)~="string" or Addon:IsSecret(message) then return end
   local link=string.match(message,"(|c%x+|Hitem:.-|h%[.-%]|h|r)") or string.match(message,"(|Hitem:.-|h%[.-%]|h)")
   if not link then return end
   local function escapePattern(value) return value:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])","%%%1") end
@@ -111,7 +132,11 @@ function Collectors:HandleEvent(eventName,...)
     elseif eventName=="PLAYER_LEVEL_UP" then Addon.EventStore:Append("character.level_up",{level=args[1]}); local record=Addon.db.characters[Addon.characterKey]; if record and tonumber(args[1]) then record.level=args[1] end
     elseif eventName=="PLAYER_DEAD" then
       local payload=self:CaptureLocation()
-      if UnitCanAttack and safe(UnitCanAttack,"player","target") then payload.lastHostileTarget=safe(UnitName,"target") end
+      if UnitCanAttack and safe(UnitCanAttack,"player","target") then
+        local hostile=safe(UnitName,"target")
+        -- Enemy names are secret inside instances; keep the rest of the death record rather than lose it to an error.
+        if not Addon:IsSecret(hostile) then payload.lastHostileTarget=hostile end
+      end
       if Addon.Counters and Addon.Counters:WasFalling() then payload.deathKind="falling" end
       Addon.EventStore:Append("character.death",payload); self.isDeadObserved=true
     elseif (eventName=="PLAYER_ALIVE" or eventName=="PLAYER_UNGHOST") and self.isDeadObserved then Addon.EventStore:Append("character.resurrected",self:CaptureLocation()); self.isDeadObserved=false

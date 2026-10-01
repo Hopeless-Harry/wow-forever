@@ -2,12 +2,12 @@ local Addon=MAMChronicles
 Addon.UI=Addon.UI or {}
 local UI=Addon.UI
 
-UI.tabs={"Home","Chronicle","Medals","Statistics","Characters","Map","Settings","Diagnostics"}
+UI.tabs={"Home","Chronicle","Medals","Statistics","Characters","Map","Guild","Settings","Diagnostics"}
 UI.filters={"All","Deaths","Quests","World","Instances","Loot","Memories","Medals"}
 UI.dateRanges={"All","30 Days","This Month"}
 UI.activeTab="Home"; UI.activeFilter="All"; UI.activeRange="All"; UI.search=""; UI.rowPool={}
 
-local validTabs={Home=true,Chronicle=true,Medals=true,Statistics=true,Characters=true,Map=true,Settings=true,Diagnostics=true}
+local validTabs={Home=true,Chronicle=true,Medals=true,Statistics=true,Characters=true,Map=true,Guild=true,Settings=true,Diagnostics=true}
 local groups={
   Deaths={ ["character.death"]=true,["character.resurrected"]=true },
   Quests={ ["quest.accepted"]=true,["quest.completed"]=true },
@@ -113,7 +113,10 @@ function UI:SelectRange(value)
 end
 
 local function attachTooltip(control,title,instruction)
+  if type(control)=="table" then control.__tip=instruction end
   local function enter(owner)
+    -- On the Settings page the description goes to the info pane beside the list instead of a floating tooltip.
+    if type(owner)=="table" and owner.inSettings and UI.settingsInfoShown then UI:SetSettingsInfo(title,instruction); return end
     if not GameTooltip then return end
     safeMethod(GameTooltip,"SetOwner",owner,"ANCHOR_RIGHT"); safeMethod(GameTooltip,"SetText",title); safeMethod(GameTooltip,"AddLine",instruction); safeMethod(GameTooltip,"Show")
   end
@@ -126,11 +129,17 @@ local function attachTooltip(control,title,instruction)
   end
 end
 
+-- Describes an option in the Settings info pane only (used by options that have no longer help text).
+local function attachInfo(control,title,instruction)
+  local function enter(owner) if UI.settingsInfoShown then UI:SetSettingsInfo(title,instruction) end end
+  if control and type(control.HookScript)=="function" then pcall(control.HookScript,control,"OnEnter",enter) else safeMethod(control,"SetScript","OnEnter",enter) end
+end
+
 function UI:SaveWindowState()
   if not self.frame or not Addon.db or not Addon.db.settings then return false end
   local ok,point,_,_,x,y=pcall(self.frame.GetPoint,self.frame,1)
   if not ok or not validTabs[self.activeTab] then return false end
-  local width=self.frame.GetWidth and self.frame:GetWidth(); local height=self.frame.GetHeight and self.frame:GetHeight()
+  local width=self.settingsPrevWidth or (self.frame.GetWidth and self.frame:GetWidth()); local height=self.frame.GetHeight and self.frame:GetHeight()
   if type(point)~="string" or not finite(x) or not finite(y) or not finite(width) or not finite(height) then return false end
   local ui=Addon.db.settings.ui
   ui.point=point; ui.x=clamp(x,-10000,10000); ui.y=clamp(y,-10000,10000)
@@ -215,7 +224,7 @@ function UI:GetVisibleTimeline()
   local result={}; for index=offset+1,math.min(offset+30,#events) do table.insert(result,events[index]) end return result,#events
 end
 
-local booleanSettings={enabled=true,recordCoordinates=true,recordQuestAccepts=true,recordStatistics=true,recordGoldStatistics=true,toastsEnabled=true,toastSound=true,quietInstances=true,animations=true,shareLocation=true,showGuildMap=true,announceMedals=true,announceGuildChat=true,receiveGuildAlerts=true}
+local booleanSettings={enabled=true,recordCoordinates=true,recordQuestAccepts=true,recordStatistics=true,recordGoldStatistics=true,toastsEnabled=true,toastSound=true,quietInstances=true,animations=true,shareLocation=true,showGuildMap=true,trackerEnabled=true,trackerQuests=true,trackerLocked=true,announceMedals=true,announceGuildChat=true,receiveGuildAlerts=true}
 function UI:SetSetting(key,value)
   if key=="showMinimapButton" and Addon.SettingsPanel then return Addon.SettingsPanel:ApplySetting(key,value==true) end
   local settings=Addon.db.settings
@@ -225,6 +234,9 @@ function UI:SetSetting(key,value)
   elseif key=="windowAlpha" then
     settings.windowAlpha=math.max(0.3,math.min(1,math.floor((tonumber(value) or 1)*100+0.5)/100)); Addon.db.meta.updatedAt=Addon:Now()
     self:ApplyAppearance(); return true
+  elseif key=="windowScale" then
+    settings.windowScale=math.max(0.7,math.min(1.3,math.floor((tonumber(value) or 1)*20+0.5)/20)); Addon.db.meta.updatedAt=Addon:Now()
+    self:ApplyScale(); return true
   elseif key=="toastSoundChoice" then
     if not (Addon.Toast and Addon.Toast.soundKeys[value]) then return false end
     settings.toastSoundChoice=value; Addon.db.meta.updatedAt=Addon:Now(); return true
@@ -236,6 +248,7 @@ function UI:SetSetting(key,value)
   elseif booleanSettings[key] then value=value==true
   else return false end
   settings[key]=value; Addon.db.meta.updatedAt=Addon:Now()
+  if (key=="trackerEnabled" or key=="trackerQuests") and Addon.Tracker then Addon.Tracker:Refresh() end
   if key=="recordGoldStatistics" and not value and Addon.AchievementStats then Addon.AchievementStats:PurgeGold() end
   return true
 end
@@ -380,6 +393,18 @@ function UI:ColouriseCharacters(text)
   return table.concat(lines, "\n")
 end
 
+function UI:ColouriseGuild(text)
+  local T = Addon.Theme
+  local lines = {}
+  for line in (text .. "\n"):gmatch("(.-)\n") do
+    if line:match("^Guild leaderboard") or line:match("^Recent guild medals") then line = T:Colorize(line, T.colors.gold)
+    elseif line:match("%(you%)") then line = T:Colorize(line, T.colors.gold)
+    elseif line:match("^Tip:") or line:match("^  No ") or line:match("^  Nothing") then line = T:Colorize(line, T.colors.muted) end
+    table.insert(lines, line)
+  end
+  return table.concat(lines, "\n")
+end
+
 function UI:FillRow(index, event)
   local T = Addon.Theme; local row = self.rowButtons[index]
   local kindName, color = T:DescribeType(event.type)
@@ -423,8 +448,14 @@ local function createRow(self, frame, index)
   return row
 end
 
+function UI:ApplyScale()
+  if not (self.frame and Addon.db) then return end
+  safeMethod(self.frame, "SetScale", Addon.db.settings.windowScale or 1)
+end
+
 function UI:ApplyAppearance()
   if not (self.frame and Addon.Theme and Addon.db) then return end
+  self:ApplyScale()
   local C, alpha = Addon.Theme.colors, Addon.db.settings.windowAlpha or 1
   if Addon.Theme.artTheme then
     if self.frame.__slices then self.frame.__slices:SetAlpha(alpha) end
@@ -479,22 +510,41 @@ function UI:SyncSettingsControls()
     self.syncingSettings = false
   end
   safeMethod(self.alphaValue, "SetText", tostring(math.floor((1 - (settings.windowAlpha or 1)) * 100 + 0.5)) .. "% transparent")
+  if self.scaleSlider then
+    self.syncingSettings = true
+    safeMethod(self.scaleSlider, "SetValue", math.floor((settings.windowScale or 1) * 100 + 0.5))
+    self.syncingSettings = false
+    safeMethod(self.scaleValue, "SetText", tostring(math.floor((settings.windowScale or 1) * 100 + 0.5)) .. "% size")
+  end
   local pending = settings.theme ~= T.current
   T:SetEnabled(self.applyThemeButton, pending)
   safeMethod(self.themeNote, "SetText", pending and "Saved. Apply to reload the interface with this theme." or "")
 end
 
+-- Settings side panels: widths, and the window width at which the info pane has room.
+local SET_SIDEBAR, SET_INFO, SET_INFO_MIN_WIDTH = 168, 236, 880
+
 function UI:UpdateSettingsScroll()
   if not self.settingsArea then return end
   local view = self:TextViewHeight()
-  self.settingsArea:Update(self.settingsHeight or 700, view, (self.textWidth or 700))
+  local area = self.settingsArea
+  self.settingsArea:Update(self.settingsHeight or 700, view, math.max(300, (self.textWidth or 700) - (area.leftInset or 0) - (area.rightInset or 0)))
 end
 
 function UI:ShowSettingsPage()
   local area = self.settingsArea
-  area:Place(self.frame, 84, FOOTER + 4, SIDE, TEXT_SCROLLBAR); area:Show()
+  -- The page has a category list and an info pane, so it wants a wider window (not saved; the window stays resizable).
+  local width = tonumber(self.frame.GetWidth and self.frame:GetWidth()) or 0
+  if width > 0 and width < SET_INFO_MIN_WIDTH + 20 then
+    self.settingsPrevWidth = self.settingsPrevWidth or width
+    local ok, screen = pcall(function() return UIParent.GetWidth and UIParent:GetWidth() end)
+    safeMethod(self.frame, "SetWidth", math.min(SET_INFO_MIN_WIDTH + 20, (ok and tonumber(screen) and screen > 0) and screen - 20 or SET_INFO_MIN_WIDTH + 20))
+  end
+  self:LayoutSettingsChrome()
+  area:Show()
   for _, control in ipairs(self.settingControls) do safeMethod(control, "Show") end
-  self:SyncSettingsControls(); self:UpdateSettingsScroll()
+  self:SyncSettingsControls(); self:UpdateSettingsScroll(); self:UpdateSettingsNav(area.offset)
+  self:FilterSettings(self.settingsSearch and self.settingsSearch.GetText and self.settingsSearch:GetText() or "")
 end
 
 function UI:BuildSettingsPage(frame)
@@ -502,10 +552,19 @@ function UI:BuildSettingsPage(frame)
   local area = T:ScrollArea(frame); self.settingsArea = area
   local child = area.child
   self.settingControls, self.settingChecks, self.themeButtons = {}, {}, {}
+  self.settingSections, self.settingEntries = {}, {}
   local y = -4
-  local function add(control) self.settingControls[#self.settingControls + 1] = control end
+  local function add(control)
+    if type(control) == "table" then control.inSettings = true end
+    self.settingControls[#self.settingControls + 1] = control
+  end
+  -- Remember what each option is and where it sits, so the search box can find it and the category list can scroll to it.
+  local function entry(text, tip, ...)
+    self.settingEntries[#self.settingEntries + 1] = { text = text, tip = tip, y = -y, section = #self.settingSections, controls = { ... } }
+  end
   local function heading(text)
     y = y - 10
+    self.settingSections[#self.settingSections + 1] = { label = text, y = -y }
     local fs = Addon.Theme:Text(child, "GameFontNormalLarge")
     safeMethod(fs, "SetPoint", "TOPLEFT", child, "TOPLEFT", 4, y); safeMethod(fs, "SetText", text); safeMethod(fs, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1)
     add(fs)
@@ -530,19 +589,20 @@ function UI:BuildSettingsPage(frame)
       local checked = button.GetChecked and button:GetChecked() or not Addon.db.settings[key]
       UI:SetSetting(key, checked); UI:SyncSettingsControls()
     end)
-    if tip then attachTooltip(box, text, tip) end
-    self.settingChecks[key] = box; add(box); add(caption); y = y - 26
+    if tip then attachTooltip(box, text, tip) else attachInfo(box, text, "") end
+    self.settingChecks[key] = box; add(box); add(caption); entry(text, tip, box, caption); y = y - 26
   end
   local function button(text, width, x, onClick)
     local b = T:Button(child, text, width, 26)
     safeMethod(b, "SetPoint", "TOPLEFT", child, "TOPLEFT", x, y); safeMethod(b, "SetScript", "OnClick", onClick)
-    add(b); return b
+    add(b); entry(text, nil, b); return b
   end
 
   heading("Appearance")
   label("Theme")
   for index, name in ipairs(T.presetOrder) do
-    local b = button(T.presetNames[name], 112, 8 + (index - 1) * 120, function()
+    if index > 1 and (index - 1) % 3 == 0 then y = y - 34 end
+    local b = button(T.presetNames[name], 126, 8 + ((index - 1) % 3) * 132, function()
       UI:SetSetting("theme", name); UI:SyncSettingsControls()
     end)
     self.themeButtons[index] = b
@@ -554,7 +614,7 @@ function UI:BuildSettingsPage(frame)
   self.themeNote = Addon.Theme:Text(child, "GameFontDisableSmall")
   safeMethod(self.themeNote, "SetPoint", "LEFT", self.applyThemeButton, "RIGHT", 12, 0); add(self.themeNote)
   y = y - 38
-  label("Window transparency")
+  local alphaLabel = label("Window transparency")
   self.alphaSlider = T:Slider(child, 260, 0, 70, 1)
   safeMethod(self.alphaSlider, "SetPoint", "TOPLEFT", child, "TOPLEFT", 8, y - 2)
   safeMethod(self.alphaSlider, "SetScript", "OnValueChanged", function(_, value)
@@ -565,6 +625,22 @@ function UI:BuildSettingsPage(frame)
   add(self.alphaSlider)
   self.alphaValue = Addon.Theme:Text(child, "GameFontHighlight")
   safeMethod(self.alphaValue, "SetPoint", "LEFT", self.alphaSlider, "RIGHT", 14, 0); add(self.alphaValue)
+  entry("Window transparency", "Make the window background see-through so the game shows behind it.", alphaLabel, self.alphaSlider, self.alphaValue)
+  y = y - 34
+  local scaleLabel = label("Window size")
+  self.scaleSlider = T:Slider(child, 260, 70, 130, 5)
+  safeMethod(self.scaleSlider, "SetPoint", "TOPLEFT", child, "TOPLEFT", 8, y - 2)
+  safeMethod(self.scaleSlider, "SetScript", "OnValueChanged", function(_, value)
+    if UI.syncingSettings then return end
+    UI:SetSetting("windowScale", (tonumber(value) or 100) / 100); UI:SyncSettingsControls()
+  end)
+  attachTooltip(self.scaleSlider, "Window size", "Make the whole Chronicle window smaller or larger. 100% is the normal size.")
+  add(self.scaleSlider)
+  self.scaleValue = Addon.Theme:Text(child, "GameFontHighlight")
+  safeMethod(self.scaleValue, "SetPoint", "LEFT", self.scaleSlider, "RIGHT", 14, 0); add(self.scaleValue)
+  entry("Window size", "Make the whole Chronicle window smaller or larger. 100% is the normal size.", scaleLabel, self.scaleSlider, self.scaleValue)
+  y = y - 34
+  self.resetWindowButton = button("Reset window position and size", 260, 8, function() UI:SetSetting("windowScale", 1); UI:ResetWindow(); UI:SyncSettingsControls(); Addon:Print("Window position and size reset.") end)
   y = y - 34
   check("showMinimapButton", "Show minimap button")
   check("animations", "Animations (fades, pulses and bounces)", "Turn this off for a perfectly still interface.")
@@ -572,7 +648,7 @@ function UI:BuildSettingsPage(frame)
   heading("Alerts")
   check("toastsEnabled", "Show toast alerts", "Toasts are held while you are in combat and appear once combat ends.")
   check("toastSound", "Play a sound with toasts")
-  check("announceMedals", "Announce my Mom Medals to the guild", "Guildmates running the addon see a toast when you earn a medal. Nothing is sent when messaging is restricted.")
+  check("announceMedals", "Announce my Mom Medals to the guild", "Guildmates running the addon see a toast when you earn a medal, and get your medal count and Mom Money total once per login. Nothing else is sent, and nothing is sent when messaging is restricted.")
   check("announceGuildChat", "Also post my medals in guild chat", "Posts one line to guild chat that everyone can read, even without the addon. Off by default.")
   check("receiveGuildAlerts", "Show toasts when guildmates earn medals")
   check("shareStats", "Share my stats with the guild hub", "Sends level, class, race, title, medal count, Mom Money and a few activity counts as hidden addon messages (never chat or whispers) while the guild hub is online. Never gold, item names or BattleTag. Same as /mam share on|off.")
@@ -622,6 +698,12 @@ function UI:BuildSettingsPage(frame)
   check("showGuildMap", "Show guildmates on the map", "Receive location updates from guildmates and mark them on the world map.")
   y = y - 4
 
+  heading("Goal tracker")
+  check("trackerEnabled", "Show the goal tracker window", "A small movable window with your pinned medal goals, this week's Mom Quests and pinned guildmates. Drag it to move it.")
+  check("trackerQuests", "Include this week's Mom Quests in the tracker")
+  check("trackerLocked", "Lock the tracker so it cannot be dragged")
+  y = y - 4
+
   heading("Recording")
   check("enabled", "Record Chronicle")
   check("recordQuestAccepts", "Record quest accepts")
@@ -660,7 +742,138 @@ function UI:BuildSettingsPage(frame)
   y = y - 40
   self.settingsHeight = -y
   safeMethod(area.child, "SetSize", 600, self.settingsHeight)
+  area.onScroll = function(offset) UI:UpdateSettingsNav(offset) end
+  self:BuildSettingsChrome(frame)
   area:Hide()
+end
+
+-- ---------------------------------------------------------------- settings side panels (category list, search, info pane)
+function UI:BuildSettingsChrome(frame)
+  local T = Addon.Theme; local C = T.colors
+  local chrome = {}
+  self.settingsChrome = chrome
+  -- left: search + category list
+  local side = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+  T:Panel(side, C.panel, C.border); chrome[#chrome + 1] = side; self.settingsSide = side
+  safeMethod(side, "Hide")
+  local search = CreateFrame("EditBox", nil, side, "BackdropTemplate")
+  safeMethod(search, "SetSize", SET_SIDEBAR - 16, 26); safeMethod(search, "SetPoint", "TOPLEFT", side, "TOPLEFT", 8, -8); safeMethod(search, "SetAutoFocus", false)
+  T:Input(search)
+  local hint = T:Text(search, "GameFontDisable")
+  safeMethod(hint, "SetPoint", "LEFT", search, "LEFT", 9, 0); safeMethod(hint, "SetText", "Search settings...")
+  safeMethod(search, "SetScript", "OnTextChanged", function(box)
+    local text = box.GetText and box:GetText() or ""
+    safeMethod(hint, text == "" and "Show" or "Hide")
+    UI:FilterSettings(text)
+  end)
+  safeMethod(search, "SetScript", "OnEscapePressed", function(box) safeMethod(box, "SetText", ""); safeMethod(box, "ClearFocus") end)
+  self.settingsSearch = search
+  self.settingsNav = {}
+  for index, section in ipairs(self.settingSections) do
+    local b = CreateFrame("Button", nil, side)
+    safeMethod(b, "SetSize", SET_SIDEBAR - 16, 24); safeMethod(b, "SetPoint", "TOPLEFT", side, "TOPLEFT", 8, -(44 + (index - 1) * 26))
+    b.label = T:Text(b, "GameFontHighlight")
+    safeMethod(b.label, "SetPoint", "LEFT", b, "LEFT", 6, 0); safeMethod(b.label, "SetText", section.label); safeMethod(b.label, "SetJustifyH", "LEFT")
+    b.section = index
+    safeMethod(b, "SetScript", "OnClick", function() UI:GoToSettingsSection(index) end)
+    safeMethod(b, "SetScript", "OnEnter", function(button) safeMethod(button.label, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1) end)
+    safeMethod(b, "SetScript", "OnLeave", function() UI:UpdateSettingsNav(self.settingsArea and self.settingsArea.offset or 0) end)
+    self.settingsNav[index] = b
+  end
+  -- right: preview and description of the option under the mouse
+  local info = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+  T:Panel(info, C.panel, C.border); chrome[#chrome + 1] = info; self.settingsInfo = info
+  safeMethod(info, "Hide")
+  local preview = info:CreateTexture(nil, "ARTWORK")
+  safeMethod(preview, "SetTexture", "Interface\\AddOns\\MAMChronicles\\MAMChroniclesIcon"); safeMethod(preview, "SetSize", 72, 72); safeMethod(preview, "SetPoint", "TOP", info, "TOP", 0, -26)
+  local glow = info:CreateTexture(nil, "BACKGROUND")
+  safeMethod(glow, "SetTexture", (T.ART or "") .. "Glow"); safeMethod(glow, "SetSize", 150, 150); safeMethod(glow, "SetPoint", "CENTER", preview, "CENTER", 0, 0); safeMethod(glow, "SetBlendMode", "ADD")
+  self.settingsPreview = preview
+  self.settingsInfoTitle = T:Text(info, "GameFontNormalLarge")
+  safeMethod(self.settingsInfoTitle, "SetPoint", "TOPLEFT", info, "TOPLEFT", 14, -134); safeMethod(self.settingsInfoTitle, "SetWidth", SET_INFO - 28); safeMethod(self.settingsInfoTitle, "SetJustifyH", "LEFT")
+  safeMethod(self.settingsInfoTitle, "SetTextColor", C.gold[1], C.gold[2], C.gold[3], 1)
+  self.settingsInfoText = T:Text(info, "GameFontHighlight")
+  safeMethod(self.settingsInfoText, "SetPoint", "TOPLEFT", self.settingsInfoTitle, "BOTTOMLEFT", 0, -8); safeMethod(self.settingsInfoText, "SetWidth", SET_INFO - 28); safeMethod(self.settingsInfoText, "SetJustifyH", "LEFT")
+  safeMethod(self.settingsInfoText, "SetWordWrap", true); safeMethod(self.settingsInfoText, "SetTextColor", C.muted[1], C.muted[2], C.muted[3], 1)
+  self:SetSettingsInfo(nil)
+end
+
+local INFO_DEFAULT_TITLE = "Settings"
+local INFO_DEFAULT_TEXT = "Point at an option to see what it does. Pick a category on the left to jump to it, or search for an option by name."
+
+function UI:SetSettingsInfo(title, text)
+  if not self.settingsInfoTitle then return end
+  if not title then title, text = INFO_DEFAULT_TITLE, INFO_DEFAULT_TEXT end
+  safeMethod(self.settingsInfoTitle, "SetText", tostring(title))
+  safeMethod(self.settingsInfoText, "SetText", (text and text ~= "") and tostring(text) or "")
+end
+
+function UI:GoToSettingsSection(index)
+  local section = self.settingSections and self.settingSections[index]
+  if not (section and self.settingsArea) then return false end
+  self.settingsArea:SetOffset(section.y - 16)
+  return true
+end
+
+-- Gold for the section being read, muted for the rest.
+function UI:UpdateSettingsNav(offset)
+  if not self.settingsNav then return end
+  local C = Addon.Theme.colors
+  local current = 1
+  for index, section in ipairs(self.settingSections) do if section.y - 40 <= (tonumber(offset) or 0) then current = index end end
+  if (self.settingsArea and self.settingsArea.range or 0) > 0 and (tonumber(offset) or 0) >= self.settingsArea.range - 2 then current = #self.settingSections end
+  for index, b in ipairs(self.settingsNav) do
+    local colour = index == current and C.gold or C.muted
+    safeMethod(b.label, "SetTextColor", colour[1], colour[2], colour[3], 1)
+  end
+  self.settingsNavCurrent = current
+end
+
+-- Options that do not match the search fade out; the first match is scrolled into view.
+function UI:FilterSettings(text)
+  text = string.lower(tostring(text or "")):gsub("^%s+", ""):gsub("%s+$", "")
+  self.settingsFilter = text
+  local first
+  for _, item in ipairs(self.settingEntries or {}) do
+    local match = text == ""
+    if not match then
+      local haystack = string.lower(tostring(item.text or "") .. " " .. tostring(item.tip or ""))
+      for _, control in ipairs(item.controls) do if type(control) == "table" and control.__tip then haystack = haystack .. " " .. string.lower(tostring(control.__tip)) end end
+      match = haystack:find(text, 1, true) ~= nil
+    end
+    for _, control in ipairs(item.controls) do safeMethod(control, "SetAlpha", match and 1 or 0.22) end
+    if match and not first and text ~= "" then first = item end
+  end
+  if first and self.settingsArea then self.settingsArea:SetOffset(first.y - 40) end
+  return first ~= nil or text == ""
+end
+
+function UI:LayoutSettingsChrome()
+  if not (self.settingsSide and self.frame) then return end
+  local width = tonumber(self.frame.GetWidth and self.frame:GetWidth()) or 780
+  self.settingsInfoShown = width >= SET_INFO_MIN_WIDTH
+  local area = self.settingsArea
+  area.leftInset = SET_SIDEBAR + 8
+  area.rightInset = self.settingsInfoShown and (SET_INFO + 8) or 0
+  safeMethod(self.settingsSide, "ClearAllPoints")
+  safeMethod(self.settingsSide, "SetPoint", "TOPLEFT", self.frame, "TOPLEFT", SIDE, -84)
+  safeMethod(self.settingsSide, "SetPoint", "BOTTOMLEFT", self.frame, "BOTTOMLEFT", SIDE, FOOTER + 4)
+  safeMethod(self.settingsSide, "SetWidth", SET_SIDEBAR)
+  safeMethod(self.settingsInfo, "ClearAllPoints")
+  safeMethod(self.settingsInfo, "SetPoint", "TOPRIGHT", self.frame, "TOPRIGHT", -SIDE, -84)
+  safeMethod(self.settingsInfo, "SetPoint", "BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", -SIDE, FOOTER + 4)
+  safeMethod(self.settingsInfo, "SetWidth", SET_INFO)
+  area:Place(self.frame, 84, FOOTER + 4, SIDE, TEXT_SCROLLBAR)
+  safeMethod(self.settingsSide, "Show"); safeMethod(self.settingsInfo, self.settingsInfoShown and "Show" or "Hide")
+end
+
+function UI:HideSettingsChrome()
+  for _, panel in ipairs(self.settingsChrome or {}) do safeMethod(panel, "Hide") end
+  -- Give the window back its own width: the wider layout was only for the Settings page.
+  if self.settingsPrevWidth and self.frame then
+    safeMethod(self.frame, "SetWidth", self.settingsPrevWidth)
+    self.settingsPrevWidth = nil
+  end
 end
 
 local MEDAL_ROW_HEIGHT = 54
@@ -778,7 +991,10 @@ function UI:ToggleGoal(row, button)
   local entry = row and row.entry
   if button ~= "LeftButton" or not entry then return end
   if entry.def.verified then self:AwardFromRow(entry); return end
-  if entry.earned then return end
+  if entry.earned then
+    if IsShiftKeyDown and IsShiftKeyDown() then self:LinkMedalToChat(entry) end
+    return
+  end
   local id = entry.def.id
   if Addon.Medals:IsPinned(id) then Addon.Medals:SetPinned(id, false)
   elseif not Addon.Medals:SetPinned(id, true) then Addon:Print("You can pin 6 goals. Unpin one first.") end
@@ -786,6 +1002,17 @@ function UI:ToggleGoal(row, button)
 end
 
 function UI:AwardFromRow(entry) end
+
+-- Shift-click an earned medal to put a line about it into the chat box you are typing in (or open one). Nothing is sent for you.
+function UI:LinkMedalToChat(entry)
+  local def = entry and entry.def
+  if not def then return false end
+  local text = "I earned the " .. tostring(def.name) .. " Mom Medal (+" .. tostring(def.points) .. " Mom Money)!"
+  if ChatEdit_InsertLink and ChatEdit_InsertLink(text) then return true end
+  if ChatFrame_OpenChat then pcall(ChatFrame_OpenChat, text); return true end
+  Addon:Print(text)
+  return false
+end
 
 function UI:ShowMedalTooltip(row)
   local entry = row and row.entry
@@ -1232,8 +1459,9 @@ function UI:Create()
   -- tabs
   self.tabButtons = {}
   for index, name in ipairs(self.tabs) do
-    local tab = T:Tab(frame, name, 74, 28)
-    safeMethod(tab, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 12 + (index - 1) * 75, -38)
+    -- Nine tabs at 66 wide (67 apart) end at x=614, so they still fit the narrowest (620) window.
+    local tab = T:Tab(frame, name, 66, 28)
+    safeMethod(tab, "SetPoint", "TOPLEFT", frame, "TOPLEFT", 12 + (index - 1) * 67, -38)
     safeMethod(tab, "SetScript", "OnClick", function() UI:SetActiveTab(name) end)
     self.tabButtons[index] = tab
   end
@@ -1385,6 +1613,7 @@ function UI:HideAllViews()
   safeMethod(self.textScroll, "Hide"); safeMethod(self.textSlider, "Hide"); self.textVisible = false; self.copyShown = false
   if self.dashboard then self.dashboard:Hide() end
   if self.settingsArea then self.settingsArea:Hide() end
+  self:HideSettingsChrome()
   if self.medalsArea then self.medalsArea:Hide() end
   if self.mapArea then safeMethod(self.mapArea.frame, "Hide"); self.mapScroll:Hide() end
   self:SetDiagBarVisible(false)
@@ -1411,12 +1640,14 @@ function UI:Refresh()
   elseif self.activeTab == "Statistics" then
     local fromTime, toTime = self:GetCurrentMonthRange(); local stats = Addon.Statistics:Build(fromTime, toTime)
     local halls = Addon.Statistics:DescribeHighlights(Addon.Statistics:BuildHighlights())
-    local text = Addon.Export:BuildHumanSummary(stats.fromTime, stats.toTime) .. (halls and "\n\n" .. halls or "") .. (Addon.AchievementStats and "\n\n" .. Addon.AchievementStats:BuildText(Addon.characterKey) or "")
+    local text = Addon.Export:BuildHumanSummary(stats.fromTime, stats.toTime) .. (halls and "\n\n" .. halls or "") .. (Addon.Statistics:DescribeLevelPace() and "\n\n" .. Addon.Statistics:DescribeLevelPace() or "") .. (Addon.AchievementStats and "\n\n" .. Addon.AchievementStats:BuildText(Addon.characterKey) or "")
     safeMethod(self.content, "SetText", self:ColouriseStatistics(text)); self:ShowTextArea(false)
   elseif self.activeTab == "Map" then
     self:ShowMapPage()
   elseif self.activeTab == "Characters" then
     safeMethod(self.content, "SetText", self:ColouriseCharacters(Addon.Statistics:DescribeCharacters())); self:ShowTextArea(false)
+  elseif self.activeTab == "Guild" then
+    safeMethod(self.content, "SetText", self:ColouriseGuild(Addon.Statistics:DescribeGuild())); self:ShowTextArea(false)
   elseif self.activeTab == "Medals" then
     if self.medalsArea then self:ShowMedalsPage() end
   elseif self.activeTab == "Settings" then
@@ -1439,7 +1670,7 @@ end
 function UI:FadeActivePage()
   local T = Addon.Theme; local tab = self.activeTab
   local page = (tab == "Home" and self.dashboard and self.dashboard.frame) or (tab == "Medals" and self.medalsArea and self.medalsArea.scroll)
-    or (tab == "Settings" and self.settingsArea and self.settingsArea.scroll) or (tab == "Map" and self.mapArea and self.mapArea.frame) or ((tab == "Statistics" or tab == "Characters" or tab == "Diagnostics") and self.textScroll) or nil
+    or (tab == "Settings" and self.settingsArea and self.settingsArea.scroll) or (tab == "Map" and self.mapArea and self.mapArea.frame) or ((tab == "Statistics" or tab == "Characters" or tab == "Guild" or tab == "Diagnostics") and self.textScroll) or nil
   if T and page then T:FadeIn(page, 0.12) end
 end
 
@@ -1469,6 +1700,9 @@ UI.helpLines={
   "/mam export - show the Courier export text to copy",
   "/mam diag - show the diagnostics report to paste into a bug report",
   "/mam quests - show this week's Mom Quests and your progress",
+  "/mam tracker - show or hide the goal tracker window",
+  "/mam mute [minutes] - hold all toasts for a while (default 30); /mam unmute shows them again",
+  "/mam guild - open the Guild tab: leaderboard and recent guild medals (/mam guild send shares your totals now)",
   "/mam map - open the live guild map (/mam map fake adds pretend guildmates to try it)",
   "/mam share on|off|forget - share your stats with the guild hub, stop, or ask it to forget you",
   "/mam gateway on|off|sync - guild hub gateway for the owner (rank 0 or 1 only)",
@@ -1494,6 +1728,30 @@ function UI:HandleSlash(command)
     if string.lower(rest or "")=="week" then self:ShowCopy(Addon.Export:BuildWeeklyRecap())
     else local from,to=self:GetCurrentMonthRange(); self:ShowCopy(Addon.Export:BuildMonthlyRecap(from,to)) end
   elseif verb=="book" then self:ShowCopy(Addon.Statistics:DescribeMemoryBook())
+  elseif verb=="guild" and (rest or ""):match("^send") then
+    local sent = Addon.Comms and Addon.Comms:SendSummary(true)
+    Addon:Print(sent and "Your medal totals are queued for the guild." or "Nothing sent. Check Announce my Mom Medals is on, you are in a guild and have a medal.")
+  elseif verb=="guild" then self.activeTab="Guild"; Addon.db.settings.ui.activeTab="Guild"; self:Show()
+  elseif verb=="share" then
+    local word = ((rest or ""):match("^(%S+)") or "status"):lower()
+    if not Addon.Share then Addon:Print("Stats sharing is not available.")
+    elseif word == "on" then Addon.Share:SetConsent(true); self:SyncSettingsControls(); Addon:Print("Stats sharing on. It only sends while the guild hub is online. /mam share off stops it.")
+    elseif word == "off" then Addon.Share:SetConsent(false); self:SyncSettingsControls(); Addon:Print("Stats sharing off. Nothing more will be sent.")
+    elseif word == "forget" then Addon.Share:Forget(); self:SyncSettingsControls(); Addon:Print("Sharing is off and the guild hub will be asked to forget you the next time it is online.")
+    else Addon:Print(Addon.Share:Describe() .. ". Use /mam share on, off or forget.") end
+  elseif verb=="mute" then
+    local minutes = Addon.Toast and Addon.Toast:Mute((rest or ""):match("^(%d+)"))
+    Addon:Print(minutes and ("Toasts are held for " .. minutes .. " minutes. /mam unmute shows them now.") or "Toasts are unavailable.")
+  elseif verb=="unmute" then
+    Addon:Print(Addon.Toast and Addon.Toast:Unmute() and "Toasts are back." or "Toasts were not muted.")
+  elseif verb=="tracker" then
+    local on = Addon.db.settings.trackerEnabled == false
+    self:SetSetting("trackerEnabled", on); self:SyncSettingsControls()
+    Addon:Print("Goal tracker " .. (on and "shown." or "hidden."))
+  elseif verb=="map" and (rest or ""):match("^follow") then
+    local who = ((rest or ""):match("^follow%s+(%S+)") or "")
+    if who == "" or who:lower() == "off" then Addon:Print(Addon.Map:StopFollow() and "Stopped following." or "Usage: /mam map follow <guildmate>  (or /mam map follow off)")
+    else Addon:Print(Addon.Map:Follow(who) and ("Following " .. who .. ". The waypoint moves as they do.") or ("No shared location for " .. who .. " yet.")) end
   elseif verb=="map" and (rest or ""):match("^fake") then local on = not (rest or ""):match("off"); local n = Addon.Map and Addon.Map:SetFake(on) or 0; Addon:Print(on and ("Pretend guildmates added: " .. tostring(n) .. ". Run /mam map fake off to remove them.") or "Pretend guildmates removed."); self.activeTab="Map"; Addon.db.settings.ui.activeTab="Map"; self:Show()
   elseif verb=="map" then self.activeTab="Map"; Addon.db.settings.ui.activeTab="Map"; self:Show()
   elseif verb=="quests" then
@@ -1502,13 +1760,6 @@ function UI:HandleSlash(command)
     for _,questLine in ipairs(questLines) do Addon:Print(questLine) end
   elseif verb=="toast" then if Addon.Toast then Addon.Toast:SendTest() end
   elseif verb=="diag" then self.activeTab="Diagnostics"; Addon.db.settings.ui.activeTab="Diagnostics"; self:ShowCopy(Addon.Export:BuildDiagnosticReport(), true)
-  elseif verb=="share" then
-    local word = ((rest or ""):match("^(%S+)") or "status"):lower()
-    if not Addon.Share then Addon:Print("Stats sharing is not available.")
-    elseif word == "on" then Addon.Share:SetConsent(true); self:SyncSettingsControls(); Addon:Print("Stats sharing on. It only sends while the guild hub is online. /mam share off stops it.")
-    elseif word == "off" then Addon.Share:SetConsent(false); self:SyncSettingsControls(); Addon:Print("Stats sharing off. Nothing more will be sent.")
-    elseif word == "forget" then Addon.Share:Forget(); self:SyncSettingsControls(); Addon:Print("Sharing is off and the guild hub will be asked to forget you the next time it is online.")
-    else Addon:Print(Addon.Share:Describe() .. ". Use /mam share on, off or forget.") end
   elseif verb=="gateway" then
     local word = ((rest or ""):match("^(%S+)") or "status"):lower()
     if not Addon.Gateway then Addon:Print("Gateway mode is not available.")
@@ -1521,5 +1772,5 @@ function UI:HandleSlash(command)
 end
 
 function UI:InitialiseSlashCommands()
-  SLASH_MAMCHRONICLES1="/mam"; SlashCmdList.MAMCHRONICLES=function(message) UI:HandleSlash(message) end
+  SLASH_MAMCHRONICLES2="/chronicle"; SLASH_MAMCHRONICLES1="/mam"; SlashCmdList.MAMCHRONICLES=function(message) UI:HandleSlash(message) end
 end

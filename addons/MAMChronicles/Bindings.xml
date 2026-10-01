@@ -1,0 +1,5 @@
+<Bindings>
+  <Binding name="MAMCHRONICLES_TOGGLE" header="MAMCHRONICLES" category="ADDONS">
+    if MAMChronicles and MAMChronicles.UI then MAMChronicles.UI:Toggle() end
+  </Binding>
+</Bindings>

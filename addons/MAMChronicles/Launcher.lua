@@ -58,14 +58,49 @@ function Launcher:HandleClick(button)
   end
 end
 
+-- Status lines shown in the minimap and data-broker tooltips: a quick look at where you stand without opening the window.
+function Launcher:StatusLines()
+  local lines = {}
+  local Medals = Addon.Medals
+  if Medals and Addon.db and Addon.db.medals and Addon.db.medals[Addon.characterKey] then
+    local summary = Addon:SafeCall(Medals.GetSummary, Medals)
+    if type(summary) == "table" then
+      lines[#lines + 1] = { "Mom Money: " .. tostring(Addon:SafeCall(Medals.GetMomMoney, Medals) or 0), 1, 0.82, 0 }
+      lines[#lines + 1] = { "Medals: " .. tostring(summary.count) .. " of " .. tostring(summary.possible), 1, 1, 1 }
+    end
+    local goals = Addon:SafeCall(Medals.GetGoals, Medals)
+    if type(goals) == "table" and goals[1] then
+      lines[#lines + 1] = { "Goal: " .. goals[1].def.name .. "  " .. tostring(math.floor(goals[1].current)) .. " / " .. tostring(goals[1].target), 0.6, 0.8, 1 }
+    end
+    local quests = Addon:SafeCall(Medals.GetWeeklyQuests, Medals)
+    if type(quests) == "table" and #quests > 0 then
+      local done = 0
+      for _, quest in ipairs(quests) do if quest.done then done = done + 1 end end
+      lines[#lines + 1] = { "Mom Quests this week: " .. tostring(done) .. " / " .. tostring(#quests), 0.6, 0.8, 1 }
+    end
+  end
+  if Addon.Map then
+    local members = Addon:SafeCall(Addon.Map.GetList, Addon.Map)
+    if type(members) == "table" and #members > 0 then lines[#lines + 1] = { "Guildmates on the map: " .. tostring(#members), 0.5, 1, 0.5 } end
+  end
+  return lines
+end
+
+function Launcher:FillTooltip(tip)
+  if not tip then return end
+  safeMethod(tip, "SetText", "Moms Against Magic Chronicles")
+  for _, line in ipairs(self:StatusLines()) do safeMethod(tip, "AddLine", line[1], line[2], line[3], line[4]) end
+  safeMethod(tip, "AddLine", " ")
+  safeMethod(tip, "AddLine", "Left-click: open or close the Chronicle", 0.8, 0.8, 0.8)
+  safeMethod(tip, "AddLine", "Right-click: open settings", 0.8, 0.8, 0.8)
+  safeMethod(tip, "AddLine", "Drag: move this button", 0.8, 0.8, 0.8)
+end
+
 function Launcher:ShowTooltip(owner)
   local tip = GameTooltip
   if not tip then return end
   safeMethod(tip, "SetOwner", owner or self.button or UIParent, "ANCHOR_LEFT")
-  safeMethod(tip, "SetText", "Moms Against Magic Chronicles")
-  safeMethod(tip, "AddLine", "Left-click: open or close the Chronicle")
-  safeMethod(tip, "AddLine", "Right-click: open settings")
-  safeMethod(tip, "AddLine", "Drag: move this button")
+  self:FillTooltip(tip)
   safeMethod(tip, "Show")
 end
 
@@ -143,7 +178,23 @@ function Launcher:SetAttention(on)
   return false
 end
 
+-- Optional LibDataBroker object so Titan Panel, ElvUI, Bazooka and similar displays can launch the Chronicle.
+-- Only registered when another addon already provides LibStub and LibDataBroker-1.1.
+function Launcher:RegisterBroker()
+  if self.broker or type(LibStub) ~= "function" and type(LibStub) ~= "table" then return self.broker end
+  local ok, ldb = pcall(function() return LibStub("LibDataBroker-1.1", true) end)
+  if not (ok and ldb and ldb.NewDataObject) then return nil end
+  local created, object = pcall(ldb.NewDataObject, ldb, "MAMChronicles", {
+    type = "launcher", text = "Chronicles", label = "Moms Against Magic Chronicles", icon = ICON,
+    OnClick = function(_, mouseButton) Launcher:HandleClick(mouseButton) end,
+    OnTooltipShow = function(tip) Launcher:FillTooltip(tip) end,
+  })
+  if created and object then self.broker = object end
+  return self.broker
+end
+
 function Launcher:Initialise()
+  self:RegisterBroker()
   if not self.button and Addon:InCombat() then Addon:AfterCombat(function() Launcher:Initialise() end); return end
   if not self:Create() then return end
   local settings = ui()

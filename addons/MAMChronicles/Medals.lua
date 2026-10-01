@@ -116,6 +116,8 @@ series("purchases", "Bargain Hunter", "Buy from vendors {n} times.", { 10, 50, 2
 series("groups", "Team Mom", "Join {n} groups.", { 10, 50, 250 }, bts, counter("groups"))
 series("left", "Left on Read", "Leave {n} groups.", { 5, 25, 100 }, bts, counter("left"))
 series("ready", "Yes, I'm Ready, Mom!", "Confirm {n} ready checks.", { 10, 50, 200 }, bts, counter("ready"))
+series("mail", "Postmaster Mom", "Send {n} pieces of mail.", { 5, 25, 100 }, bts, counter("mail"))
+series("bank", "Savings Account", "Open your bank {n} times.", { 10, 50, 200 }, bts, counter("bank"))
 series("squad", "Mom Squad", "Enter {n} dungeons with a guildmate.", { 1, 5, 25 }, bts, counter("dungeon_guild"))
 series("full_party", "Full Mom Party", "Enter {n} dungeons with a full group of guildmates.", { 1, 5, 15 }, bts, counter("dungeon_guild_full"))
 series("raid_crew", "Raid Crew", "Enter {n} raids with five or more guildmates.", { 1, 3, 10 }, bts, counter("raid_guild"))
@@ -514,6 +516,7 @@ function Medals:Evaluate(reason)
   self.evaluating = false
   if baseline then
     if #awarded > 0 then notify(nil, { summary = true, retro = true, count = #awarded, points = points, reason = reason }) end
+    if Addon.Tracker then Addon:Guard("Tracker", Addon.Tracker.Refresh, Addon.Tracker) end
   else
     for _, def in ipairs(awarded) do
       self.newIds[def.id] = true
@@ -576,7 +579,7 @@ end
 Medals.familyCategory = {}
 assignCategory("progress", "fresh_start memory_keeper explorer quest_machine delver dungeon_regular slayer frequent_flyer comeback_kid adventurer shiny_collector achiever")
 assignCategory("kitchen", "wine ale coffee food cheese cookie pie soup fish juice water bandage potion")
-assignCategory("habits", "jumps mounts afk rest shots outfits repairs sales purchases groups left ready hearth summons abandon daily buyer healthstone catmom playdate treasure auction_goblin battlemaster")
+assignCategory("habits", "jumps mounts afk rest shots outfits repairs sales purchases groups left ready mail bank hearth summons abandon daily buyer healthstone catmom playdate treasure auction_goblin battlemaster")
 assignCategory("emotes", "sit sleep stare facepalm no thank hugs dances kisses waves cheers")
 assignCategory("pattern", "late early marathon relog streak weekend learning clean raid oops cooking fishing jack mom_of_many long_haul gravity murloc_magnet squad full_party raid_crew")
 -- ---------------------------------------------------------------- guild medals (variety, named, verified)
@@ -635,7 +638,7 @@ Medals.titles = {
   pie = "Pie Mom", soup = "Soup Mom", fish = "Fishy Mom", juice = "Juice Box Mom", water = "Hydration Mom", bandage = "Nurse Mom",
   potion = "Medicine Mom", jumps = "Trampoline Mom", mounts = "School Run Mom", afk = "Five Minutes Mom", rest = "Weekend Away Mom",
   shots = "Paparazzi Mom", outfits = "Wardrobe Mom", repairs = "Seamstress Mom", sales = "Declutter Mom", purchases = "Bargain Mom",
-  groups = "Team Mom", left = "Left-on-Read Mom", ready = "Ready Mom", sit = "Sit-Down Mom", sleep = "Nap Mom", stare = "Stare Mom",
+  groups = "Team Mom", left = "Left-on-Read Mom", ready = "Ready Mom", mail = "Postmaster Mom", bank = "Banker Mom", sit = "Sit-Down Mom", sleep = "Nap Mom", stare = "Stare Mom",
   facepalm = "Facepalm Mom", no = "Because-I-Said-So Mom", thank = "Thank-You Mom", hugs = "Hug Mom", dances = "Dance Party Mom",
   kisses = "Smooch Mom", waves = "Neighbourhood Mom", cheers = "Cheer Mom", late = "Night Owl Mom", early = "Early Bird Mom",
   marathon = "Marathon Mom", streak = "Regular Mom", weekend = "Weekend Warrior Mom", raid = "Raid Night Mom", clean = "Clean Run Mom",
@@ -1015,7 +1018,7 @@ function Medals:SetPinned(id, pinned)
   local index
   for position, value in ipairs(list) do if value == id then index = position end end
   if not pinned then
-    if index then table.remove(list, index) end
+    if index then table.remove(list, index); if Addon.Tracker then Addon.Tracker:Request() end end
     return true
   end
   local def = definitionsById[id]
@@ -1025,6 +1028,7 @@ function Medals:SetPinned(id, pinned)
   if index then return true end
   if #list >= self.maxPinned then return false end
   table.insert(list, id)
+  if Addon.Tracker then Addon.Tracker:Request() end
   return true
 end
 

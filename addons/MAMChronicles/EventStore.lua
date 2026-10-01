@@ -47,7 +47,7 @@ end
 
 function Store:Sanitise(eventType, payload)
   local allowed=types[eventType]; if not allowed or type(payload)~="table" then return nil end
-  local result={}; for key in pairs(allowed) do if payload[key]~=nil then local value,valid=cleanValue(key,payload[key]); if not valid then return nil end; result[key]=value end end
+  local result={}; for key in pairs(allowed) do if payload[key]~=nil and not Addon:IsSecret(payload[key]) then local value,valid=cleanValue(key,payload[key]); if not valid then return nil end; result[key]=value end end
   return result
 end
 

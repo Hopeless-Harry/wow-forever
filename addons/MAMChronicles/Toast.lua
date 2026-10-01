@@ -22,6 +22,7 @@ local quietTypes = { party = true, raid = true, scenario = true, pvp = true, are
 -- Toasts wait in dungeons, raids, scenarios and battlegrounds (when Settings > Alerts allows it) and during combat.
 local function held()
   if inCombat() then return true end
+  if Toast.muteUntil and Addon:Now() < Toast.muteUntil then return true end
   local settings = Addon.db and Addon.db.settings
   if settings and settings.quietInstances == false then return false end
   if type(IsInInstance) ~= "function" then return false end
@@ -49,7 +50,13 @@ end
 
 function Toast:OnEvent(event)
   if event and event.type == "character.level_up" and event.payload and event.payload.level then
-    self:Show({ title = "Level " .. tostring(event.payload.level) .. " reached!", text = "Recorded in your Chronicle.", kind = "info" })
+    local text = "Recorded in your Chronicle."
+    -- Time played on the level just finished, once there is a measured one to show.
+    local pace = Addon.Statistics and Addon.Statistics.BuildLevelPace and Addon:SafeCall(Addon.Statistics.BuildLevelPace, Addon.Statistics)
+    if type(pace) == "table" and pace.last and pace.last.level == event.payload.level then
+      text = "Level " .. tostring(pace.last.level) .. " took " .. Addon.Statistics:FormatDuration(pace.last.seconds) .. " of play (average " .. Addon.Statistics:FormatDuration(pace.average) .. ")."
+    end
+    self:Show({ title = "Level " .. tostring(event.payload.level) .. " reached!", text = text, kind = "info" })
   end
 end
 
@@ -214,6 +221,21 @@ function Toast:SendTest()
   if result == "dropped" then Addon:Print("Toasts are switched off in Settings > Alerts (or guild alerts are off), so nothing was shown.")
   elseif result == "queued" then Addon:Print("Test toast queued: you are in combat or another toast is showing.") end
   return result
+end
+
+-- Do not disturb: toasts wait (nothing is lost) until the time is up, then appear one after another.
+function Toast:Mute(minutes)
+  minutes = math.max(1, math.min(480, math.floor(tonumber(minutes) or 30)))
+  self.muteUntil = Addon:Now() + minutes * 60
+  if C_Timer and C_Timer.After then C_Timer.After(minutes * 60 + 1, function() Toast:Flush() end) end
+  return minutes
+end
+
+function Toast:Unmute()
+  local was = self.muteUntil ~= nil and Addon:Now() < self.muteUntil
+  self.muteUntil = nil
+  self:Flush()
+  return was
 end
 
 function Toast:Flush()

@@ -12,12 +12,24 @@ local CHAT_INTERVAL = 30
 local RESTRICT_BACKOFF = 600
 local FLOOD_LIMIT, FLOOD_WINDOW = 5, 60
 local FEED_MAX = 50
+local QUEUE_MAX = 10
+local LOCKDOWN_RETRY = 15
 
 Comms.prefix = PREFIX
 Comms.queue = {}
 -- Longest accepted message per guild hub type; everything else keeps the 64 character limit.
 Comms.hubLimits = { G1 = 40, C1 = 90, S1 = 240, F1 = 8, N1 = 240, Q1 = 120, K1 = 140 }
 Comms.floods = {}
+local ROSTER_MAX = 200
+
+-- Last known totals of guildmates, kept between sessions so the leaderboard is not empty after a /reload.
+local function rosterTable()
+  local database = Addon.db
+  if not database then return nil end
+  if type(database.guildRoster) ~= "table" then database.guildRoster = {} end
+  return database.guildRoster
+end
+local SUMMARY_DELAY = 20
 Comms.status = { state = "starting", sent = 0, received = 0, dropped = 0, unknown = 0, otherVersion = 0, awards = 0, unverified = 0 }
 
 local function now() return Addon:Now() end
@@ -36,15 +48,49 @@ function Comms:Initialise()
   self:RequestRoster()
 end
 
+-- On login (Core calls this), so guildmates who missed the live toasts can still see where you stand.
+function Comms:ScheduleSummary()
+  if not (C_Timer and C_Timer.After) then return end
+  C_Timer.After(SUMMARY_DELAY, function() Addon:Guard("Comms", Comms.SendSummary, Comms) end)
+end
+
+-- T1|<medal count>|<Mom Money>|<definition version>. Totals only: no medal ids, names, places or history.
+function Comms:SendSummary(force)
+  if settings().announceMedals ~= true or not Addon.Medals then return false end
+  local summary = Addon.Medals:GetSummary()
+  local money = tonumber(Addon.Medals:GetMomMoney()) or 0
+  local count = math.max(0, math.min(99999, math.floor(tonumber(summary.count) or 0)))
+  if count == 0 then return false end
+  -- /reload fires login again; one total per ten minutes is plenty.
+  if not force and self.lastSummary and now() - self.lastSummary < 600 then return false end
+  self.lastSummary = now()
+  while #self.queue >= QUEUE_MAX do table.remove(self.queue, 1) end
+  table.insert(self.queue, string.format("T1|%d|%d|%d", count, math.max(0, math.min(9999999, math.floor(money))), Addon.Medals.version))
+  self:Pump()
+  return true
+end
+
+
 local function sendFunction()
   if C_ChatInfo and C_ChatInfo.SendAddonMessage then return C_ChatInfo.SendAddonMessage end
   return SendAddonMessage
+end
+
+-- Midnight can switch addon messages off for the whole realm (outgoing restricted) or only for a while (chat messaging
+-- lockdown: boss encounters, Mythic+ and rated PvP). A lockdown is temporary, so messages wait for it instead of being dropped.
+local function flag(fn)
+  if type(fn) ~= "function" then return false end
+  local ok, value = pcall(fn)
+  return ok and value == true
 end
 
 function Comms:Availability()
   if not sendFunction() then return "unavailable" end
   if IsInGuild and not IsInGuild() then return "not in guild" end
   if self.restrictedUntil and now() < self.restrictedUntil then return "restricted" end
+  if C_ChatInfo and flag(C_ChatInfo.AreOutgoingAddonChatMessagesRestricted) then return "restricted" end
+  if C_ChatInfo and flag(C_ChatInfo.InChatMessagingLockdown) then return "locked" end
+  if C_RestrictedActions and flag(C_RestrictedActions.IsInRestrictedInstance) then return "locked" end
   return nil
 end
 
@@ -75,6 +121,15 @@ end
 function Comms:Pump()
   if #self.queue == 0 then return end
   local reason = self:Availability()
+  if reason == "locked" then
+    -- Keep the queued announcements and look again shortly; PLAYER_ENTERING_WORLD also triggers a pump.
+    self.status.state = reason
+    if not self.lockdownScheduled and C_Timer and C_Timer.After then
+      self.lockdownScheduled = true
+      C_Timer.After(LOCKDOWN_RETRY, function() Comms.lockdownScheduled = false; Comms:Pump() end)
+    end
+    return
+  end
   if reason then
     self.status.state = reason
     self.queue = {}
@@ -98,6 +153,7 @@ function Comms:OnMedal(def, info)
   if not def or not info or info.retro or info.summary then return end
   local config = settings()
   if config.announceMedals then
+    while #self.queue >= QUEUE_MAX do table.remove(self.queue, 1) end
     table.insert(self.queue, string.format("M1|%s|%d|%d", def.id, def.points, Addon.Medals.version))
     self:Pump()
   end
@@ -109,6 +165,42 @@ function Comms:OnMedal(def, info)
 end
 
 local function shortName(sender) return (tostring(sender):match("^[^-]+")) or tostring(sender) end
+
+-- Sorted list of guildmates whose totals were received this session.
+function Comms:GetRoster()
+  local list = {}
+  for name, entry in pairs(rosterTable() or {}) do
+    if type(entry) == "table" and tonumber(entry.count) and tonumber(entry.points) then list[#list + 1] = { name = name, count = entry.count, points = entry.points, at = tonumber(entry.at) or 0 } end
+  end
+  table.sort(list, function(a, b) if a.points ~= b.points then return a.points > b.points end return a.name < b.name end)
+  return list
+end
+
+function Comms:HandleSummary(sender, channel, parts)
+  if channel ~= "GUILD" or settings().receiveGuildAlerts == false then return end
+  -- Totals are sent once per login, so more than two a minute from one sender is noise.
+  local stamps, kept, current = self.floods["T:" .. sender] or {}, {}, now()
+  for _, stamp in ipairs(stamps) do if current - stamp < FLOOD_WINDOW then kept[#kept + 1] = stamp end end
+  if #kept >= 2 then self.floods["T:" .. sender] = kept; drop(self); return end
+  kept[#kept + 1] = current; self.floods["T:" .. sender] = kept
+  local count, points, version = tonumber(parts[2]), tonumber(parts[3]), tonumber(parts[4])
+  if not (count and points and version) or count ~= math.floor(count) or points ~= math.floor(points) then drop(self); return end
+  if count < 0 or count > 99999 or points < 0 or points > 9999999 then drop(self); return end
+  if version ~= Addon.Medals.version then self.status.otherVersion = self.status.otherVersion + 1; return end
+  local name = shortName(sender)
+  local roster = rosterTable()
+  if not roster then return end
+  if not roster[name] then
+    local total, oldest, oldestAt = 0, nil, nil
+    for known, entry in pairs(roster) do
+      total = total + 1
+      local stamp = type(entry) == "table" and tonumber(entry.at) or 0
+      if not oldestAt or stamp < oldestAt then oldest, oldestAt = known, stamp end
+    end
+    if total >= ROSTER_MAX and oldest then roster[oldest] = nil end
+  end
+  roster[name] = { count = count, points = points, at = now() }
+end
 
 -- Guild roster helpers. The rank comes from the roster the client has cached; an empty or stale roster fails closed.
 function Comms:RequestRoster()
@@ -167,6 +259,8 @@ function Comms:HandleAward(kind, channel, sender, parts)
 end
 
 function Comms:OnAddonMessage(prefix, text, channel, sender)
+  -- Inside restricted content the payload and sender can be secret values that cannot be measured or matched.
+  if Addon:IsSecret(prefix) or Addon:IsSecret(text) or Addon:IsSecret(channel) or Addon:IsSecret(sender) then return end
   if prefix ~= PREFIX then return end
   if channel ~= "GUILD" and channel ~= "WHISPER" then drop(self); return end
   sender = tostring(sender or "")
@@ -196,6 +290,7 @@ function Comms:OnAddonMessage(prefix, text, channel, sender)
     self:HandleAward(parts[1], channel, sender, parts)
     return
   end
+  if parts[1] == "T1" then self:HandleSummary(sender, channel, parts); return end
   if parts[1] ~= "M1" or channel ~= "GUILD" then drop(self); return end
   if settings().receiveGuildAlerts == false then return end
   if not parts[2]:match("^[%w_]+$") or #parts[2] > 40 then drop(self); return end

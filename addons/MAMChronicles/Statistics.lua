@@ -62,6 +62,54 @@ function Statistics:FormatDuration(seconds)
 end
 
 
+-- Levelling pace. Time per level is time actually played (summed from login sessions), not wall-clock time, so days away
+-- from the game do not count. Only levels reached while the addon was installed have a measured time.
+local function playedUntil(sessions,characterKey,limit)
+  local total,now=0,Addon:Now()
+  for _,session in ipairs(sessions or {}) do
+    if session.characterKey==characterKey and tonumber(session.startedAt) then
+      local finish=tonumber(session.endedAt) or now
+      local stop=math.min(finish,limit)
+      if stop>session.startedAt then total=total+(stop-session.startedAt) end
+    end
+  end
+  return total
+end
+
+function Statistics:BuildLevelPace(characterKey)
+  characterKey=characterKey or Addon.characterKey
+  local db=Addon.db; if not db then return nil end
+  local ups={}
+  for _,event in ipairs(db.events or {}) do
+    if event.type=="character.level_up" and event.characterKey==characterKey and tonumber(event.payload and event.payload.level) then ups[#ups+1]={level=event.payload.level,at=event.occurredAt} end
+  end
+  table.sort(ups,function(a,b) return a.at<b.at end)
+  local levels={}
+  for index=2,#ups do
+    local seconds=playedUntil(db.sessions,characterKey,ups[index].at)-playedUntil(db.sessions,characterKey,ups[index-1].at)
+    if seconds>0 then levels[#levels+1]={level=ups[index].level,seconds=seconds} end
+  end
+  if #levels==0 then return nil end
+  local recent,sum={},0
+  for index=math.max(1,#levels-4),#levels do recent[#recent+1]=levels[index]; sum=sum+levels[index].seconds end
+  local average=sum/#recent
+  local current=tonumber(db.characters and db.characters[characterKey] and db.characters[characterKey].level) or levels[#levels].level
+  local cap=Addon.Medals and Addon.Medals:LevelCap() or 60
+  local remaining=math.max(0,cap-current)
+  return {levels=levels,recent=recent,average=average,current=current,cap=cap,remaining=remaining,eta=remaining*average,last=levels[#levels]}
+end
+
+function Statistics:DescribeLevelPace(characterKey)
+  local pace=self:BuildLevelPace(characterKey)
+  if not pace then return nil end
+  local lines={"Levelling pace"}
+  for _,entry in ipairs(pace.recent) do table.insert(lines,"  Level "..entry.level.." took "..self:FormatDuration(entry.seconds).." of play") end
+  table.insert(lines,"  Average of the last "..#pace.recent..": "..self:FormatDuration(pace.average).." per level")
+  if pace.remaining>0 then table.insert(lines,"  About "..self:FormatDuration(pace.eta).." more play to reach level "..pace.cap.." at this pace ("..pace.remaining.." levels)")
+  else table.insert(lines,"  You are at the level cap.") end
+  return table.concat(lines,"\n")
+end
+
 -- What the previous session of this character did. Events only exist while playing, so "since you last played" is
 -- really "last time you played". Quick relogs (under five minutes) are ignored.
 local function ago(seconds)
@@ -237,6 +285,41 @@ function Statistics:DescribeCharacters(list)
     end
     if not entry.isCurrent and entry.lastSeenAt>0 then table.insert(lines,"  Last played "..ago(math.max(0,Addon:Now()-entry.lastSeenAt))) end
   end
+  return table.concat(lines,"\n")
+end
+
+-- Guild tab: a leaderboard from the totals guildmates shared (most Mom Money first) with you in it, then recent guild medals.
+function Statistics:BuildGuild()
+  local rows = {}
+  local Comms, Medals = Addon.Comms, Addon.Medals
+  for _,entry in ipairs(Comms and Comms:GetRoster() or {}) do rows[#rows+1]={name=entry.name,count=entry.count,points=entry.points,at=entry.at} end
+  if Medals and Addon.db and Addon.db.medals and Addon.db.medals[Addon.characterKey] then
+    local summary=Addon:SafeCall(Medals.GetSummary,Medals)
+    if type(summary)=="table" then rows[#rows+1]={name=(Addon.character and Addon.character.name) or "You",count=summary.count,points=tonumber(Addon:SafeCall(Medals.GetMomMoney,Medals)) or 0,me=true} end
+  end
+  table.sort(rows,function(a,b) if a.points~=b.points then return a.points>b.points end return a.name<b.name end)
+  return rows
+end
+
+function Statistics:DescribeGuild()
+  local rows=self:BuildGuild()
+  local lines={"Guild leaderboard ("..#rows.." shown)"}
+  if #rows<=1 then table.insert(lines,"  No guildmate totals yet. They arrive when guildmates log in with the addon and Announce my Mom Medals switched on.") end
+  for index,row in ipairs(rows) do
+    local line=string.format("  %d. %s%s  -  %d medals  \194\183  %d Mom Money",index,row.name,row.me and "  (you)" or "",row.count,row.points)
+    if not row.me and row.at and row.at>0 then line=line.."  \194\183  "..ago(math.max(0,Addon:Now()-row.at)) end
+    table.insert(lines,line)
+  end
+  local feed=Addon.db and Addon.db.guildFeed or {}
+  table.insert(lines,"")
+  table.insert(lines,"Recent guild medals")
+  if #feed==0 then table.insert(lines,"  Nothing yet. Medals earned by guildmates while you are online appear here.") end
+  for index=1,math.min(10,#feed) do
+    local entry=feed[index]
+    table.insert(lines,"  "..tostring(entry.sender):match("^[^-]+").." earned "..tostring(entry.name or entry.id).." (+"..tostring(entry.points or 0)..")  \194\183  "..ago(math.max(0,Addon:Now()-(tonumber(entry.at) or 0))))
+  end
+  table.insert(lines,"")
+  table.insert(lines,"Tip: /mam guild send shares your own totals right now.")
   return table.concat(lines,"\n")
 end
 

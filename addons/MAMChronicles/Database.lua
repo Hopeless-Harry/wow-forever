@@ -15,8 +15,14 @@ local function clamp(value, minimum, maximum) return math.max(minimum, math.min(
 local uiDefaults = { point="CENTER", x=0, y=0, width=780, height=560, activeTab="Home", minimapAngle=225 }
 local validPoints = { CENTER=true, TOP=true, BOTTOM=true, LEFT=true, RIGHT=true, TOPLEFT=true, TOPRIGHT=true, BOTTOMLEFT=true, BOTTOMRIGHT=true }
 local validThemes = { modern=true, midnight=true, parchment=true, crimson=true, slate=true }
-local booleanDefaults = { toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, gettingStartedDismissed=false, quietInstances=true, animations=true, shareLocation=true, showGuildMap=true, gatewayMode=false }
-local validTabs = { Home=true, Chronicle=true, Medals=true, Statistics=true, Characters=true, Map=true, Settings=true, Diagnostics=true }
+local booleanDefaults = { toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, gettingStartedDismissed=false, quietInstances=true, animations=true, shareLocation=true, showGuildMap=true, gatewayMode=false, trackerEnabled=true, trackerQuests=true, trackerLocked=false }
+-- Settings migrations run once each, in order. Add a new function and raise SETTINGS_VERSION instead of adding another one-off flag.
+local SETTINGS_VERSION = 1
+local settingsMigrations = {
+  -- 1: the old default theme (Midnight) moves to the Modern art theme; choosing Midnight again afterwards sticks.
+  [1] = function(settings) if settings.theme == "midnight" then settings.theme = "modern" end end,
+}
+local validTabs = { Home=true, Chronicle=true, Medals=true, Statistics=true, Characters=true, Map=true, Guild=true, Settings=true, Diagnostics=true }
 local function freshSettings()
   return { enabled=true, recordCoordinates=true, recordQuestAccepts=true, notableQuality=4, maxEvents=10000, showMinimapButton=true, recordStatistics=true, recordGoldStatistics=false,
     windowAlpha=1, theme="modern", toastsEnabled=true, toastSound=false, announceMedals=true, announceGuildChat=false, receiveGuildAlerts=true, pinnedMedals={}, toastSoundChoice="chime", ui=copyTable(uiDefaults) }
@@ -31,7 +37,7 @@ function Database:Fresh(reason)
     schemaVersion = 1,
     meta = { createdAt = timestamp, updatedAt = timestamp, loadCount = 0, addonVersion = Addon.version, clientBuild = select(2, Addon:SafeCall(GetBuildInfo)) },
     settings = freshSettings(),
-    characters = {}, sessions = {}, events = {}, eventIds = {}, questCompletion = {}, professionSnapshots = {}, aggregates = {}, diagnostics = {}, statistics = {}, statisticCatalog = {}, medals = {}, guildFeed = {}, counters = {}, medalTallies = {}, challenges = {}, emoteTargets = {},
+    characters = {}, sessions = {}, events = {}, eventIds = {}, questCompletion = {}, professionSnapshots = {}, aggregates = {}, diagnostics = {}, statistics = {}, statisticCatalog = {}, medals = {}, guildFeed = {}, guildRoster = {}, counters = {}, medalTallies = {}, challenges = {}, emoteTargets = {},
   }
   if reason then db.diagnostics.recovery = { recoveredAt = timestamp, reason = reason } end
   return db
@@ -43,7 +49,7 @@ function Database:Open(saved)
   if type(saved) ~= "table" then if saved~=nil then reason="corrupt root" end
   elseif saved.schemaVersion ~= 1 then reason = "unsupported schema" end
   if not reason and type(saved)=="table" then
-    for _,key in ipairs({"meta","settings","characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics","statistics","statisticCatalog","medals","guildFeed","counters","medalTallies","challenges","emoteTargets"}) do
+    for _,key in ipairs({"meta","settings","characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics","statistics","statisticCatalog","medals","guildFeed","guildRoster","counters","medalTallies","challenges","emoteTargets"}) do
       if saved[key]~=nil and type(saved[key])~="table" then reason="corrupt root"; break end
     end
     if not reason and type(saved.events)=="table" then
@@ -58,7 +64,7 @@ function Database:Open(saved)
   end
   local db = reason and self:Fresh(reason) or (type(saved) == "table" and saved or self:Fresh())
   db.meta = tableOr(db.meta); db.settings = tableOr(db.settings)
-  for _, key in ipairs({"characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics","statistics","statisticCatalog","medals","guildFeed","counters","medalTallies","challenges","emoteTargets"}) do db[key] = tableOr(db[key]) end
+  for _, key in ipairs({"characters","sessions","events","eventIds","questCompletion","professionSnapshots","aggregates","diagnostics","statistics","statisticCatalog","medals","guildFeed","guildRoster","counters","medalTallies","challenges","emoteTargets"}) do db[key] = tableOr(db[key]) end
   db.eventIds={}; for _,event in ipairs(db.events) do db.eventIds[event.id]=true end
   if droppedEvents>0 and not reason then db.diagnostics.recovery={recoveredAt=now(),reason="dropped "..droppedEvents.." invalid event"..(droppedEvents==1 and "" or "s")} end
   db.schemaVersion = 1; self.db = db; self:NormaliseSettings()
@@ -81,14 +87,17 @@ function Database:NormaliseSettings()
   if type(settings.recordGoldStatistics) ~= "boolean" then settings.recordGoldStatistics = false end
   for key, default in pairs(booleanDefaults) do if type(settings[key]) ~= "boolean" then settings[key] = default end end
   if not finite(settings.windowAlpha) then settings.windowAlpha = 1 else settings.windowAlpha = clamp(settings.windowAlpha, 0.3, 1) end
-  if not validThemes[settings.theme] then settings.theme = "modern" end
-  -- One-time move from the old default (Midnight) to the new art theme; choosing Midnight again afterwards sticks.
-  if not settings.themeMigrated then
-    if settings.theme == "midnight" then settings.theme = "modern" end
-    settings.themeMigrated = true
-  end
   if type(settings.shareStats) ~= "boolean" then settings.shareStats = nil end
   if type(settings.shareForgetPending) ~= "boolean" then settings.shareForgetPending = nil end
+  if not finite(settings.windowScale) then settings.windowScale = 1 else settings.windowScale = clamp(math.floor(settings.windowScale * 20 + 0.5) / 20, 0.7, 1.3) end
+  if not validThemes[settings.theme] then settings.theme = "modern" end
+  local version = tonumber(settings.settingsVersion) or (settings.themeMigrated and 1 or 0)
+  for step = version + 1, SETTINGS_VERSION do
+    if settingsMigrations[step] then settingsMigrations[step](settings) end
+  end
+  -- Never lower the stored version: a downgrade followed by an upgrade must not run migrations a second time.
+  settings.settingsVersion = math.max(version, SETTINGS_VERSION)
+  settings.themeMigrated = true
   if settings.welcomeVersion ~= nil and type(settings.welcomeVersion) ~= "string" then settings.welcomeVersion = nil end
   -- Cosmetics bought with Mom Money (account wide), and the chosen title.
   local known = Addon.Medals and Addon.Medals.cosmeticsById
@@ -140,6 +149,12 @@ function Database:NormaliseSettings()
   if finite(saved.height) then ui.height = clamp(saved.height, 440, 1200) end
   if validTabs[saved.activeTab] then ui.activeTab = saved.activeTab end
   if finite(saved.minimapAngle) then ui.minimapAngle = ((saved.minimapAngle % 360) + 360) % 360 end
+  local savedTracker = tableOr(settings.tracker)
+  local tracker = { point = "TOPRIGHT", x = -220, y = -240 }
+  if validPoints[savedTracker.point] then tracker.point = savedTracker.point; tracker.relPoint = validPoints[savedTracker.relPoint] and savedTracker.relPoint or tracker.point end
+  if finite(savedTracker.x) then tracker.x = clamp(savedTracker.x, -10000, 10000) end
+  if finite(savedTracker.y) then tracker.y = clamp(savedTracker.y, -10000, 10000) end
+  settings.tracker = tracker
   settings.ui = ui; self.db.settings = settings
   return settings
 end
@@ -155,6 +170,7 @@ function Database:ClearHistory()
   self.db.questCompletion, self.db.professionSnapshots, self.db.aggregates = {}, {}, {}
   self.db.statistics, self.db.statisticCatalog = {}, {}
   self.db.medals, self.db.guildFeed, self.db.counters, self.db.medalTallies = {}, {}, {}, {}
+  self.db.guildRoster = {}
   self.db.challenges = {}
   self.db.emoteTargets = {}
   if Addon.Medals then Addon.Medals:Reset() end

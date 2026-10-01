@@ -10,6 +10,19 @@ Guild hub (for guilds that run a Raspberry Pi hub). Nothing in this part is whis
 - The welcome text and Getting started card now say exactly what is shared and how to opt out.
 - Technical: guild messages longer than 64 characters are now accepted for the new hub types only (each has its own limit); everything else keeps the old limit.
 
+Midnight (12.x) hardening and clean-up.
+
+- Secret values: enemy names, loot chat text and addon-message text/senders can be hidden from addons inside instances. They are now skipped instead of raising errors, so a death in a dungeon is still recorded (without the enemy name).
+- Guild medal announcements now wait out a chat messaging lockdown (boss fights, Mythic+) instead of being thrown away, and are sent when it ends or when you zone in. A realm that restricts outgoing addon messages is detected before sending. The held queue is capped at ten.
+- Guild medal totals: 20 seconds after login the addon sends one tiny T1 message (medal count and Mom Money only) so guildmates who missed live toasts can see where you stand; /mam guild lists the totals received. Controlled by the existing "Announce my Mom Medals to the guild" setting. Older builds simply ignore it.
+- Goal tracker (new): a small movable window with your pinned medal goals, this week's unfinished Mom Quests and pinned guildmates. Click a goal to open Medals, click a guildmate to open the map at them. Settings > Goal tracker, or /mam tracker.
+- /mam map follow <name>: the map waypoint follows a guildmate as their position updates; /mam map follow off stops it.
+- Leaving a dungeon or raid shows one wrap-up toast (notable drops, quests, deaths recorded inside).
+- Optional LibDataBroker launcher, so Titan Panel, ElvUI, Bazooka and similar can open the Chronicle.
+- The ground check that counts jumps pauses while dead or on a flight path.
+- Settings now have a numbered migration list; /mam diag shows how many guild announcements are queued.
+- Map: removed a duplicated test helper. Counters: the ten-times-a-second ground check no longer allocates.
+
 ## 0.2.0-alpha24
 
 - Location sharing is now ON by default (new installs and anyone who never touched the setting). Untick Settings, Guild map, Share my location to stop. Still never saved, never sent in instances, and only guildmates running the addon receive it. If you had already turned it off, it stays off.

@@ -597,11 +597,13 @@ function Theme:ScrollArea(parent)
   end
   function area:Place(parentFrame, top, bottom, side, barWidth)
     safeMethod(self.scroll, "ClearAllPoints")
-    safeMethod(self.scroll, "SetPoint", "TOPLEFT", parentFrame, "TOPLEFT", side, -top)
-    safeMethod(self.scroll, "SetPoint", "BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -(side + barWidth), bottom)
+    -- leftInset / rightInset make room for a side panel (the Settings page has a category list and an info pane).
+    local left, right = self.leftInset or 0, self.rightInset or 0
+    safeMethod(self.scroll, "SetPoint", "TOPLEFT", parentFrame, "TOPLEFT", side + left, -top)
+    safeMethod(self.scroll, "SetPoint", "BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -(side + barWidth + right), bottom)
     safeMethod(self.slider, "ClearAllPoints")
-    safeMethod(self.slider, "SetPoint", "TOPRIGHT", parentFrame, "TOPRIGHT", -side, -top)
-    safeMethod(self.slider, "SetPoint", "BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -side, bottom)
+    safeMethod(self.slider, "SetPoint", "TOPRIGHT", parentFrame, "TOPRIGHT", -(side + right), -top)
+    safeMethod(self.slider, "SetPoint", "BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -(side + right), bottom)
   end
   function area:Update(contentHeight, viewHeight, width)
     local view = math.max(40, viewHeight or 0)

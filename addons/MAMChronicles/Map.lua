@@ -125,6 +125,7 @@ function Map:OnMessage(sender, text)
   data.at = t
   self.members[name] = data
   self.status.received = self.status.received + 1
+  if self.following == name then self:SetWaypoint(data, true) end
   if Addon.UI and Addon.UI.RefreshMapIfVisible then Addon:Guard("Map", Addon.UI.RefreshMapIfVisible, Addon.UI) end
   if Addon.Tracker and Addon.Tracker.Request then Addon.Tracker:Request() end
 end
@@ -177,7 +178,6 @@ end
 function Map:GetList()
   local list, t = {}, now()
   for name, member in pairs(self.members) do
-    if member.fake then member.at = t end
     if member.fake then member.at = t end
     local age = t - member.at
     if age > self.EXPIRE then self.members[name] = nil
@@ -260,17 +260,50 @@ function Map:HookWorldMap()
   if hooksecurefunc and WorldMapFrame.OnMapChanged then pcall(hooksecurefunc, WorldMapFrame, "OnMapChanged", refresh) end
 end
 
--- Takes you to a guildmate: sets a map waypoint with the tracking arrow, opens the world map at their zone and shows pins.
-function Map:GoTo(name)
-  local memberName, member = self:Find(name)
-  if not member then return false end
+-- Follow mode: the waypoint moves with the guildmate every time a new position arrives, until stopped.
+function Map:Follow(name)
+  local memberName = self:Find(name)
+  if not memberName then return false end
+  self.following = memberName
+  self:GoTo(memberName)
+  return true
+end
+
+function Map:StopFollow()
+  local was = self.following
+  self.following = nil
+  -- Only remove the pin if it is still ours: the player may have placed their own since.
+  if was and C_Map and C_Map.ClearUserWaypoint then
+    local current = C_Map.GetUserWaypoint and safe(C_Map.GetUserWaypoint)
+    local mine = self.lastWaypoint
+    local ours = not C_Map.GetUserWaypoint or (type(current) == "table" and mine and current.uiMapID == mine.mapID
+      and current.position and math.abs((current.position.x or -1) - mine.x) < 0.0005 and math.abs((current.position.y or -1) - mine.y) < 0.0005)
+    if ours then safe(C_Map.ClearUserWaypoint) end
+  end
+  self.lastWaypoint = nil
+  return was ~= nil
+end
+
+-- `refresh` is true when only moving an existing waypoint (follow mode): the arrow is not forced back on, so a player who
+-- switched tracking to a quest is left alone.
+function Map:SetWaypoint(member, refresh)
   if C_Map and C_Map.SetUserWaypoint and UiMapPoint and UiMapPoint.CreateFromCoordinates then
     local point = safe(UiMapPoint.CreateFromCoordinates, member.mapID, member.x, member.y)
     if point then
       safe(C_Map.SetUserWaypoint, point)
-      if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then safe(C_SuperTrack.SetSuperTrackedUserWaypoint, true) end
+      self.lastWaypoint = { mapID = member.mapID, x = member.x, y = member.y }
+      if not refresh and C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then safe(C_SuperTrack.SetSuperTrackedUserWaypoint, true) end
+      return true
     end
   end
+  return false
+end
+
+-- Takes you to a guildmate: sets a map waypoint with the tracking arrow, opens the world map at their zone and shows pins.
+function Map:GoTo(name)
+  local memberName, member = self:Find(name)
+  if not member then return false end
+  self:SetWaypoint(member)
   if OpenWorldMap then
     pcall(OpenWorldMap, member.mapID)
   elseif WorldMapFrame and WorldMapFrame.SetMapID then
@@ -291,30 +324,6 @@ function Map:OpenMyMap()
   self:HookWorldMap()
   self:ShowPins()
   return true
-end
-
--- Test helper: adds pretend guildmates (in memory only) near you and in another zone, so the map can be tried alone.
-function Map:SetFake(on)
-  for name, member in pairs(self.members) do if member.fake then self.members[name] = nil end end
-  if not on then
-    if self.UpdateViews then self:UpdateViews() end
-    return 0
-  end
-  local mapID, x, y = self:GetPosition()
-  mapID = mapID or 2022
-  local function clamp(v) return math.max(0.02, math.min(0.98, v)) end
-  local t = now()
-  local list = {
-    { "Testmom", mapID, clamp((x or 0.5) + 0.06), clamp((y or 0.5) + 0.04), 90, 5 },
-    { "Fakewizard", mapID, clamp((x or 0.5) - 0.08), clamp((y or 0.5) + 0.07), 88, 8 },
-    { "Faraway", 2248, 0.45, 0.55, 74, 2 },
-  }
-  for _, info in ipairs(list) do
-    self.members[info[1]] = { mapID = info[2], x = info[3], y = info[4], level = info[5], classID = info[6], at = t, fake = true }
-  end
-  if Addon.UI and Addon.UI.RefreshMapIfVisible then Addon.UI:RefreshMapIfVisible() end
-  self:ShowPins()
-  return #list
 end
 
 -- Test helper: adds pretend guildmates (in memory only) near you and in another zone, so the map can be tried alone.

@@ -2,6 +2,10 @@ MAMChronicles = MAMChronicles or {}
 local Addon = MAMChronicles
 
 Addon.name = "MAMChronicles"
+
+-- Names shown in the game's Key Bindings screen (Bindings.xml).
+BINDING_HEADER_MAMCHRONICLES = "Moms Against Magic Chronicles"
+BINDING_NAME_MAMCHRONICLES_TOGGLE = "Open or close the Chronicle"
 Addon.version = "0.2.0-alpha25"
 Addon.schemaVersion = 1
 
@@ -17,6 +21,12 @@ function Addon:SafeCall(fn, ...)
   local results = pack(pcall(fn, ...))
   if not results[1] then return nil end
   return (table.unpack or unpack)(results, 2, results.n)
+end
+
+-- Midnight (12.0+) hides some values (enemy names, chat text in instances) from addon code. Strings and numbers read
+-- from the game must be checked with this before any length, pattern, comparison or storage; on older clients it is always false.
+function Addon:IsSecret(value)
+  return type(issecretvalue) == "function" and issecretvalue(value) == true
 end
 
 Addon.errorStats = { count = 0, last = nil }
@@ -137,21 +147,22 @@ function Addon:Boot()
   if self.Counters then self:Guard("Counters", self.Counters.Initialise, self.Counters) end
   if self.Comms then self:Guard("Comms", self.Comms.Initialise, self.Comms) end
   if self.Map then self:Guard("Map", self.Map.Start, self.Map) end
+  if self.Share then self:Guard("Share", self.Share.Initialise, self.Share) end
+  if self.Gateway then self:Guard("Gateway", self.Gateway.Initialise, self.Gateway) end
+  if self.Tracker and self.Tracker.Initialise then self:Guard("Tracker", self.Tracker.Initialise, self.Tracker) end
   if self.Medals then self:Guard("Medals", self.Medals.Evaluate, self.Medals, "boot") end
   return self.db
 end
 
 function Addon:HandleEvent(eventName, ...)
   if eventName == "ADDON_LOADED" then
-  if self.Share then self:Guard("Share", self.Share.Initialise, self.Share) end
-  if self.Gateway then self:Guard("Gateway", self.Gateway.Initialise, self.Gateway) end
-  if self.Tracker and self.Tracker.Initialise then self:Guard("Tracker", self.Tracker.Initialise, self.Tracker) end
     local loadedName = ...
     if loadedName == self.name then self:Boot() end
     return
   end
   if not self.booted then self:Boot() end
   if eventName == "PLAYER_REGEN_ENABLED" then self:RunAfterCombat() end
+  if eventName == "PLAYER_LOGIN" and self.Comms and self.Comms.ScheduleSummary then self:Guard("Comms", self.Comms.ScheduleSummary, self.Comms) end
   if self.db.settings.enabled ~= false and self.Counters and self.Counters.handles[eventName] then self:Guard("Counters", self.Counters.OnEvent, self.Counters, eventName, ...) end
   if eventName == "CHAT_MSG_ADDON" then
     if self.Comms then self:Guard("Comms", self.Comms.OnAddonMessage, self.Comms, ...) end
@@ -159,6 +170,7 @@ function Addon:HandleEvent(eventName, ...)
   end
   if (eventName == "PLAYER_REGEN_ENABLED" or eventName == "PLAYER_ENTERING_WORLD") and self.Toast then self:Guard("Toast", self.Toast.Flush, self.Toast) end
   if eventName == "PLAYER_ENTERING_WORLD" and self.Medals then self:Guard("Seasons", self.Medals.AnnounceSeason, self.Medals) end
+  if eventName == "PLAYER_ENTERING_WORLD" and self.Comms and #self.Comms.queue > 0 then self:Guard("Comms", self.Comms.Pump, self.Comms) end
   if eventName == "PLAYER_ENTERING_WORLD" and self.AchievementStats then self:Guard("Statistics", self.AchievementStats.Schedule, self.AchievementStats) end
   if self.Collectors then self.Collectors:HandleEvent(eventName, ...) end
 end

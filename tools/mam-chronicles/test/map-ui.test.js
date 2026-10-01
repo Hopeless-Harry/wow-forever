@@ -12,9 +12,9 @@ ${pre}`);
 const recv=(text,sender)=>`MAMChronicles.Map:OnMessage("${sender}","${text}")`;
 const open='local UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Map")';
 
-test('Map is the sixth of eight tabs and all tabs still fit the narrowest window',()=>{
+test('Map is the sixth of nine tabs and all tabs still fit the narrowest window',()=>{
   const h=setup(); h.run('MAMChronicles.UI:Create(); __n=#MAMChronicles.UI.tabs; __map=MAMChronicles.UI.tabs[6]; local right=0; for _,b in ipairs(MAMChronicles.UI.tabButtons) do local p=b.point; right=math.max(right,(p[4] or 0)+b.width) end __right=right');
-  assert.equal(h.get('__n'),8); assert.equal(h.get('__map'),'Map'); assert.ok(h.get('__right')<=620,`tabs reach ${h.get('__right')}`);
+  assert.equal(h.get('__n'),9); assert.equal(h.get('__map'),'Map'); assert.ok(h.get('__right')<=620,`tabs reach ${h.get('__right')}`);
 });
 test('the Map page shows only on its tab and is remembered',()=>{
   const h=setup(); h.run(open+'; __shown=UI.mapArea.frame.shown; __saved=MAMChroniclesDB.settings.ui.activeTab; UI:SetActiveTab("Home"); __after=UI.mapArea.frame.shown');

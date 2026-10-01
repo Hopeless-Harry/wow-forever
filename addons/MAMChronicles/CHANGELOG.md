@@ -10,6 +10,30 @@ Guild hub (for guilds that run a Raspberry Pi hub). Nothing in this part is whis
 - The welcome text and Getting started card now say exactly what is shared and how to opt out.
 - Technical: guild messages longer than 64 characters are now accepted for the new hub types only (each has its own limit); everything else keeps the old limit.
 
+Midnight (12.x) hardening and clean-up.
+
+- Secret values: enemy names, loot chat text and addon-message text/senders can be hidden from addons inside instances. They are now skipped instead of raising errors, so a death in a dungeon is still recorded (without the enemy name).
+- Guild medal announcements now wait out a chat messaging lockdown (boss fights, Mythic+) instead of being thrown away, and are sent when it ends or when you zone in. A realm that restricts outgoing addon messages is detected before sending. The held queue is capped at ten.
+- Guild medal totals: 20 seconds after login the addon sends one tiny T1 message (medal count and Mom Money only) so guildmates who missed live toasts can see where you stand; /mam guild lists the totals received. Controlled by the existing "Announce my Mom Medals to the guild" setting. Older builds simply ignore it.
+- /mam mute [minutes] holds every toast for a while (default 30, up to 8 hours) without losing any; /mam unmute shows them again.
+- Levelling pace: the Statistics tab shows how long your last levels took (time actually played, not days away), your average, and roughly how much more play it takes to reach the level cap. The level-up toast says how long that level took.
+- New Guild tab: a leaderboard of your guildmates' Mom Money and medal counts (with you in it) and the latest guild medals. Guildmate totals are now saved between sessions, so the board is not empty after a /reload. /mam guild opens it and /mam guild send shares your own totals right away. There are now nine tabs.
+- Two new medal families: Postmaster Mom (mail sent) and Savings Account (bank visits), with titles, in Mom Habits.
+- Settings redesigned in the style of the big QoL addons: a category list on the left (click to jump, highlights the section you are reading), a search box that fades non-matching options and scrolls to the first match, and an info pane on the right that describes whichever option you point at. The window widens to fit when you open Settings.
+- Window size slider (70-130%) and a Reset window position and size button in Settings > Appearance.
+- The minimap and data-broker tooltip now shows Mom Money, medals earned, your next goal and this week's Mom Quest progress.
+- Key binding: Key Bindings > AddOns > Moms Against Magic Chronicles > Open or close the Chronicle. /chronicle also works as a short command.
+- Tracker polish: hover tips on every row, right-click a goal or guildmate to unpin it, and a Lock option so it cannot be dragged by accident.
+- Shift-click an earned medal to put a line about it in your chat box (nothing is sent for you).
+- Follow mode no longer forces the arrow back on at every update, and stopping it leaves a waypoint you placed yourself. Guild medal totals are rate limited per sender and the announce setting's tooltip now says totals are sent once per login.
+- Goal tracker (new): a small movable window with your pinned medal goals, this week's unfinished Mom Quests and pinned guildmates. Click a goal to open Medals, click a guildmate to open the map at them. Settings > Goal tracker, or /mam tracker.
+- /mam map follow <name>: the map waypoint follows a guildmate as their position updates; /mam map follow off stops it.
+- Leaving a dungeon or raid shows one wrap-up toast (notable drops, quests, deaths recorded inside).
+- Optional LibDataBroker launcher, so Titan Panel, ElvUI, Bazooka and similar can open the Chronicle.
+- The ground check that counts jumps pauses while dead or on a flight path.
+- Settings now have a numbered migration list; /mam diag shows how many guild announcements are queued.
+- Map: removed a duplicated test helper. Counters: the ten-times-a-second ground check no longer allocates.
+
 ## 0.2.0-alpha24
 
 - Location sharing is now ON by default (new installs and anyone who never touched the setting). Untick Settings, Guild map, Share my location to stop. Still never saved, never sent in instances, and only guildmates running the addon receive it. If you had already turned it off, it stays off.

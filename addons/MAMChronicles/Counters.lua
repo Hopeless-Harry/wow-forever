@@ -16,6 +16,7 @@ Counters.handles = {
   UNIT_SPELLCAST_SUCCEEDED = true, UNIT_SPELLCAST_START = true, UNIT_SPELLCAST_CHANNEL_START = true,
   PLAYER_MOUNT_DISPLAY_CHANGED = true, PLAYER_FLAGS_CHANGED = true, PLAYER_UPDATE_RESTING = true, SCREENSHOT_SUCCEEDED = true,
   PLAYER_EQUIPMENT_CHANGED = true, PLAYER_ENTERING_WORLD = true, GROUP_JOINED = true, GROUP_LEFT = true, READY_CHECK_CONFIRM = true,
+  MAIL_SEND_SUCCESS = true, BANKFRAME_OPENED = true,
 }
 
 local trackedEmotes = { SIT = true, SLEEP = true, STARE = true, FACEPALM = true, NO = true, THANK = true, HUG = true, DANCE = true, KISS = true, WAVE = true, CHEER = true, SPIT = true }
@@ -89,7 +90,10 @@ function Counters:OnJumpHook()
 end
 
 function Counters:CheckGround()
-  local falling = safe(IsFalling) and true or false
+  -- Nothing to count while dead or on a flight path; forget the last state so the landing is not read as a jump.
+  if (UnitIsDeadOrGhost and UnitIsDeadOrGhost("player")) or (UnitOnTaxi and UnitOnTaxi("player")) then self.wasFalling = false; return end
+  -- Runs ten times a second: call the plain globals directly (SafeCall allocates a closure and a table per call).
+  local falling = IsFalling() and true or false
   if falling then self.lastFalling = clock() end
   if falling and not self.wasFalling then
     local airborne = (IsFlying and safe(IsFlying)) or (IsSwimming and safe(IsSwimming)) or (UnitOnTaxi and safe(UnitOnTaxi, "player"))
@@ -129,7 +133,7 @@ function Counters:Add(name, amount)
   if C_Timer and C_Timer.After then
     if self.evaluatePending then return end
     self.evaluatePending = true
-    C_Timer.After(EVALUATE_DELAY, function() Counters.evaluatePending = false; Addon.Medals:Evaluate("counter"); if Addon.UI and Addon.UI.RefreshMedalsIfVisible then Addon:Guard("Counters", Addon.UI.RefreshMedalsIfVisible, Addon.UI) end end)
+    C_Timer.After(EVALUATE_DELAY, function() Counters.evaluatePending = false; Addon.Medals:Evaluate("counter"); if Addon.UI and Addon.UI.RefreshMedalsIfVisible then Addon:Guard("Counters", Addon.UI.RefreshMedalsIfVisible, Addon.UI) end; if Addon.Tracker then Addon:Guard("Tracker", Addon.Tracker.Request, Addon.Tracker) end end)
   else
     Addon.Medals:Evaluate("counter")
   end
@@ -244,8 +248,9 @@ end
 -- WoW Forever camping: campfire kits and profession objects are recognised by spell name. Only counts are kept;
 -- the names of camp-related spells seen are listed in /mam diag so the keywords can be checked against the real client.
 function Counters:OnSpell(spellID)
+  if Addon:IsSecret(spellID) then return end
   local name = spellName(spellID)
-  if type(name) ~= "string" then return end
+  if type(name) ~= "string" or Addon:IsSecret(name) then return end
   local lowered = string.lower(name)
   local isCamp = false
   if lowered:find("%f[%a]campfire%f[%A]") then
@@ -307,6 +312,10 @@ function Counters:OnEvent(eventName, ...)
     self:AddOnce("groups", 2)
   elseif eventName == "GROUP_LEFT" then
     self:AddOnce("left", 2)
+  elseif eventName == "MAIL_SEND_SUCCESS" then
+    self:AddOnce("mail", 1)
+  elseif eventName == "BANKFRAME_OPENED" then
+    self:AddOnce("bank", 3)
   elseif eventName == "READY_CHECK_CONFIRM" then
     local unit, isReady = ...
     if isReady and unit and safe(UnitIsUnit, unit, "player") then self:AddOnce("ready", 5) end
