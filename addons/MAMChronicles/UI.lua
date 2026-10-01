@@ -32,6 +32,9 @@ local function label(event)
   if kind=="session.login" then return "Logged in" end
   if kind=="session.logout" then return p.duration and ("Logged out after "..shortDuration(p.duration)) or "Logged out" end
   if kind=="character.level_up" and p.level then return "Reached level "..tostring(p.level) end
+  -- A discovery is the first visit to a zone or subzone, so show the subzone too: otherwise two places in one zone look like a repeat.
+  if kind=="world.zone_discovered" and p.zone and p.zone~="" and p.subzone and p.subzone~="" and p.subzone~=p.zone then return p.zone..": "..p.subzone end
+  if kind=="world.zone_discovered" and (not p.zone or p.zone=="") and p.subzone and p.subzone~="" then return p.subzone end
   if kind=="medal.earned" and (p.medalName or p.medalId) then return tostring(p.medalName or p.medalId)..(p.points and (" (+"..tostring(p.points).." Mom Money)") or "") end
   return p.text or p.questName or p.itemName or p.achievementName or p.professionName or p.zone or p.instanceName or (tostring(kind):gsub("[%._]"," "))
 end

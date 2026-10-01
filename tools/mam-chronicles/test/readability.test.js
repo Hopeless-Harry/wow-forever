@@ -44,3 +44,9 @@ test('the tutorial sits beside the window, never over the action bars, and uses 
   h.run('UI.frame.GetRight=function() return 1900 end; UI.frame.GetLeft=function() return 700 end; T:Go(1); __q=T.frame.point'); assert.equal(h.get('__q[1]'), 'TOPRIGHT'); assert.equal(h.get('__q[3]'), 'TOPLEFT');
   h.run('UI.frame.GetLeft=function() return 10 end; T:Go(1); __r=T.frame.point'); assert.equal(h.get('__r[1]'), 'TOP'); assert.equal(h.get('__r[3]'), 'BOTTOM');
 });
+
+test('a discovery shows its subzone so two places in one zone do not look like a repeat', () => {
+  const h = setup();
+  h.run('UI=MAMChronicles.UI; __a=UI.EventLabel({type="world.zone_discovered",payload={zone="Dalaran",subzone="Krasus Landing"}}); __b=UI.EventLabel({type="world.zone_discovered",payload={zone="Dalaran"}}); __c=UI.EventLabel({type="world.zone_discovered",payload={subzone="The Mill"}}); __d=UI.EventLabel({type="world.zone_discovered",payload={zone="Dalaran",subzone="Dalaran"}})');
+  assert.equal(h.get('__a'), 'Dalaran: Krasus Landing'); assert.equal(h.get('__b'), 'Dalaran'); assert.equal(h.get('__c'), 'The Mill'); assert.equal(h.get('__d'), 'Dalaran');
+});
