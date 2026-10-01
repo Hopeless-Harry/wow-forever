@@ -90,3 +90,24 @@ test("launch countdown is a banner outside the overview grid and phone nav wraps
   assert.ok(banner > 0 && banner < body.indexOf('class="ledger-overview"'), "banner precedes the overview");
   assert.match(body, /id="launch-countdown"/);
 });
+
+test("text colours on parchment meet 4.5:1 contrast even at the darkest end of the gradient", async () => {
+  const css = await readFile(path.join(projectRoot, "public", "styles.css"), "utf8");
+  const luminance = (hex) => {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const ratio = (a, b) => { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+  const darkestParchment = "#c3a363";
+  const selectors = [
+    ".panel-heading span", ".panel-heading p", ".parchment-panel .quiet", ".chronicle-entry time", ".profile-facts dt",
+    ".raid-panel th small", ".plan-ready .plan-badge", ".plan-short .plan-badge", ".plan-missing .plan-badge", ".combo-flag"
+  ];
+  for (const selector of selectors) {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const match = css.match(new RegExp(`${escaped}[^{]*\\{[^}]*?(?:^|[;\\s])color:\\s*(#[0-9a-fA-F]{6})`, "m"));
+    assert.ok(match, `${selector} sets a solid colour`);
+    assert.ok(ratio(match[1], darkestParchment) >= 4.5, `${selector} ${match[1]} is ${ratio(match[1], darkestParchment).toFixed(2)}:1`);
+  }
+  assert.doesNotMatch(css, /\.chronicle-entry time[^{]*\{[^}]*opacity/);
+});

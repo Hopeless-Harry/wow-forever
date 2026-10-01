@@ -300,9 +300,9 @@ body[data-sync-status="empty"] .sync-rune span { background: var(--danger); box-
 }
 
 .panel-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
-.panel-heading span { color: #785127; font-size: .8rem; }
+.panel-heading span { color: #4f3210; font-size: .8rem; }
 .panel-heading h2 { margin-top: .15rem; color: #3d200d; font-size: clamp(1.3rem, 3vw, 1.8rem); }
-.panel-heading p { margin: .35rem 0 0; color: #624522; }
+.panel-heading p { margin: .35rem 0 0; color: #4a3216; }
 
 .wow-button {
   display: inline-flex;
@@ -413,7 +413,7 @@ footer {
 .chronicle-list { list-style: none; margin: 0; padding: 0 0 0 1.25rem; border-left: 2px solid var(--gold-dark); display: grid; gap: 1rem; }
 .chronicle-entry { position: relative; }
 .chronicle-entry::before { content: ""; position: absolute; left: -1.7rem; top: 0.45rem; width: 0.7rem; height: 0.7rem; background: var(--gold-dark); transform: rotate(45deg); }
-.chronicle-entry time { display: block; font-size: 0.85rem; opacity: 0.75; }
+.chronicle-entry time { display: block; font-size: 0.85rem; color: #3b2815; }
 .chronicle-entry p { margin: 0.15rem 0 0; }
 .chronicle-milestone::before, .chronicle-leader-change::before { background: var(--gold-bright); }
 
@@ -421,13 +421,13 @@ footer {
 .member-tabs { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
 .member-tabs a[aria-current="page"] { color: var(--gold-bright); }
 .raid-panel h3 { margin: 1rem 0 0.4rem; }
-.raid-panel th small, .profession-card h2 small { display: block; font-weight: 400; opacity: 0.75; }
+.raid-panel th small, .profession-card h2 small { display: block; font-weight: 400; color: #3b2815; }
 .plan-badge { font-weight: 700; }
-.plan-ready .plan-badge { color: #1f5a2a; }
-.plan-short .plan-badge { color: #8a5a00; }
-.plan-missing .plan-badge { color: #8a1f17; }
+.plan-ready .plan-badge { color: #0f4019; }
+.plan-short .plan-badge { color: #4d3000; }
+.plan-missing .plan-badge { color: #6b140e; }
 .profession-card ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; }
-.combo-flag { color: #8a1f17; }
+.combo-flag { color: #6b140e; }
 
 .launch-banner { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem 1rem; max-width: 93rem; margin: 0 auto 1.1rem; padding: .75rem 1rem; border: 1px solid var(--gold-dark); border-left-width: .25rem; background: rgba(255,255,255,.03); }
 .launch-banner span { color: var(--parchment); }
@@ -439,7 +439,7 @@ footer {
 .group-card ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; }
 
 .profile-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0.75rem; margin: 1rem 0; }
-.profile-facts dt { font-size: 0.85rem; opacity: 0.75; }
+.profile-facts dt { font-size: 0.85rem; color: #3b2815; }
 .profile-facts dd { margin: 0; font-weight: 700; }
 
 .statistics-grid > *, .dashboard-grid > * { min-width: 0; }
@@ -460,3 +460,6 @@ th[scope="row"] a, .panel-heading p a, .empty-ledger a, .profile-card a { displa
 .ledger-topbar { flex-wrap: wrap; gap: .75rem 1rem; }
 .ledger-topbar > div { flex: 1 1 14rem; }
 .sync-rune { flex: 0 1 auto; min-width: 9rem; }
+
+/* Helper text on parchment needs a dark colour; --muted is built for the dark panels. */
+.parchment-panel .quiet, .parchment-panel .no-results { color: #3b2815; }
