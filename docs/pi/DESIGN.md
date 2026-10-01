@@ -14,12 +14,14 @@ Status: approved plan, build in progress. Nothing here has run between two real 
 ```text
  member client (addon)                     owner PC                          Raspberry Pi
  ----------------------                    --------                          ------------
- S1/C1/F1 whisper ------> gateway client
+ S1/C1/F1 guild (hidden) -> gateway client
  L1 guild (existing) ---> (addon, gateway   SavedVariables  --companion-->    pi-hub (Node + SQLite)
                            mode, rank 0/1)  MAMChronicles.lua  upload deltas  ingest API
  N1/Q1/K1/A1/R1 <------- relays commands <-- Inbox.lua  <------ pulls cmds <-- command API
  guild channel            at login/reload   (separate addon)                  dashboard (admin, officers)
 ```
+
+Transport rule (owner decision): hidden GUILD addon messages only. No whispers of any kind and no visible chat lines are used by any new code; a test asserts the new code never calls `SendChatMessage` or uses the `WHISPER` channel. The only visible chat line in the addon is the existing optional "post my medals in guild chat" setting, off by default, which this work does not touch.
 
 Gateway = whichever of the owner's clients is online and the character is rank 0 or 1 on the guild roster.
 
@@ -30,9 +32,9 @@ Every message: `<type>|<version>|...`, `|` delimiter, no control characters, val
 | Type | From to | Channel | Body | Max |
 |---|---|---|---|---|
 | `G1\|1\|<name>` | gateway to guild | GUILD | beacon; accepted only from roster rank <= 1; resent every 10 min | 40 |
-| `C1\|1\|<level>\|<classID>\|<raceID>\|<titleKey>\|<medals>\|<momMoney>` | member to gateway | WHISPER | roster summary | 80 |
-| `S1\|1\|<seq>\|<part>/<parts>\|k=v,k=v` | member to gateway | WHISPER | allowlisted counter and statistic keys, integers only | 240 |
-| `F1\|1` | member to gateway | WHISPER | forget me | 8 |
+| `C1\|1\|<level>\|<classID>\|<raceID>\|<titleKey>\|<medals>\|<momMoney>` | member to guild | GUILD | roster summary | 80 |
+| `S1\|1\|<seq>\|<part>/<parts>\|k=v,k=v` | member to guild | GUILD | allowlisted counter and statistic keys, integers only | 240 |
+| `F1\|1` | member to guild | GUILD | forget me | 8 |
 | `L1` | member to guild | GUILD | location, unchanged | 64 |
 | `A1/R1` | rank 0/1 to guild | GUILD | award or revoke verified medal, unchanged | 64 |
 | `N1\|1\|<id>\|<part>/<parts>\|<text>` | gateway to guild | GUILD | announcement shown as a toast and kept in the guild feed | 240 |
@@ -41,7 +43,7 @@ Every message: `<type>|<version>|...`, `|` delimiter, no control characters, val
 
 Receivers accept `N1/Q1/K1` only from roster rank <= 1, the same `IsAwarder` check as awards, and fail closed with an empty roster.
 
-Budget: one outgoing message per 3 s per client (existing pump), `S1` at most once per 15 min with jitter and only when values changed, nothing in instances or lockdown (`Comms:Availability`). Receive side: per-sender flood limit, <= 300 tracked members, <= 40 stat keys each, parts reassembled in a bounded table with a 60 s expiry.
+Budget: one outgoing message per 3 s per client (existing pump), `S1/C1` at most once per 30 min with random jitter, only when values changed, and only while a `G1` beacon was heard in the last 15 min (no gateway, no stats traffic), nothing in instances or lockdown (`Comms:Availability`). Receive side: per-sender flood limit, <= 300 tracked members, <= 40 stat keys each, parts reassembled in a bounded table with a 60 s expiry.
 
 ## 4. Gateway SavedVariables (what the companion reads)
 
