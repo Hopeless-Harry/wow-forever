@@ -111,3 +111,10 @@ test("the dashboard labels each ruleset row so an officer sees which group is re
   assert.match(body, /Horde · PvP<small>/);
   assert.equal(body.includes('<td class="plan-ready">'), false, "nothing is falsely ready");
 });
+
+test("the dashboard puts the raid answer before the charts so it is not buried", async () => {
+  const body = await dashboard([...many(2, "Orc", "Warrior", "Tank"), ...many(3, "Troll", "Priest", "Healer"), ...many(5, "Undead", "Mage", "DPS")]);
+  const order = ["Responses received", "Can we raid?", "Class muster", "Guild summary for Discord", "Recent roster entries"].map((text) => body.indexOf(text));
+  assert.ok(order.every((index) => index > 0), `all panels present: ${order}`);
+  assert.deepEqual([...order].sort((a, b) => a - b), order, "panels appear in this order: headline numbers, raid readiness, charts, summary, recent entries");
+});

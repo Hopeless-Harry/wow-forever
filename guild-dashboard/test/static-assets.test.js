@@ -168,3 +168,10 @@ test("raid tables use a fixed three-column layout so Status never scrolls out of
   for (const column of [1, 2, 3]) assert.match(css, new RegExp(`\\.raid-panel th:nth-child\\(${column}\\)\\s*\\{\\s*width:`));
   assert.match(css, /\.raid-panel tbody th\s*\{\s*white-space:\s*normal/, "row descriptions wrap instead of overlapping the next column");
 });
+
+test("on phones the headline stat cards sit two per row so the raid answer is not pushed off screen", async () => {
+  const css = await readFile(path.join(projectRoot, "public", "styles.css"), "utf8");
+  const phone = css.slice(css.indexOf("@media (max-width: 700px)"));
+  assert.match(phone, /\.stat-rack\s*\{[^}]*grid-template-columns:\s*repeat\(2,/);
+  assert.doesNotMatch(phone, /\.stat-rack,\s*\.dashboard-grid/, "stat cards no longer collapse to one column");
+});

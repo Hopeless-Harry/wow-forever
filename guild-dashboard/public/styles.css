@@ -397,7 +397,9 @@ footer {
   .ledger-main { padding: 1rem .75rem; }
   .ledger-topbar { align-items: flex-start; }
   .sync-rune { max-width: 100%; font-size: .74rem; }
-  .stat-rack, .dashboard-grid, .statistics-grid { grid-template-columns: 1fr; }
+  .dashboard-grid, .statistics-grid { grid-template-columns: 1fr; }
+  .stat-rack { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+  .ledger-stat { min-height: 5.4rem; padding: .7rem .75rem; }
   .dashboard-grid .wide, .statistics-grid .wide { grid-column: auto; }
   .panel-heading { align-items: flex-start; flex-direction: column; }
   .wow-button { width: 100%; }
