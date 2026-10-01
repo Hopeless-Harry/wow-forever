@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import { readFileSync } from "node:fs";
 
 import { membersToCsv } from "./domain/export.js";
+import { createRateLimiter } from "./rate-limit.js";
 import { RAID_SIZES } from "./domain/wow-data.js";
 import { PUBLIC_FIELDS } from "./domain/normalize.js";
 import { renderDashboard, renderMemberChronicle, renderMemberProfile, renderMembers, renderProfessions, renderRaidPlan, renderResponses, renderStatistics } from "./views/render.js";
@@ -26,7 +27,7 @@ function publicPayload(snapshot) {
   };
 }
 
-export function buildApp({ dataService, logger = true }) {
+export function buildApp({ dataService, rateLimitPerMinute = 300, logger = true }) {
   const app = Fastify({ logger, bodyLimit: 16 * 1024, trustProxy: true });
 
   app.addHook("onRequest", async (_request, reply) => {
@@ -38,6 +39,15 @@ export function buildApp({ dataService, logger = true }) {
       "permissions-policy": "camera=(), microphone=(), geolocation=()",
       "cross-origin-opener-policy": "same-origin"
     });
+  });
+
+  const limiter = createRateLimiter({ limit: rateLimitPerMinute });
+  app.addHook("onRequest", async (request, reply) => {
+    if (request.url.startsWith("/health/")) return;
+    const { allowed, retryAfter } = limiter.hit(request.ip);
+    if (!allowed) {
+      return reply.code(429).header("retry-after", String(retryAfter)).header("cache-control", "no-store").type("text/plain; charset=utf-8").send("Too many requests. Please slow down.");
+    }
   });
 
   const html = (reply) => reply.type("text/html; charset=utf-8");

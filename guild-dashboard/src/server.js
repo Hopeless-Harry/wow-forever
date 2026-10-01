@@ -38,7 +38,7 @@ const dataService = new DataService({
 });
 
 await dataService.start();
-const app = buildApp({ dataService });
+const app = buildApp({ dataService, rateLimitPerMinute: config.rateLimitPerMinute });
 
 const shutdown = async () => {
   dataService.stop();

@@ -31,6 +31,7 @@ export function loadConfig(env = process.env) {
     cachePath: env.CACHE_PATH || new URL("../data/cache.json", import.meta.url).pathname,
     memberPath: env.MEMBER_PATH || new URL("../data/members.json", import.meta.url).pathname,
     nameHeader: DEFAULT_NAME_HEADER,
+    rateLimitPerMinute: integerSetting(env.RATE_LIMIT_PER_MINUTE, 300, "RATE_LIMIT_PER_MINUTE", 0),
     mapping: { ...DEFAULT_MAPPING },
     useFixture: env.USE_FIXTURE === "true" || env.NODE_ENV === "test"
   };

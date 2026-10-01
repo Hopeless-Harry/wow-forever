@@ -112,6 +112,7 @@ Do not publish the Sheet to the web. Publishing it could reveal the excluded nam
 | `GOOGLE_SHEET_RANGE` | `Form Responses 1!A:Z` | Response tab and columns |
 | `GOOGLE_CLIENT_EMAIL` | empty | Read-only service account email |
 | `GOOGLE_PRIVATE_KEY` | empty | RSA private key with literal `\n` line breaks |
+| `RATE_LIMIT_PER_MINUTE` | `300` | Per-IP request limit; over it the site answers 429 with `Retry-After`. `0` disables. Health checks are exempt |
 | `USE_FIXTURE` | `false` | Local visual testing only |
 
 After editing production values:
