@@ -136,3 +136,35 @@ test("only the roster has a faction filter, and each roster row carries its fact
   assert.equal(census.includes('name="faction"'), false);
   assert.equal(census.includes("data-faction"), false);
 });
+
+test("the roster lists odd answers at the top so officers can follow them up", async (t) => {
+  const odd = [
+    member("Mage#1", { characterClass: "Mage", role: "Tank" }),
+    member("Tauren#2", { race: "Tauren", characterClass: "Mage", role: "DPS" }),
+    member("<b>Both</b>", { race: "Tauren", characterClass: "Mage", role: "Tank" }),
+    member("Fine#4")
+  ];
+  const app = appWith(odd);
+  t.after(() => app.close());
+
+  const body = (await app.inject({ url: "/members" })).body;
+  assert.match(body, /4 answers to double-check/);
+  assert.match(body, /<a href="\/member\?name=Mage%231">Mage#1<\/a> — Mage is not normally a tank/);
+  assert.match(body, /Tauren Mage is not a known WoW Forever combination/);
+  assert.match(body, /nothing is changed automatically/);
+  assert.equal(body.includes("Fine#4</a> —"), false, "clean members are not listed");
+  assert.equal(body.includes("<b>Both"), false, "names are escaped");
+  assert.ok(body.indexOf("to double-check") < body.indexOf('id="census-table"'), "the list sits above the table");
+});
+
+test("one odd answer reads in the singular, and a clean roster shows no notice", async (t) => {
+  const one = appWith([member("Mage#1", { characterClass: "Mage", role: "Tank" }), member("Fine#2")]);
+  t.after(() => one.close());
+  assert.match((await one.inject({ url: "/members" })).body, /1 answer to double-check/);
+
+  const clean = appWith([member("Fine#1"), member("Fine#2", { characterClass: "Druid", role: "Healer", race: "Tauren" })]);
+  t.after(() => clean.close());
+  const body = (await clean.inject({ url: "/members" })).body;
+  assert.equal(body.includes("double-check"), false);
+  assert.equal(body.includes("check-panel"), false);
+});

@@ -502,3 +502,7 @@ th[scope="row"] a, .panel-heading p a, .empty-ledger a, .profile-card a { displa
 
 .gap-list { margin: 0 0 .5rem; padding-left: 1.1rem; display: grid; gap: .4rem; }
 .gap-list a { font-weight: 700; }
+
+.check-list { margin: 0; padding-left: 1.1rem; display: grid; gap: .45rem; }
+.check-list a { font-weight: 700; }
+@media print { .check-panel { display: none !important; } }
