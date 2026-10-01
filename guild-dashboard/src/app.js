@@ -1,9 +1,10 @@
 import Fastify from "fastify";
 import { readFileSync } from "node:fs";
 
+import { membersToCsv } from "./domain/export.js";
 import { RAID_SIZES } from "./domain/wow-data.js";
 import { PUBLIC_FIELDS } from "./domain/normalize.js";
-import { renderDashboard, renderMemberChronicle, renderMembers, renderProfessions, renderRaidPlan, renderResponses, renderStatistics } from "./views/render.js";
+import { renderDashboard, renderMemberChronicle, renderMemberProfile, renderMembers, renderProfessions, renderRaidPlan, renderResponses, renderStatistics } from "./views/render.js";
 
 const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 const ASSETS = new Map([
@@ -48,10 +49,20 @@ export function buildApp({ dataService, logger = true }) {
     const size = RAID_SIZES.includes(requested) ? requested : 40;
     return html(reply).send(renderRaidPlan(dataService.snapshot(), size, dataService.memberSnapshot?.() ?? { members: [] }));
   });
+  app.get("/members.csv", async (_request, reply) => {
+    const members = dataService.memberSnapshot?.().members ?? [];
+    return reply.type("text/csv; charset=utf-8").header("content-disposition", 'attachment; filename="guild-roster.csv"').send(membersToCsv(members));
+  });
+  app.get("/member", async (request, reply) => {
+    const name = String(request.query?.name ?? "").slice(0, 200);
+    const memberData = dataService.memberSnapshot?.() ?? { members: [], events: [] };
+    const found = memberData.members.some((entry) => entry.name.toLowerCase() === name.toLowerCase());
+    return html(reply).code(found ? 200 : 404).send(renderMemberProfile(dataService.snapshot(), memberData, name));
+  });
   app.get("/members", memberPage(renderMembers));
   app.get("/members/chronicle", memberPage(renderMemberChronicle));
 
-  app.get("/", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderDashboard(dataService.snapshot())));
+  app.get("/", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderDashboard(dataService.snapshot(), dataService.memberSnapshot?.() ?? { events: [] })));
   app.get("/responses", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderResponses(dataService.snapshot())));
   app.get("/statistics", async (_request, reply) => reply.type("text/html; charset=utf-8").send(renderStatistics(dataService.snapshot())));
   app.get("/assets/:name", async (request, reply) => {

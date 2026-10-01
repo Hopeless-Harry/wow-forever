@@ -9,6 +9,8 @@ A lightweight, privacy-first guild census for the **Moms Against Magic — WoW F
 - Raid Planner (`/raid?size=10|20|40`): per-faction role balance against rough community targets (about 4 tanks, 11 healers, 25 DPS for 40 players) and class coverage (Warrior tank, Druid, Hunter, Paladin, Shaman, Priest, Mage, Warlock). Factions are planned separately because they cannot group together.
 - Suggested raid groups on `/raid`: names placed into groups of five per faction (a tank per group, healers spread out), with overflow benched and a ruleset breakdown, because players can only group within one faction and one ruleset.
 - Profession Directory (`/members/professions`): who can craft or gather each profession, most-covered first, plus the professions nobody has yet.
+- Member profile pages (`/member?name=...`), a roster CSV download (`/members.csv`, formula-safe) and a recent-activity feed on the dashboard.
+- Soft sanity flags for impossible race/class and role/class answers (for example a Mage tank).
 - Launch countdown on the dashboard (reported launch: 4 November 2026, 3 PM PST).
 - Roster shows each member's faction and flags race/class combinations that are not in the known WoW Forever list.
 - Shows a public named Guild Roster and Guild Chronicle: everyone's current plans, plus who joined, left or changed class, role, race, ruleset or professions.

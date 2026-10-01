@@ -1,6 +1,6 @@
 import { groupPlan } from "../domain/groups.js";
 import { buildRaidPlan, missingProfessions, professionDirectory } from "../domain/raid.js";
-import { LAUNCH_AT, RAID_SIZES, comboWarning, factionOf } from "../domain/wow-data.js";
+import { LAUNCH_AT, RAID_SIZES, comboWarning, factionOf, roleWarning } from "../domain/wow-data.js";
 import { escapeHtml } from "./escape.js";
 
 const CLASS_NAMES = new Set(["Warrior", "Paladin", "Hunter", "Rogue", "Priest", "Shaman", "Mage", "Warlock", "Druid"]);
@@ -81,7 +81,14 @@ function recentRows(records) {
   return records.slice(-5).reverse().map((record) => `<tr><th scope="row">${escapeHtml(record.anonymousId)}</th><td><span class="class-chip${classToken(record.characterClass)}">${escapeHtml(record.characterClass)}</span></td><td>${escapeHtml(record.role)}</td><td>${escapeHtml(record.race)}</td><td>${escapeHtml(record.profession1)} <span aria-hidden="true">+</span> ${escapeHtml(record.profession2)}</td></tr>`).join("");
 }
 
-export function renderDashboard(snapshot) {
+function activityPanel(events) {
+  const recent = [...events].filter((event) => event.type !== "baseline").slice(-5).reverse();
+  if (!recent.length) return "";
+  const items = recent.map((event) => `<li class="chronicle-entry chronicle-${escapeHtml(event.type)}"><time datetime="${escapeHtml(event.at)}">${escapeHtml(event.at.slice(0, 10))}</time><p>${memberEventText(event)}</p></li>`).join("");
+  return `<section class="parchment-panel chronicle-panel"><div class="panel-heading"><div><span>Latest news</span><h2>Recent activity</h2></div><a class="wow-button" href="/members/chronicle">Open chronicle</a></div><ol class="chronicle-list">${items}</ol></section>`;
+}
+
+export function renderDashboard(snapshot, memberData = { events: [] }) {
   if (!snapshot.records.length) return shell({ title: "Guild Ledger", active: "/", snapshot, content: emptyPanel(), scripts: ["/assets/live-refresh.js"] });
   const { leaders, distributions, totalResponses } = snapshot.stats;
   const content = `<section class="ledger-overview" aria-labelledby="muster-heading">
@@ -90,6 +97,7 @@ export function renderDashboard(snapshot) {
     <div class="stat-rack">${leaderCard("Favoured ruleset", leaders.server)}${leaderCard("Largest class", leaders.characterClass, "class-ledger")}${leaderCard("Main calling", leaders.role)}${leaderCard("Top profession", leaders.professions)}</div>
   </section>
   <section class="dashboard-grid">${bars("Class muster", distributions.characterClass, "wide")}${bars("Role balance", distributions.role)}${bars("Ruleset preference", distributions.server)}</section>
+  ${activityPanel(memberData.events)}
   <section class="parchment-panel recent-panel"><div class="panel-heading"><div><span>Latest entries</span><h2>Recent anonymous roster</h2></div><a class="wow-button" href="/responses">Open full census</a></div><div class="table-scroll"><table><thead><tr><th>Entry</th><th>Class</th><th>Role</th><th>Race</th><th>Professions</th></tr></thead><tbody>${recentRows(snapshot.records)}</tbody></table></div></section>`;
   return shell({ title: "Guild Ledger", active: "/", snapshot, content, scripts: ["/assets/countdown.js", "/assets/live-refresh.js"] });
 }
@@ -122,8 +130,8 @@ function lastChange(events, name) {
 
 export function renderMembers(snapshot, memberData) {
   const members = [...memberData.members].sort((a, b) => a.name.localeCompare(b.name));
-  const rows = members.map((member) => { const warning = comboWarning(member.race, member.characterClass); const change = lastChange(memberData.events, member.name); return `<tr ${rowAttrs({ search: [member.name, member.characterClass, member.role, member.race, factionOf(member.race), member.server, member.profession1, member.profession2, change].join(" "), characterClass: member.characterClass, role: member.role, server: member.server, sort: member.name })}><th scope="row">${escapeHtml(member.name)}</th><td><span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span></td><td>${escapeHtml(member.role)}</td><td>${escapeHtml(member.race)}</td><td>${escapeHtml(factionOf(member.race))}</td><td>${escapeHtml(member.server)}</td><td>${escapeHtml(member.profession1)}</td><td>${escapeHtml(member.profession2)}</td><td>${escapeHtml(change)}${warning ? `<br><small class="combo-flag">⚠ ${escapeHtml(warning)} — check the form answer</small>` : ""}</td></tr>`; }).join("");
-  const content = `${members.length ? `<section class="parchment-panel census-panel"><div class="panel-heading"><div><span>Named roster</span><h2>Guild Roster</h2><p>Everyone's current plans, with their latest change.</p></div><strong id="visible-count" data-singular="member" data-plural="members">${members.length} ${members.length === 1 ? "member" : "members"}</strong></div>${filterForm("Search the roster", "Name, class, role, race, faction or profession", "Name")}<div class="table-scroll"><table id="census-table"><thead><tr><th>Name</th><th>Class</th><th>Role</th><th>Race</th><th>Faction</th><th>Ruleset</th><th>Profession 1</th><th>Profession 2</th><th>Latest change</th></tr></thead><tbody>${rows}</tbody></table></div><p class="no-results" hidden>No members match those filters.</p></section>` : `<section class="parchment-panel empty-ledger"><h2>No members on the roll yet</h2><p>Members appear after the next successful census sync.</p></section>`}`;
+  const rows = members.map((member) => { const warning = comboWarning(member.race, member.characterClass); const roleNote = roleWarning(member.characterClass, member.role); const change = lastChange(memberData.events, member.name); return `<tr ${rowAttrs({ search: [member.name, member.characterClass, member.role, member.race, factionOf(member.race), member.server, member.profession1, member.profession2, change].join(" "), characterClass: member.characterClass, role: member.role, server: member.server, sort: member.name })}><th scope="row"><a href="/member?name=${encodeURIComponent(member.name)}">${escapeHtml(member.name)}</a></th><td><span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span></td><td>${escapeHtml(member.role)}</td><td>${escapeHtml(member.race)}</td><td>${escapeHtml(factionOf(member.race))}</td><td>${escapeHtml(member.server)}</td><td>${escapeHtml(member.profession1)}</td><td>${escapeHtml(member.profession2)}</td><td>${escapeHtml(change)}${warning ? `<br><small class="combo-flag">⚠ ${escapeHtml(warning)} — check the form answer</small>` : ""}${roleNote ? `<br><small class="combo-flag">⚠ ${escapeHtml(roleNote)} — check the form answer</small>` : ""}</td></tr>`; }).join("");
+  const content = `${members.length ? `<section class="parchment-panel census-panel"><div class="panel-heading"><div><span>Named roster</span><h2>Guild Roster</h2><p>Everyone's current plans, with their latest change. <a href="/members.csv">Download CSV</a></p></div><strong id="visible-count" data-singular="member" data-plural="members">${members.length} ${members.length === 1 ? "member" : "members"}</strong></div>${filterForm("Search the roster", "Name, class, role, race, faction or profession", "Name")}<div class="table-scroll"><table id="census-table"><thead><tr><th>Name</th><th>Class</th><th>Role</th><th>Race</th><th>Faction</th><th>Ruleset</th><th>Profession 1</th><th>Profession 2</th><th>Latest change</th></tr></thead><tbody>${rows}</tbody></table></div><p class="no-results" hidden>No members match those filters.</p></section>` : `<section class="parchment-panel empty-ledger"><h2>No members on the roll yet</h2><p>Members appear after the next successful census sync.</p></section>`}`;
   return shell({ title: "Guild Roster", active: "/members", snapshot, content, scripts: ["/assets/table-filters.js", "/assets/live-refresh.js"] });
 }
 
@@ -176,4 +184,20 @@ export function renderProfessions(snapshot, memberData) {
     ? `<p class="quiet">Who can craft or gather what. Professions listed on the Form only — skill levels are not tracked.</p><div class="statistics-grid">${gapPanel}${cards}</div>`
     : `<section class="parchment-panel empty-ledger"><h2>No professions recorded yet</h2><p>They appear after the next successful census sync.</p></section>`;
   return shell({ title: "Profession Directory", active: "/members/professions", snapshot, content });
+}
+
+export function renderMemberProfile(snapshot, memberData, name) {
+  const key = String(name || "").toLowerCase();
+  const member = memberData.members.find((entry) => entry.name.toLowerCase() === key);
+  if (!member) {
+    return shell({ title: "Member not found", active: "/members", snapshot, content: `<section class="parchment-panel empty-ledger"><h2>No such adventurer</h2><p>That name is not on the roll. <a href="/members">Back to the roster</a>.</p></section>` });
+  }
+  const notes = [comboWarning(member.race, member.characterClass), roleWarning(member.characterClass, member.role)].filter(Boolean);
+  const history = memberData.events.filter((event) => event.type !== "baseline" && event.name.toLowerCase() === key).reverse();
+  const items = history.map((event) => `<li class="chronicle-entry chronicle-${escapeHtml(event.type)}"><time datetime="${escapeHtml(event.at)}">${escapeHtml(event.at.slice(0, 16).replace("T", " "))} UTC</time><p>${memberEventText(event)}</p></li>`).join("");
+  const content = `<section class="parchment-panel census-panel"><div class="panel-heading"><div><span>${escapeHtml(factionOf(member.race))} adventurer</span><h2>${escapeHtml(member.name)}</h2><p><span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span> · ${escapeHtml(member.role)} · ${escapeHtml(member.race)}</p></div><a class="wow-button" href="/members">Back to roster</a></div>
+    <dl class="profile-facts"><div><dt>Ruleset preference</dt><dd>${escapeHtml(member.server)}</dd></div><div><dt>Profession 1</dt><dd>${escapeHtml(member.profession1)}</dd></div><div><dt>Profession 2</dt><dd>${escapeHtml(member.profession2)}</dd></div></dl>
+    ${notes.map((note) => `<p class="combo-flag">⚠ ${escapeHtml(note)} — check the form answer</p>`).join("")}</section>
+  <section class="parchment-panel chronicle-panel"><div class="panel-heading"><div><span>History</span><h2>${escapeHtml(member.name)}'s chronicle</h2></div></div>${items ? `<ol class="chronicle-list">${items}</ol>` : '<p class="quiet">No changes recorded since the roll opened.</p>'}</section>`;
+  return shell({ title: member.name, active: "/members", snapshot, content });
 }
