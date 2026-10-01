@@ -24,6 +24,7 @@ Theme.lua
 Toast.lua
 Comms.lua
 Map.lua
+Share.lua
 Tracker.lua
 Dashboard.lua
 UI.lua

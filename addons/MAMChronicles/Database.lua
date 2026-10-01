@@ -87,6 +87,8 @@ function Database:NormaliseSettings()
     if settings.theme == "midnight" then settings.theme = "modern" end
     settings.themeMigrated = true
   end
+  if type(settings.shareStats) ~= "boolean" then settings.shareStats = nil end
+  if type(settings.shareForgetPending) ~= "boolean" then settings.shareForgetPending = nil end
   if settings.welcomeVersion ~= nil and type(settings.welcomeVersion) ~= "string" then settings.welcomeVersion = nil end
   -- Cosmetics bought with Mom Money (account wide), and the chosen title.
   local known = Addon.Medals and Addon.Medals.cosmeticsById

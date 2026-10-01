@@ -230,6 +230,7 @@ function UI:SetSetting(key,value)
     settings.toastSoundChoice=value; Addon.db.meta.updatedAt=Addon:Now(); return true
   elseif key=="notableQuality" then value=math.max(4,math.min(5,tonumber(value) or 4))
   elseif key=="maxEvents" then value=math.max(100,math.min(10000,math.floor(tonumber(value) or 10000)))
+  elseif key=="shareStats" then if not Addon.Share then return false end return Addon.Share:SetConsent(value==true)
   elseif key=="shareLocation" then value=value==true; if Addon.Map then Addon.Map:SetShare(value) end; Addon.db.meta.updatedAt=Addon:Now(); return true
   elseif booleanSettings[key] then value=value==true
   else return false end
@@ -573,6 +574,7 @@ function UI:BuildSettingsPage(frame)
   check("announceMedals", "Announce my Mom Medals to the guild", "Guildmates running the addon see a toast when you earn a medal. Nothing is sent when messaging is restricted.")
   check("announceGuildChat", "Also post my medals in guild chat", "Posts one line to guild chat that everyone can read, even without the addon. Off by default.")
   check("receiveGuildAlerts", "Show toasts when guildmates earn medals")
+  check("shareStats", "Share my stats with the guild hub", "Sends level, class, race, title, medal count, Mom Money and a few activity counts as hidden addon messages (never chat or whispers) while the guild hub is online. Never gold, item names or BattleTag. Same as /mam share on|off.")
   check("quietInstances", "Hold toasts in dungeons, raids and battlegrounds", "Toasts wait until you are back in the open world. They are always held in combat.")
   y = y - 4
   local function soundText() local s = Addon.Toast.soundKeys[Addon.db.settings.toastSoundChoice] or Addon.Toast.sounds[1]; return "Toast sound: " .. s.label end
@@ -1462,6 +1464,7 @@ UI.helpLines={
   "/mam diag - show the diagnostics report to paste into a bug report",
   "/mam quests - show this week's Mom Quests and your progress",
   "/mam map - open the live guild map (/mam map fake adds pretend guildmates to try it)",
+  "/mam share on|off|forget - share your stats with the guild hub, stop, or ask it to forget you",
   "/mam toast - show a sample toast (test alerts)",
   "/mam help - show this list",
 }
@@ -1492,6 +1495,13 @@ function UI:HandleSlash(command)
     for _,questLine in ipairs(questLines) do Addon:Print(questLine) end
   elseif verb=="toast" then if Addon.Toast then Addon.Toast:SendTest() end
   elseif verb=="diag" then self.activeTab="Diagnostics"; Addon.db.settings.ui.activeTab="Diagnostics"; self:ShowCopy(Addon.Export:BuildDiagnosticReport(), true)
+  elseif verb=="share" then
+    local word = ((rest or ""):match("^(%S+)") or "status"):lower()
+    if not Addon.Share then Addon:Print("Stats sharing is not available.")
+    elseif word == "on" then Addon.Share:SetConsent(true); self:SyncSettingsControls(); Addon:Print("Stats sharing on. It only sends while the guild hub is online. /mam share off stops it.")
+    elseif word == "off" then Addon.Share:SetConsent(false); self:SyncSettingsControls(); Addon:Print("Stats sharing off. Nothing more will be sent.")
+    elseif word == "forget" then Addon.Share:Forget(); self:SyncSettingsControls(); Addon:Print("Sharing is off and the guild hub will be asked to forget you the next time it is online.")
+    else Addon:Print(Addon.Share:Describe() .. ". Use /mam share on, off or forget.") end
   elseif verb=="help" then self:PrintHelp()
   else self.lastMessage='Unknown command "'..verb..'". Type /mam help for the list.'; Addon:Print(self.lastMessage) end
 end

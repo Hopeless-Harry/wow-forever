@@ -143,6 +143,8 @@ end
 
 function Addon:HandleEvent(eventName, ...)
   if eventName == "ADDON_LOADED" then
+  if self.Share then self:Guard("Share", self.Share.Initialise, self.Share) end
+  if self.Tracker and self.Tracker.Initialise then self:Guard("Tracker", self.Tracker.Initialise, self.Tracker) end
     local loadedName = ...
     if loadedName == self.name then self:Boot() end
     return

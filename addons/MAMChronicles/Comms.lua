@@ -15,6 +15,8 @@ local FEED_MAX = 50
 
 Comms.prefix = PREFIX
 Comms.queue = {}
+-- Longest accepted message per guild hub type; everything else keeps the 64 character limit.
+Comms.hubLimits = { G1 = 40, C1 = 90, S1 = 240, F1 = 8 }
 Comms.floods = {}
 Comms.status = { state = "starting", sent = 0, received = 0, dropped = 0, unknown = 0, otherVersion = 0, awards = 0, unverified = 0 }
 
@@ -171,7 +173,15 @@ function Comms:OnAddonMessage(prefix, text, channel, sender)
   if #sender == 0 or #sender > 60 or sender:find("[%c|]") then drop(self); return end
   local player = Addon:SafeCall(UnitName, "player")
   if player and shortName(sender) == player then return end
-  if type(text) ~= "string" or #text > MAX_LENGTH then drop(self); return end
+  if type(text) ~= "string" or #text > (self.hubLimits[text:sub(1, 2)] or MAX_LENGTH) then drop(self); return end
+  -- Guild hub messages (G1 beacon, C1/S1/F1 member summaries): handled by Share.lua and Gateway.lua, guild channel only.
+  if self.hubLimits[text:sub(1, 2)] and text:sub(3, 3) == "|" then
+    if channel ~= "GUILD" then drop(self); return end
+    local head = text:sub(1, 2)
+    if head == "G1" and Addon.Share then Addon:Guard("Share", Addon.Share.OnBeacon, Addon.Share, sender, channel, text)
+    elseif Addon.Gateway and Addon.Gateway.OnMessage then Addon:Guard("Gateway", Addon.Gateway.OnMessage, Addon.Gateway, sender, text) end
+    return
+  end
   -- Live location updates (L1) are handled by Map.lua, guild channel only.
   if text:sub(1, 3) == "L1|" then
     if channel == "GUILD" and Addon.Map then Addon:Guard("Map", Addon.Map.OnMessage, Addon.Map, sender, text) else drop(self) end
