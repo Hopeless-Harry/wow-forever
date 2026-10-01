@@ -25,6 +25,7 @@ Toast.lua
 Comms.lua
 Map.lua
 Gateway.lua
+Orders.lua
 Share.lua
 Tracker.lua
 Dashboard.lua

@@ -16,7 +16,7 @@ local FEED_MAX = 50
 Comms.prefix = PREFIX
 Comms.queue = {}
 -- Longest accepted message per guild hub type; everything else keeps the 64 character limit.
-Comms.hubLimits = { G1 = 40, C1 = 90, S1 = 240, F1 = 8 }
+Comms.hubLimits = { G1 = 40, C1 = 90, S1 = 240, F1 = 8, N1 = 240, Q1 = 120, K1 = 140 }
 Comms.floods = {}
 Comms.status = { state = "starting", sent = 0, received = 0, dropped = 0, unknown = 0, otherVersion = 0, awards = 0, unverified = 0 }
 
@@ -179,6 +179,7 @@ function Comms:OnAddonMessage(prefix, text, channel, sender)
     if channel ~= "GUILD" then drop(self); return end
     local head = text:sub(1, 2)
     if head == "G1" and Addon.Share then Addon:Guard("Share", Addon.Share.OnBeacon, Addon.Share, sender, channel, text)
+    elseif (head == "N1" or head == "Q1" or head == "K1") and Addon.Orders then Addon:Guard("Orders", Addon.Orders.OnMessage, Addon.Orders, sender, text)
     elseif Addon.Gateway and Addon.Gateway.OnMessage then Addon:Guard("Gateway", Addon.Gateway.OnMessage, Addon.Gateway, sender, text) end
     return
   end

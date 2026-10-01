@@ -883,6 +883,15 @@ function Medals:SelectQuests(week, levelNow)
       picks[slot] = chosen or eligible[start + 1]
     end
   end
+  -- A guild order (Q1 from rank 0 or 1) can replace the picks for one week.
+  local override = Addon.db and Addon.db.questOverride
+  if type(override) == "table" and override.week == week and type(override.slots) == "table" then
+    for slot = 1, 3 do
+      for _, template in ipairs(questTemplates) do
+        if template.id == override.slots[slot] and template.slot == slot and (not template.forever or forever) then picks[slot] = template end
+      end
+    end
+  end
   return picks, band
 end
 

@@ -113,6 +113,7 @@ function Gateway:Tick()
   if not self:IsReady() then return "needs rank" end
   if not self.lastBeacon or now() - self.lastBeacon >= self.BEACON_INTERVAL then self:SendBeacon() end
   self:Snapshot()
+  if Addon.Orders then Addon:Guard("Orders", Addon.Orders.ProcessInbox, Addon.Orders) end
   return "ok"
 end
 

@@ -8,7 +8,7 @@ param(
 )
 $ErrorActionPreference='Stop';$repositoryRoot=Split-Path -Parent $PSScriptRoot
 if(-not $SourceRoot){$SourceRoot=Join-Path $repositoryRoot 'addons\MAMChronicles'}
-$allowlist=@('MAMChronicles.toc','Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Counters.lua','Export.lua','Theme.lua','Toast.lua','Comms.lua','Share.lua','Map.lua','Gateway.lua','Tracker.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua','MAMChroniclesIcon.tga','LICENSE.txt','CHANGELOG.md','README.md')
+$allowlist=@('MAMChronicles.toc','Core.lua','Database.lua','EventStore.lua','Collectors.lua','Statistics.lua','AchievementStats.lua','Medals.lua','Counters.lua','Export.lua','Theme.lua','Toast.lua','Comms.lua','Share.lua','Map.lua','Gateway.lua','Orders.lua','Tracker.lua','Dashboard.lua','UI.lua','Launcher.lua','SettingsPanel.lua','MAMChroniclesIcon.tga','LICENSE.txt','CHANGELOG.md','README.md')
 $allowlist+=@('Badge','Bar','ButtonBrown','ButtonRed','Checkbox','Divider','Frame','Glow','Inset','Scroll','Shadow','Tab','Toast')|ForEach-Object{"Art\$_.tga"}
 if(-not(Test-Path -LiteralPath $ClientRoot -PathType Container)){throw "WoW client root does not exist: $ClientRoot"}
 $client=(Resolve-Path -LiteralPath $ClientRoot).Path;if((Split-Path -Leaf $client) -notin @('_retail_','_classic_beta_')){throw "ClientRoot must be a supported _retail_ or _classic_beta_ directory: $client"}
