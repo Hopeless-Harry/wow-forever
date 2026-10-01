@@ -1,4 +1,4 @@
-import { PRIMARY_PROFESSIONS, SECONDARY_PROFESSIONS, canFillRole, factionOf, roleOf } from "./wow-data.js";
+import { PRIMARY_PROFESSIONS, RAID_SIZES, SECONDARY_PROFESSIONS, canFillRole, factionOf, roleOf } from "./wow-data.js";
 
 // Rough guide from community raid-planning advice: about 4 tanks, 11 healers and
 // 25 DPS in a 40-player raid, scaled down for smaller groups (never fewer than two tanks).
@@ -93,4 +93,36 @@ export function gapCandidates(members, size) {
     if (gaps.length) result.set(faction, gaps);
   }
   return result;
+}
+
+const ROLE_NOUNS = { tank: ["tank", "tanks"], healer: ["healer", "healers"], dps: ["DPS", "DPS"] };
+
+// For each faction, whether it can field each raid size today and, if not, what it needs.
+export function raidReadiness(records, sizes = RAID_SIZES) {
+  const byFaction = new Map();
+  for (const record of records) {
+    const faction = factionOf(record.race);
+    if (!byFaction.has(faction)) byFaction.set(faction, []);
+    byFaction.get(faction).push(record);
+  }
+  return ["Horde", "Alliance", "Unknown"].filter((faction) => byFaction.has(faction)).map((faction) => {
+    const group = byFaction.get(faction);
+    const have = { tank: 0, healer: 0, dps: 0 };
+    for (const record of group) {
+      const role = roleOf(record.role);
+      if (role in have) have[role] += 1;
+    }
+    return {
+      faction,
+      total: group.length,
+      sizes: sizes.map((size) => {
+        const targets = roleTargets(size);
+        const needs = ["tank", "healer", "dps"]
+          .map((role) => ({ role, short: Math.max(0, targets[role] - have[role]) }))
+          .filter((item) => item.short > 0)
+          .map(({ role, short }) => `${short} ${ROLE_NOUNS[role][short === 1 ? 0 : 1]}`);
+        return { size, ready: needs.length === 0, needs };
+      })
+    };
+  });
 }

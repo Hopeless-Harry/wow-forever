@@ -1,7 +1,7 @@
 import { ERROR_COPY } from "../data/errors.js";
 import { groupPlan } from "../domain/groups.js";
 import { buildSummary } from "../domain/summary.js";
-import { buildRaidPlan, gapCandidates, missingProfessions, professionDirectory } from "../domain/raid.js";
+import { buildRaidPlan, gapCandidates, missingProfessions, professionDirectory, raidReadiness } from "../domain/raid.js";
 import { LAUNCH_AT, RAID_SIZES, comboWarning, factionOf, forRuleset, roleWarning, rulesetOptions } from "../domain/wow-data.js";
 import { escapeHtml } from "./escape.js";
 
@@ -89,6 +89,14 @@ function recentRows(records) {
   return records.slice(-5).reverse().map((record) => `<tr><th scope="row">${escapeHtml(record.anonymousId)}</th><td><span class="class-chip${classToken(record.characterClass)}">${escapeHtml(record.characterClass)}</span></td><td>${escapeHtml(record.role)}</td><td>${escapeHtml(record.race)}</td><td>${escapeHtml(record.profession1)} <span aria-hidden="true">+</span> ${escapeHtml(record.profession2)}</td></tr>`).join("");
 }
 
+function readinessPanel(records) {
+  const plan = raidReadiness(records);
+  if (!plan.length) return "";
+  const head = RAID_SIZES.map((size) => `<th scope="col">${size}-player</th>`).join("");
+  const rows = plan.map((group) => `<tr><th scope="row">${escapeHtml(group.faction)}<small>${count(group.total, "player", "players")}</small></th>${group.sizes.map((item) => `<td class="${item.ready ? "plan-ready" : "plan-short"}"><span class="plan-badge">${item.ready ? "Ready" : `Needs ${escapeHtml(item.needs.join(", "))}`}</span></td>`).join("")}</tr>`).join("");
+  return `<section class="parchment-panel readiness-panel"><div class="panel-heading"><div><span>Raid readiness</span><h2>Can we raid?</h2><p>What each faction can field today, using rough role targets. Flexible players can close some gaps.</p></div><a class="wow-button" href="/raid">Open raid planner</a></div><div class="table-scroll"><table aria-label="Raid readiness by faction and raid size"><thead><tr><th scope="col">Faction</th>${head}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
+}
+
 function summaryPanel(snapshot, memberData) {
   const text = buildSummary(snapshot, memberData);
   return `<section class="parchment-panel summary-panel"><div class="panel-heading"><div><span>Share it</span><h2>Guild summary for Discord</h2><p>Counts only, no names. Paste it into your channel.</p></div><button class="wow-button" type="button" data-copy-summary>Copy for Discord</button></div><label for="guild-summary" class="summary-label">Summary text</label><textarea id="guild-summary" class="summary-text" readonly rows="9">${escapeHtml(text)}</textarea><p id="copy-status" class="quiet" role="status"></p></section>`;
@@ -110,6 +118,7 @@ export function renderDashboard(snapshot, memberData = { members: [], events: []
     <div class="stat-rack">${leaderCard("Favoured ruleset", leaders.server)}${leaderCard("Largest class", leaders.characterClass, "class-ledger")}${leaderCard("Main calling", leaders.role)}${leaderCard("Top profession", leaders.professions)}</div>
   </section>
   <section class="dashboard-grid">${bars("Class muster", distributions.characterClass, "wide")}${bars("Role balance", distributions.role)}${bars("Ruleset preference", distributions.server)}</section>
+  ${readinessPanel(snapshot.records)}
   ${summaryPanel(snapshot, memberData)}
   ${activityPanel(memberData.events)}
   <section class="parchment-panel recent-panel"><div class="panel-heading"><div><span>Latest entries</span><h2>Recent roster entries</h2></div><a class="wow-button" href="/responses">Open full census</a></div><div class="table-scroll"><table aria-label="Recent roster entries"><thead><tr><th>Entry</th><th>Class</th><th>Role</th><th>Race</th><th>Professions</th></tr></thead><tbody>${recentRows(snapshot.records)}</tbody></table></div></section>`;

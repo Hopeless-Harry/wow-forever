@@ -506,3 +506,8 @@ th[scope="row"] a, .panel-heading p a, .empty-ledger a, .profile-card a { displa
 .check-list { margin: 0; padding-left: 1.1rem; display: grid; gap: .45rem; }
 .check-list a { font-weight: 700; }
 @media print { .check-panel { display: none !important; } }
+
+.readiness-panel th small { display: block; font-weight: 400; color: #3b2815; }
+.readiness-panel table { min-width: 0; table-layout: auto; }
+.readiness-panel td, .readiness-panel th { padding: .6rem .6rem; overflow-wrap: anywhere; }
+@media print { .readiness-panel .wow-button { display: none !important; } }
