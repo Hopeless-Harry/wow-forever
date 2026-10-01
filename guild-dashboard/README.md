@@ -204,6 +204,18 @@ The update script performs a locked install, runs the complete test suite, copie
 
 ## Troubleshooting
 
+The status line in the page header says what went wrong. In every case the site keeps serving the last safe copy.
+
+| Status message | Meaning | Fix |
+| --- | --- | --- |
+| The Form's questions changed | A question heading no longer matches `src/config.js` | Compare the Sheet headers with the mapping, update it, run `npm test`, deploy |
+| Google refused access to the Sheet | HTTP 401/403/404 from Sheets | Share the Sheet with the service-account email as Viewer; check `GOOGLE_SHEET_ID` and the tab name |
+| Google credentials need attention | Token exchange failed or credentials missing | Re-check `GOOGLE_CLIENT_EMAIL` and `GOOGLE_PRIVATE_KEY` in `/etc/guild-ledger.env` |
+| Google is unreachable | Network error or a Google 5xx | Usually temporary; check the Pi's internet if it persists |
+| Names could not be refreshed (roster page) | The name question changed, so only the roster is affected | Update `nameHeader` in `src/config.js`; the census keeps working meanwhile |
+
+"No responses yet" means the sync works but nobody has answered the Form. A footer note says how many incomplete responses were skipped.
+
 **The dashboard says it is waiting for a sync**
 
 - Check `/health/ready` and `journalctl`.

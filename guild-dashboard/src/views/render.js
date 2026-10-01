@@ -1,3 +1,4 @@
+import { ERROR_COPY } from "../data/errors.js";
 import { groupPlan } from "../domain/groups.js";
 import { buildRaidPlan, missingProfessions, professionDirectory } from "../domain/raid.js";
 import { LAUNCH_AT, RAID_SIZES, comboWarning, factionOf, roleWarning } from "../domain/wow-data.js";
@@ -11,7 +12,7 @@ function classToken(value) {
 
 function statusCopy(snapshot) {
   if (snapshot.status === "empty") return "Awaiting the first guild census sync";
-  if (snapshot.lastRefreshFailed) return "Google is unreachable — showing the last safe copy";
+  if (snapshot.lastRefreshFailed) return ERROR_COPY[snapshot.lastErrorKind] ?? ERROR_COPY.unreachable;
   if (snapshot.status === "stale") return "Showing an older safe copy while the ledger reconnects";
   return "Guild census synced";
 }
@@ -49,7 +50,7 @@ function shell({ title, active, snapshot, content, scripts = [] }) {
         <div class="sync-rune" role="status"><span aria-hidden="true"></span>${escapeHtml(statusCopy(snapshot))}</div>
       </header>
       ${content}
-      <footer>Emails, comments and response metadata are never read by this ledger.</footer>
+      <footer>Emails, comments and response metadata are never read by this ledger.${snapshot.rejectedRows ? ` ${snapshot.rejectedRows} incomplete ${snapshot.rejectedRows === 1 ? "response was" : "responses were"} skipped.` : ""}</footer>
     </main>
   </div>
 </body>
@@ -64,7 +65,8 @@ function rowAttrs({ search, characterClass, role, server, sort }) {
   return `data-search="${escapeHtml(search.toLowerCase())}" data-class="${escapeHtml(characterClass)}" data-role="${escapeHtml(role)}" data-server="${escapeHtml(server)}" data-sort="${escapeHtml(sort)}"`;
 }
 
-function emptyPanel() {
+function emptyPanel(snapshot = {}) {
+  if (snapshot.status && snapshot.status !== "empty") return `<section class="parchment-panel empty-ledger"><h2>No responses yet</h2><p>The sheet is connected and synced, but nobody has filled in the Form yet. Entries appear here automatically.</p></section>`;
   return `<section class="parchment-panel empty-ledger"><h2>The ledger is ready</h2><p>Link the Form to a Google Sheet and add the read-only credentials on the Pi. The first anonymous census will appear automatically.</p></section>`;
 }
 
@@ -90,7 +92,7 @@ function activityPanel(events) {
 }
 
 export function renderDashboard(snapshot, memberData = { events: [] }) {
-  if (!snapshot.records.length) return shell({ title: "Guild Ledger", active: "/", snapshot, content: emptyPanel(), scripts: ["/assets/live-refresh.js"] });
+  if (!snapshot.records.length) return shell({ title: "Guild Ledger", active: "/", snapshot, content: emptyPanel(snapshot), scripts: ["/assets/live-refresh.js"] });
   const { leaders, distributions, totalResponses } = snapshot.stats;
   const content = `<section class="ledger-overview" aria-labelledby="muster-heading">
     <div class="launch-count" data-launch="${escapeHtml(LAUNCH_AT)}"><span>WoW Forever launches</span><strong id="launch-countdown">4 November 2026, 3 PM PST</strong><small>Reported launch date</small></div>
@@ -114,7 +116,7 @@ export function renderResponses(snapshot) {
 
 export function renderStatistics(snapshot) {
   const d = snapshot.stats.distributions;
-  const content = snapshot.records.length ? `<section class="statistics-intro"><p>${snapshot.stats.totalResponses} plans, counted exactly as submitted.</p></section><section class="statistics-grid">${bars("Class distribution", d.characterClass)}${bars("Role distribution", d.role)}${bars("Race distribution", d.race)}${bars("Faction split", d.faction)}${bars("Ruleset preference", d.server)}${bars("Profession demand", d.professions, "wide")}</section>` : emptyPanel();
+  const content = snapshot.records.length ? `<section class="statistics-intro"><p>${snapshot.stats.totalResponses} plans, counted exactly as submitted.</p></section><section class="statistics-grid">${bars("Class distribution", d.characterClass)}${bars("Role distribution", d.role)}${bars("Race distribution", d.race)}${bars("Faction split", d.faction)}${bars("Ruleset preference", d.server)}${bars("Profession demand", d.professions, "wide")}</section>` : emptyPanel(snapshot);
   return shell({ title: "Guild Statistics", active: "/statistics", snapshot, content, scripts: ["/assets/live-refresh.js"] });
 }
 
@@ -132,7 +134,7 @@ function lastChange(events, name) {
 export function renderMembers(snapshot, memberData) {
   const members = [...memberData.members].sort((a, b) => a.name.localeCompare(b.name));
   const rows = members.map((member) => { const warning = comboWarning(member.race, member.characterClass); const roleNote = roleWarning(member.characterClass, member.role); const change = lastChange(memberData.events, member.name); return `<tr ${rowAttrs({ search: [member.name, member.characterClass, member.role, member.race, factionOf(member.race), member.server, member.profession1, member.profession2, change].join(" "), characterClass: member.characterClass, role: member.role, server: member.server, sort: member.name })}><th scope="row"><a href="/member?name=${encodeURIComponent(member.name)}">${escapeHtml(member.name)}</a></th><td><span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span></td><td>${escapeHtml(member.role)}</td><td>${escapeHtml(member.race)}</td><td>${escapeHtml(factionOf(member.race))}</td><td>${escapeHtml(member.server)}</td><td>${escapeHtml(member.profession1)}</td><td>${escapeHtml(member.profession2)}</td><td>${escapeHtml(change)}${warning ? `<br><small class="combo-flag">⚠ ${escapeHtml(warning)} — check the form answer</small>` : ""}${roleNote ? `<br><small class="combo-flag">⚠ ${escapeHtml(roleNote)} — check the form answer</small>` : ""}</td></tr>`; }).join("");
-  const content = `${members.length ? `<section class="parchment-panel census-panel"><div class="panel-heading"><div><span>Named roster</span><h2>Guild Roster</h2><p>Everyone's current plans, with their latest change. <a href="/members.csv">Download CSV</a></p></div><strong id="visible-count" data-singular="member" data-plural="members">${members.length} ${members.length === 1 ? "member" : "members"}</strong></div>${filterForm("Search the roster", "Name, class, role, race, faction or profession", "Name")}<div class="table-scroll"><table id="census-table"><thead><tr><th>Name</th><th>Class</th><th>Role</th><th>Race</th><th>Faction</th><th>Ruleset</th><th>Profession 1</th><th>Profession 2</th><th>Latest change</th></tr></thead><tbody>${rows}</tbody></table></div><p class="no-results" hidden>No members match those filters.</p></section>` : `<section class="parchment-panel empty-ledger"><h2>No members on the roll yet</h2><p>Members appear after the next successful census sync.</p></section>`}`;
+  const content = `${memberData.error ? `<p class="combo-flag" role="status">Names could not be refreshed (${escapeHtml(memberData.error === "mapping" ? "the name question changed on the Form" : "the last sync failed")}). Showing the last saved roster.</p>` : ""}${members.length ? `<section class="parchment-panel census-panel"><div class="panel-heading"><div><span>Named roster</span><h2>Guild Roster</h2><p>Everyone's current plans, with their latest change. <a href="/members.csv">Download CSV</a></p></div><strong id="visible-count" data-singular="member" data-plural="members">${members.length} ${members.length === 1 ? "member" : "members"}</strong></div>${filterForm("Search the roster", "Name, class, role, race, faction or profession", "Name")}<div class="table-scroll"><table id="census-table"><thead><tr><th>Name</th><th>Class</th><th>Role</th><th>Race</th><th>Faction</th><th>Ruleset</th><th>Profession 1</th><th>Profession 2</th><th>Latest change</th></tr></thead><tbody>${rows}</tbody></table></div><p class="no-results" hidden>No members match those filters.</p></section>` : `<section class="parchment-panel empty-ledger"><h2>No members on the roll yet</h2><p>Members appear after the next successful census sync.</p></section>`}`;
   return shell({ title: "Guild Roster", active: "/members", snapshot, content, scripts: ["/assets/table-filters.js", "/assets/live-refresh.js"] });
 }
 
@@ -170,7 +172,7 @@ export function renderRaidPlan(snapshot, size = 40, memberData = { members: [] }
   const groups = groupPlan(memberData.members, size).map((faction) => `<section class="parchment-panel raid-panel wide"><div class="panel-heading"><div><span>${escapeHtml(faction.faction)} suggested groups</span><h2>${faction.groups.reduce((sum, group) => sum + group.members.length, 0)} placed${faction.bench.length ? `, ${faction.bench.length} on the bench` : ""}</h2></div></div><p class="quiet">Ruleset preferences: ${faction.rulesets.map((item) => `${escapeHtml(item.label)} (${item.count})`).join(" · ")}. Players can only group within one faction and one ruleset.</p><div class="group-grid">${faction.groups.map((group, index) => `<article class="group-card"><h3>Group ${index + 1}</h3><ul>${group.members.map((member) => `<li><strong>${escapeHtml(member.name)}</strong> <span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span> <small>${escapeHtml(member.role)}</small></li>`).join("") || '<li class="quiet">Open slots</li>'}</ul></article>`).join("")}</div>${faction.bench.length ? `<p class="quiet">Bench: ${faction.bench.map((member) => escapeHtml(member.name)).join(", ")}</p>` : ""}</section>`).join("");
   const content = snapshot.records.length
     ? `${sizeTabs}<p class="quiet">Factions cannot group together, so each side is planned separately. Targets are a rough guide from community raid advice, not a rule.</p><div class="statistics-grid">${panels}</div>${groups}`
-    : emptyPanel();
+    : emptyPanel(snapshot);
   return shell({ title: "Raid Planner", active: "/raid", snapshot, content, scripts: ["/assets/live-refresh.js"] });
 }
 
