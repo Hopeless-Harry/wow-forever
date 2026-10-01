@@ -6,7 +6,7 @@ import { normalizeRows } from "../src/domain/normalize.js";
 import { buildStats } from "../src/domain/stats.js";
 import { mapping, PRIVATE_MARKERS, sheetRows } from "./fixtures/sheet-rows.js";
 
-test("private source markers never cross any browser response", async (t) => {
+test("private columns never cross any browser response; names appear only on member pages", async (t) => {
   const normalized = normalizeRows(sheetRows, mapping);
   const snapshot = {
     ...normalized,

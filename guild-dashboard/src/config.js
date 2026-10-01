@@ -17,12 +17,6 @@ function integerSetting(value, fallback, name, minimum = 1) {
   return parsed;
 }
 
-function guildPasscode(value) {
-  if (!value) return "";
-  if (value.length < 8) throw new Error("GUILD_PASSCODE must be at least 8 characters");
-  return value;
-}
-
 export function loadConfig(env = process.env) {
   return {
     nodeEnv: env.NODE_ENV || "production",
@@ -35,10 +29,8 @@ export function loadConfig(env = process.env) {
     googleClientEmail: env.GOOGLE_CLIENT_EMAIL || "",
     googlePrivateKey: (env.GOOGLE_PRIVATE_KEY || "").replace(/\\n/g, "\n"),
     cachePath: env.CACHE_PATH || new URL("../data/cache.json", import.meta.url).pathname,
-    chroniclePath: env.CHRONICLE_PATH || new URL("../data/chronicle.json", import.meta.url).pathname,
     memberPath: env.MEMBER_PATH || new URL("../data/members.json", import.meta.url).pathname,
     nameHeader: DEFAULT_NAME_HEADER,
-    guildPasscode: guildPasscode(env.GUILD_PASSCODE),
     mapping: { ...DEFAULT_MAPPING },
     useFixture: env.USE_FIXTURE === "true" || env.NODE_ENV === "test"
   };

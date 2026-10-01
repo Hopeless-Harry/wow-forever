@@ -21,9 +21,3 @@ test("rejects invalid numeric settings", () => {
   assert.throws(() => loadConfig({ PORT: "invalid" }), /PORT must be an integer/);
   assert.throws(() => loadConfig({ REFRESH_SECONDS: "0" }), /REFRESH_SECONDS/);
 });
-
-test("members passcode is optional but must be long enough", () => {
-  assert.equal(loadConfig({}).guildPasscode, "");
-  assert.equal(loadConfig({ GUILD_PASSCODE: "long enough" }).guildPasscode, "long enough");
-  assert.throws(() => loadConfig({ GUILD_PASSCODE: "short" }), /GUILD_PASSCODE/);
-});

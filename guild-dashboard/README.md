@@ -6,8 +6,7 @@ A lightweight, privacy-first guild census for the **Moms Against Magic — WoW F
 
 - Shows anonymous class, role, race, realm, and profession summaries.
 - Provides a searchable and filterable Guild Census.
-- Opens a members-only Members' Hall (passcode protected) with a named roster and a named chronicle of who joined, left or changed their plans.
-- Keeps a Chronicle: an anonymous timeline of joiners, departures, roster milestones and leading-class/role/realm changes, built by comparing each sync with the last.
+- Shows a public named Guild Roster and Guild Chronicle: everyone's current plans, plus who joined, left or changed class, role, race, realm or professions.
 - Refreshes from Google Sheets every two minutes without rebuilding.
 - Continues serving the last safe cache if Google is unavailable.
 - Runs as a small Node.js service on a Raspberry Pi 3.
@@ -101,9 +100,7 @@ Do not publish the Sheet to the web. Publishing it could reveal the excluded nam
 | `REFRESH_SECONDS` | `120` | Google refresh interval |
 | `STALE_AFTER_SECONDS` | `600` | Age at which the UI labels cached data stale |
 | `CACHE_PATH` | project `data/cache.json` | Sanitized cache location |
-| `MEMBER_PATH` | project `data/members.json` | Private named roster and history (mode 0600) |
-| `GUILD_PASSCODE` | empty | Opens the Members' Hall; min 8 characters. Empty keeps it sealed |
-| `CHRONICLE_PATH` | project `data/chronicle.json` | Chronicle history (allowlisted events only, capped at 200) |
+| `MEMBER_PATH` | project `data/members.json` | Named roster and history file (mode 0600) |
 | `GOOGLE_SHEET_ID` | empty | ID from the response Sheet URL |
 | `GOOGLE_SHEET_RANGE` | `Form Responses 1!A:Z` | Response tab and columns |
 | `GOOGLE_CLIENT_EMAIL` | empty | Read-only service account email |
@@ -228,32 +225,23 @@ node --version
 
 Node must be version 20 or newer. Do not paste environment-file contents into support messages because they contain the private key.
 
-## Members' Hall (named data)
+## Privacy behaviour
 
-The public pages stay anonymous. Names live in a separate private path:
+Member names are public by the guild's decision. Anyone with the site link can see the roster and chronicle, so only people who are happy to be listed should fill in the Form.
 
-- `/members` and `/members/chronicle` require the `GUILD_PASSCODE` and are never cached or indexed.
-- With no passcode set, those routes return 404 and no names are shown anywhere.
-- Names come from the Form's BattleTag/name column and are matched case-insensitively across syncs; a later submission with the same name replaces the earlier one.
-- Named data is stored only in `MEMBER_PATH` (mode 0600). Comments, emails, timestamps and unknown columns are still never read.
-- Login uses a signed, HttpOnly, SameSite=Strict cookie (7 days) and locks an IP for 5 minutes after 5 wrong passcodes. Sessions reset when the service restarts.
-- Use a Cloudflare tunnel with HTTPS so the passcode is never sent in the clear. Choose a passcode you don't use elsewhere.
-
-## Privacy behaviour (public pages)
-
-The privacy rule is an allowlist, not a visual hide:
-
-- Allowed: anonymous response number, server preference, race, class, role, profession 1, profession 2.
-- Excluded: name, BattleTag, email, Google identity, timestamp, response ID, comments, hidden columns, and every unknown column.
-- Excluded fields are removed before cache writing, statistics, HTML, or JSON.
-- Free-text comments remain excluded because current answers can indirectly identify members.
-- The browser receives only `/api/public-data`, which is generated from the sanitized snapshot.
+- Shown publicly: the name or BattleTag typed into the Form, server preference, race, class, role, profession 1 and profession 2, and the history of changes to those answers.
+- Never read or shown: email, Google identity, timestamp, response ID, comments, hidden columns and every unknown column.
+- Names are matched case-insensitively across syncs. A later submission with the same name replaces the earlier one and is recorded in the Chronicle as a change.
+- Roster history is stored in `MEMBER_PATH` (mode 0600, capped at 500 events) and written atomically.
 - Logs contain row counts and error categories, never response content or credentials.
+- Do not publish the response Sheet itself; it contains the excluded columns.
+- To remove someone, delete their row from the response Sheet; they then appear in the Chronicle as having left.
+- The `/responses` Guild Census and `/statistics` pages remain aggregate views with numbered entries.
 
 Run the privacy regression suite at any time:
 
 ```bash
-npm test -- test/privacy.test.js test/normalize.test.js test/cache-store.test.js
+npm test -- test/privacy.test.js test/normalize.test.js test/cache-store.test.js test/members.test.js
 ```
 
 If you later want comments visible, add a separate moderation workflow. Do not simply add the comment column to the public mapping.

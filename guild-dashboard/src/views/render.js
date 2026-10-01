@@ -18,7 +18,7 @@ function navLink(href, label, active) {
   return `<a href="${href}"${current}>${label}</a>`;
 }
 
-function shell({ title, active, snapshot, content, scripts = [], privateArea = false }) {
+function shell({ title, active, snapshot, content, scripts = [] }) {
   const scriptTags = scripts.map((source) => `<script src="${source}" defer></script>`).join("");
   return `<!doctype html>
 <html lang="en">
@@ -36,8 +36,8 @@ function shell({ title, active, snapshot, content, scripts = [], privateArea = f
     <aside class="guild-rail" aria-label="Guild Ledger navigation">
       <a class="guild-seal" href="/" aria-label="Moms Against Magic Guild Ledger"><span>M</span></a>
       <div class="guild-name"><strong>Moms Against Magic</strong><span>Guild Ledger</span></div>
-      <nav>${navLink("/", "Dashboard", active)}${navLink("/responses", "Guild Census", active)}${navLink("/chronicles", "Chronicles", active)}${navLink("/statistics", "Statistics", active)}${navLink("/members", "Members' Hall", active)}</nav>
-      <p class="privacy-mark">${privateArea ? "Members only<br>Names stay behind the gate" : "Anonymous by design<br>Names never leave the vault"}</p>
+      <nav>${navLink("/", "Dashboard", active)}${navLink("/responses", "Guild Census", active)}${navLink("/statistics", "Statistics", active)}${navLink("/members", "Roster", active)}${navLink("/members/chronicle", "Chronicle", active)}</nav>
+      <p class="privacy-mark">Every adventurer<br>on the roll</p>
     </aside>
     <main id="main-content" class="ledger-main">
       <header class="ledger-topbar">
@@ -45,7 +45,7 @@ function shell({ title, active, snapshot, content, scripts = [], privateArea = f
         <div class="sync-rune" role="status"><span aria-hidden="true"></span>${escapeHtml(statusCopy(snapshot))}</div>
       </header>
       ${content}
-      <footer>${privateArea ? "Members-only page. Do not share screenshots outside the guild." : "Names, BattleTags, emails, comments and response metadata are excluded before this ledger is rendered."}</footer>
+      <footer>Emails, comments and response metadata are never read by this ledger.</footer>
     </main>
   </div>
 </body>
@@ -97,34 +97,6 @@ export function renderStatistics(snapshot) {
   return shell({ title: "Guild Statistics", active: "/statistics", snapshot, content, scripts: ["/assets/live-refresh.js"] });
 }
 
-function chronicleText(event) {
-  const plural = (count) => `${count} ${count === 1 ? "adventurer" : "adventurers"}`;
-  switch (event.type) {
-    case "census-opened": return `The census was opened with ${plural(event.count)} on the muster roll.`;
-    case "joined": return `A new ${event.entry.race} ${event.entry.characterClass} (${event.entry.role}) joined, bringing ${event.entry.profession1} and ${event.entry.profession2}. Realm preference: ${event.entry.server}.`;
-    case "departed": return `${plural(event.count)} withdrew or changed their plans.`;
-    case "milestone": return `The guild reached ${event.count} sealed names.`;
-    case "leader-change": return `The leading ${event.category} changed from ${event.from} to ${event.to}.`;
-    default: return "";
-  }
-}
-
-export function renderChronicles(snapshot) {
-  const events = [...(snapshot.chronicle || [])].reverse();
-  const items = events.map((event) => `<li class="chronicle-entry chronicle-${escapeHtml(event.type)}"><time datetime="${escapeHtml(event.at)}">${escapeHtml(event.at.slice(0, 16).replace("T", " "))} UTC</time><p>${escapeHtml(chronicleText(event))}</p></li>`).join("");
-  const content = events.length
-    ? `<section class="parchment-panel chronicle-panel"><div class="panel-heading"><div><span>Guild history</span><h2>The Chronicle</h2><p>Every change to the roster, recorded anonymously as it happens.</p></div><strong>${events.length} ${events.length === 1 ? "entry" : "entries"}</strong></div><ol class="chronicle-list">${items}</ol></section>`
-    : `<section class="parchment-panel empty-ledger"><h2>The Chronicle awaits its first page</h2><p>Roster changes will be recorded here after the next successful census sync.</p></section>`;
-  return shell({ title: "Guild Chronicles", active: "/chronicles", snapshot, content, scripts: ["/assets/live-refresh.js"] });
-}
-
-export function renderLogin(snapshot, { error = "", disabled = false } = {}) {
-  const content = disabled
-    ? `<section class="parchment-panel empty-ledger"><h2>The Members' Hall is sealed</h2><p>Set <code>GUILD_PASSCODE</code> on the server to open it.</p></section>`
-    : `<section class="parchment-panel login-panel"><div class="panel-heading"><div><span>Members only</span><h2>Enter the Members' Hall</h2><p>Named rosters and history are only for guild members.</p></div></div>${error ? `<p class="login-error" role="alert">${escapeHtml(error)}</p>` : ""}<form class="census-tools" method="post" action="/login"><label>Guild passcode<input type="password" name="passcode" autocomplete="current-password" required autofocus></label><button class="wow-button" type="submit">Enter</button></form></section>`;
-  return shell({ title: "Members' Hall", active: "/members", snapshot, content, privateArea: true });
-}
-
 function lastChange(events, name) {
   for (let index = events.length - 1; index >= 0; index -= 1) {
     const event = events[index];
@@ -136,17 +108,11 @@ function lastChange(events, name) {
   return "—";
 }
 
-const MEMBER_TABS = [["/members", "Roster"], ["/members/chronicle", "Chronicle"]];
-
-function memberTabs(active) {
-  return `<nav class="member-tabs" aria-label="Members' Hall sections">${MEMBER_TABS.map(([href, label]) => navLink(href, label, active)).join("")}<form method="post" action="/logout"><button class="wow-button" type="submit">Leave hall</button></form></nav>`;
-}
-
 export function renderMembers(snapshot, memberData) {
   const members = [...memberData.members].sort((a, b) => a.name.localeCompare(b.name));
   const rows = members.map((member) => `<tr><th scope="row">${escapeHtml(member.name)}</th><td><span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span></td><td>${escapeHtml(member.role)}</td><td>${escapeHtml(member.race)}</td><td>${escapeHtml(member.server)}</td><td>${escapeHtml(member.profession1)}</td><td>${escapeHtml(member.profession2)}</td><td>${escapeHtml(lastChange(memberData.events, member.name))}</td></tr>`).join("");
-  const content = `${memberTabs("/members")}${members.length ? `<section class="parchment-panel census-panel"><div class="panel-heading"><div><span>Named roster</span><h2>Members' Roster</h2><p>Everyone's current plans, with their latest change.</p></div><strong>${members.length} ${members.length === 1 ? "member" : "members"}</strong></div><div class="table-scroll"><table><thead><tr><th>Name</th><th>Class</th><th>Role</th><th>Race</th><th>Realm</th><th>Profession 1</th><th>Profession 2</th><th>Latest change</th></tr></thead><tbody>${rows}</tbody></table></div></section>` : `<section class="parchment-panel empty-ledger"><h2>No members on the roll yet</h2><p>Members appear after the next successful census sync.</p></section>`}`;
-  return shell({ title: "Members' Hall", active: "/members", snapshot, content, privateArea: true });
+  const content = `${members.length ? `<section class="parchment-panel census-panel"><div class="panel-heading"><div><span>Named roster</span><h2>Guild Roster</h2><p>Everyone's current plans, with their latest change.</p></div><strong>${members.length} ${members.length === 1 ? "member" : "members"}</strong></div><div class="table-scroll"><table><thead><tr><th>Name</th><th>Class</th><th>Role</th><th>Race</th><th>Realm</th><th>Profession 1</th><th>Profession 2</th><th>Latest change</th></tr></thead><tbody>${rows}</tbody></table></div></section>` : `<section class="parchment-panel empty-ledger"><h2>No members on the roll yet</h2><p>Members appear after the next successful census sync.</p></section>`}`;
+  return shell({ title: "Guild Roster", active: "/members", snapshot, content });
 }
 
 function memberEventText(event) {
@@ -163,6 +129,6 @@ function memberEventText(event) {
 export function renderMemberChronicle(snapshot, memberData) {
   const events = [...memberData.events].reverse();
   const items = events.map((event) => `<li class="chronicle-entry chronicle-${escapeHtml(event.type)}"><time datetime="${escapeHtml(event.at)}">${escapeHtml(event.at.slice(0, 16).replace("T", " "))} UTC</time><p>${memberEventText(event)}</p></li>`).join("");
-  const content = `${memberTabs("/members/chronicle")}${events.length ? `<section class="parchment-panel chronicle-panel"><div class="panel-heading"><div><span>Guild history</span><h2>Members' Chronicle</h2><p>Who joined, who left and who changed their plans.</p></div><strong>${events.length} ${events.length === 1 ? "entry" : "entries"}</strong></div><ol class="chronicle-list">${items}</ol></section>` : `<section class="parchment-panel empty-ledger"><h2>The Chronicle awaits its first page</h2><p>Changes are recorded after the next successful census sync.</p></section>`}`;
-  return shell({ title: "Members' Chronicle", active: "/members/chronicle", snapshot, content, privateArea: true });
+  const content = `${events.length ? `<section class="parchment-panel chronicle-panel"><div class="panel-heading"><div><span>Guild history</span><h2>Guild Chronicle</h2><p>Who joined, who left and who changed their plans.</p></div><strong>${events.length} ${events.length === 1 ? "entry" : "entries"}</strong></div><ol class="chronicle-list">${items}</ol></section>` : `<section class="parchment-panel empty-ledger"><h2>The Chronicle awaits its first page</h2><p>Changes are recorded after the next successful census sync.</p></section>`}`;
+  return shell({ title: "Guild Chronicle", active: "/members/chronicle", snapshot, content });
 }

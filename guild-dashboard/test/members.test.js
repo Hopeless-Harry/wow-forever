@@ -5,7 +5,6 @@ import path from "node:path";
 import test from "node:test";
 
 import { buildApp } from "../src/app.js";
-import { createAuth } from "../src/auth.js";
 import { DataService } from "../src/data/data-service.js";
 import { MemberStore } from "../src/data/member-store.js";
 import { diffMembers, normalizeMembers } from "../src/domain/members.js";
@@ -58,72 +57,38 @@ test("data service keeps named history privately and persists it with 0600 permi
   assert.equal((await stat(path.join(dir, "members.json"))).mode & 0o777, 0o600);
 });
 
-test("members area is sealed without a passcode and gated with one", async (t) => {
+test("roster and chronicle are public and show names but never private columns", async (t) => {
   const ref = { rows: sheetRows };
   const { service } = await makeService(ref);
   await service.refresh();
-
-  const sealed = buildApp({ dataService: service, logger: false });
-  t.after(() => sealed.close());
-  assert.equal((await sealed.inject({ url: "/members" })).statusCode, 404);
-
-  const auth = createAuth({ passcode: "correct horse" });
-  const app = buildApp({ dataService: service, auth, logger: false });
+  ref.rows = [sheetRows[0], [...sheetRows[1].slice(0, 4), "Mage", ...sheetRows[1].slice(5)], sheetRows[2]];
+  await service.refresh();
+  const app = buildApp({ dataService: service, logger: false });
   t.after(() => app.close());
 
-  const anon = await app.inject({ url: "/members" });
-  assert.equal(anon.statusCode, 302);
-  assert.equal(anon.headers.location, "/login");
-  assert.equal(anon.body.includes("SecretName#1234"), false);
-
-  const bad = await app.inject({ method: "POST", url: "/login", payload: "passcode=nope", headers: { "content-type": "application/x-www-form-urlencoded" } });
-  assert.equal(bad.statusCode, 401);
-
-  const good = await app.inject({ method: "POST", url: "/login", payload: "passcode=correct+horse", headers: { "content-type": "application/x-www-form-urlencoded" } });
-  assert.equal(good.statusCode, 302);
-  const cookie = good.headers["set-cookie"];
-  assert.match(cookie, /HttpOnly/);
-  assert.match(cookie, /SameSite=Strict/);
-
-  const headers = { cookie: cookie.split(";")[0] };
-  const roster = await app.inject({ url: "/members", headers });
+  const roster = await app.inject({ url: "/members" });
   assert.equal(roster.statusCode, 200);
   assert.match(roster.body, /SecretName#1234/);
-  assert.equal(roster.body.includes("guildmaster@example.com"), false);
-  assert.equal(roster.body.includes("private comment mentioning Jakjak"), false);
-  assert.equal(roster.headers["cache-control"], "no-store");
-  assert.match((await app.inject({ url: "/members/chronicle", headers })).body, /Members' Chronicle/);
+  assert.match(roster.body, /AnotherSecret#5678/);
+  const chronicle = await app.inject({ url: "/members/chronicle" });
+  assert.match(chronicle.body, /SecretName#1234<\/strong> changed class from Priest to Mage/);
 
-  const forged = await app.inject({ url: "/members", headers: { cookie: "guild_session=9999999999999.deadbeef" } });
-  assert.equal(forged.statusCode, 302);
-});
-
-test("public routes never carry names even when the members area is enabled", async (t) => {
-  const ref = { rows: sheetRows };
-  const { service } = await makeService(ref);
-  await service.refresh();
-  const app = buildApp({ dataService: service, auth: createAuth({ passcode: "correct horse" }), logger: false });
-  t.after(() => app.close());
-
-  for (const url of ["/", "/responses", "/statistics", "/chronicles", "/api/public-data", "/login"]) {
+  for (const url of ["/", "/responses", "/statistics", "/members", "/members/chronicle", "/api/public-data"]) {
     const body = (await app.inject({ url })).body;
-    for (const marker of PRIVATE_MARKERS) assert.equal(body.includes(marker), false, `${url} leaked ${marker}`);
-    assert.equal(body.includes("AnotherSecret#5678"), false, url);
+    for (const marker of PRIVATE_MARKERS.filter((m) => m !== "SecretName#1234")) {
+      assert.equal(body.includes(marker), false, `${url} leaked ${marker}`);
+    }
   }
 });
 
-test("login locks out repeated failures and escapes the member names", async (t) => {
-  const auth = createAuth({ passcode: "correct horse" });
-  for (let i = 0; i < 5; i += 1) assert.equal(auth.attempt("1.2.3.4", "wrong"), null);
-  assert.equal(auth.locked("1.2.3.4"), true);
-  assert.equal(auth.attempt("1.2.3.4", "correct horse"), null);
-
-  const memberData = { members: [{ name: "<script>x</script>", server: "Normal", race: "Orc", characterClass: "Mage", role: "DPS", profession1: "A", profession2: "B" }], events: [], fetchedAt: AT };
+test("escapes member names before rendering", async (t) => {
+  const memberData = { members: [{ name: "<script>x</script>", server: "Normal", race: "Orc", characterClass: "Mage", role: "DPS", profession1: "A", profession2: "B" }], events: [{ type: "left", at: AT, name: "<b>gone</b>" }], fetchedAt: AT };
   const snapshot = { records: [], stats: { totalResponses: 0 }, status: "fresh", fetchedAt: AT, lastRefreshFailed: false };
-  const app = buildApp({ dataService: { snapshot: () => snapshot, memberSnapshot: () => memberData }, auth: createAuth({ passcode: "correct horse" }), logger: false });
+  const app = buildApp({ dataService: { snapshot: () => snapshot, memberSnapshot: () => memberData }, logger: false });
   t.after(() => app.close());
-  const login = await app.inject({ method: "POST", url: "/login", payload: "passcode=correct+horse", headers: { "content-type": "application/x-www-form-urlencoded" } });
-  const page = await app.inject({ url: "/members", headers: { cookie: login.headers["set-cookie"].split(";")[0] } });
-  assert.equal(page.body.includes("<script>x"), false);
-  assert.match(page.body, /&lt;script&gt;x/);
+  const roster = (await app.inject({ url: "/members" })).body;
+  const history = (await app.inject({ url: "/members/chronicle" })).body;
+  assert.equal(roster.includes("<script>x"), false);
+  assert.match(roster, /&lt;script&gt;x/);
+  assert.equal(history.includes("<b>gone"), false);
 });

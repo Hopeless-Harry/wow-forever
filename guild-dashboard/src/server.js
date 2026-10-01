@@ -1,6 +1,4 @@
-import { createAuth } from "./auth.js";
 import { MemberStore } from "./data/member-store.js";
-import { ChronicleStore } from "./data/chronicle-store.js";
 import { CacheStore } from "./data/cache-store.js";
 import { DataService } from "./data/data-service.js";
 import { createAccessToken } from "./data/google-auth.js";
@@ -33,7 +31,6 @@ const dataService = new DataService({
   normalize: normalizeRows,
   mapping: config.mapping,
   cacheStore,
-  chronicleStore: new ChronicleStore(config.chroniclePath),
   memberStore: new MemberStore(config.memberPath),
   normalizeMembers,
   nameHeader: config.nameHeader,
@@ -41,7 +38,7 @@ const dataService = new DataService({
 });
 
 await dataService.start();
-const app = buildApp({ dataService, auth: config.guildPasscode ? createAuth({ passcode: config.guildPasscode }) : null });
+const app = buildApp({ dataService });
 
 const shutdown = async () => {
   dataService.stop();
