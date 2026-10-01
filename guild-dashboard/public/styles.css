@@ -401,8 +401,8 @@ footer {
   .dashboard-grid .wide, .statistics-grid .wide { grid-column: auto; }
   .panel-heading { align-items: flex-start; flex-direction: column; }
   .wow-button { width: 100%; }
-  .census-tools { grid-template-columns: 1fr; }
-  .census-tools label:first-child { grid-column: auto; }
+  .census-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+  .census-tools label:first-child { grid-column: 1 / -1; }
   .parchment-panel { padding: .85rem; }
 }
 
@@ -437,7 +437,9 @@ footer {
 .group-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0.75rem; }
 .group-card { border: 1px solid var(--gold-dark); padding: 0.6rem 0.8rem; }
 .group-card h3 { margin: 0 0 0.4rem; }
-.group-card ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; }
+.group-card ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.55rem; }
+.group-card li { display: grid; gap: 0.1rem; }
+.member-meta { font-size: 0.85rem; color: #3b2815; }
 
 .profile-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0.75rem; margin: 1rem 0; }
 .profile-facts dt { font-size: 0.85rem; color: #3b2815; }
@@ -484,3 +486,11 @@ th[scope="row"] a, .panel-heading p a, .empty-ledger a, .profile-card a { displa
   .parchment-panel { overflow: visible; }
   a { color: #000; text-decoration: none; }
 }
+
+/* Coverage tables keep all three columns visible on phones: fixed widths, wrapping first column. */
+.raid-panel table { table-layout: fixed; width: 100%; }
+.raid-panel th:nth-child(1) { width: 52%; }
+.raid-panel th:nth-child(2) { width: 22%; }
+.raid-panel th:nth-child(3) { width: 26%; }
+.raid-panel th, .raid-panel td { padding: .6rem .5rem; overflow-wrap: anywhere; }
+.raid-panel tbody th { white-space: normal; }

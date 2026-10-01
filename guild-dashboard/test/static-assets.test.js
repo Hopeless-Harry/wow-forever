@@ -161,3 +161,10 @@ test("every class colour is readable on the darkest parchment", async () => {
     assert.ok(ratio(match[1], "#c3a363") >= 4.5, `${name} ${match[1]} is ${ratio(match[1], "#c3a363").toFixed(2)}:1`);
   }
 });
+
+test("raid tables use a fixed three-column layout so Status never scrolls out of view", async () => {
+  const css = await readFile(path.join(projectRoot, "public", "styles.css"), "utf8");
+  assert.match(css, /\.raid-panel table\s*\{[^}]*table-layout:\s*fixed/);
+  for (const column of [1, 2, 3]) assert.match(css, new RegExp(`\\.raid-panel th:nth-child\\(${column}\\)\\s*\\{\\s*width:`));
+  assert.match(css, /\.raid-panel tbody th\s*\{\s*white-space:\s*normal/, "row descriptions wrap instead of overlapping the next column");
+});

@@ -72,3 +72,18 @@ test("pages render groups, gaps and the launch countdown safely", async (t) => {
   assert.equal(script.statusCode, 200);
   assert.doesNotMatch(script.body, /https?:\/\//);
 });
+
+test("group cards put each member's class and role on their own line and filters stay two-up on phones", async (t) => {
+  const memberData = { members: [make("Al#1", "Priest", "Healer", "Troll")], events: [], fetchedAt: "2026-09-22T12:00:00.000Z" };
+  const records = [{ anonymousId: "Response #1", server: "Normal", race: "Troll", characterClass: "Priest", role: "Healer", profession1: "Mining", profession2: "Skinning" }];
+  const snapshot = { records, stats: buildStats(records), status: "fresh", fetchedAt: memberData.fetchedAt, lastRefreshFailed: false };
+  const app = buildApp({ dataService: { snapshot: () => snapshot, memberSnapshot: () => memberData }, logger: false, rateLimitPerMinute: 0 });
+  t.after(() => app.close());
+
+  const raid = (await app.inject({ url: "/raid?size=10" })).body;
+  assert.match(raid, /<li><strong>Al#1<\/strong><span class="member-meta"><span class="class-chip class-priest">Priest<\/span> <span aria-hidden="true">·<\/span> Healer<\/span><\/li>/);
+
+  const css = (await import("node:fs")).readFileSync(new URL("../public/styles.css", import.meta.url), "utf8");
+  assert.match(css, /\.group-card li\s*\{[^}]*display:\s*grid/);
+  assert.doesNotMatch(css, /\.census-tools\s*\{\s*grid-template-columns:\s*1fr;\s*\}/, "filters no longer collapse to one column");
+});
