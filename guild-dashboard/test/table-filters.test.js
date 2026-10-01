@@ -12,7 +12,8 @@ const ROWS = [
   { sort: "000004", faction: "Alliance", class: "Hunter", role: "", server: "", search: "hunter troll" }
 ];
 
-function harness({ saved = null, storageThrows = false, missing = false, withFaction = false } = {}) {
+function harness({ saved = null, storageThrows = false, missing = false, withFaction = false, search = "" } = {}) {
+  const urls = [];
   const handlers = {};
   const select = (extra = {}) => ({ value: "", options: [], add(option) { this.options.push(option); }, ...extra });
   const form = {
@@ -35,11 +36,11 @@ function harness({ saved = null, storageThrows = false, missing = false, withFac
       return { "[data-census-filters]": form, "#census-table": table, "#visible-count": count, ".no-results": noResults }[selector] ?? null;
     }
   };
-  vm.runInNewContext(script, vm.createContext({ document, sessionStorage, location: { pathname: "/members" }, Option: function Option(text, value) { return { text, value }; } }));
+  vm.runInNewContext(script, vm.createContext({ document, sessionStorage, URLSearchParams, history: { replaceState: (_state, _title, url) => { urls.push(url); } }, location: { pathname: "/members", search, hash: "" }, Option: function Option(text, value) { return { text, value }; } }));
   const fire = () => { handlers.input?.(); handlers.change?.(); };
   const visible = () => body.rows.filter((r) => !r.hidden).map((r) => r.dataset.sort);
   const order = () => body.rows.map((r) => r.dataset.sort);
-  return { form, count, noResults, store, fire, visible, order, handlers };
+  return { form, count, noResults, store, fire, visible, order, handlers, urls };
 }
 
 test("dropdowns list each distinct non-empty value once, sorted", () => {
@@ -159,4 +160,69 @@ test("pages without a faction filter ignore faction data entirely", () => {
   h.fire();
   assert.equal(h.visible().length, 4);
   assert.equal("faction" in JSON.parse(h.store.get("table-filters:/members") ?? "{}"), false);
+});
+
+test("filter choices are written to the address so a filtered view can be shared", () => {
+  const h = harness({ withFaction: true });
+  assert.deepEqual(h.urls, ["/members"], "an unfiltered page keeps a clean address");
+
+  h.form.elements.faction.value = "Alliance";
+  h.form.elements.class.value = "Priest";
+  h.form.elements.search.value = "heal er";
+  h.form.elements.sort.value = "class";
+  h.fire();
+  const url = h.urls.at(-1);
+  assert.equal(url.startsWith("/members?"), true);
+  const params = new URLSearchParams(url.split("?")[1]);
+  assert.equal(params.get("faction"), "Alliance");
+  assert.equal(params.get("class"), "Priest");
+  assert.equal(params.get("q"), "heal er");
+  assert.equal(params.get("sort"), "class");
+  assert.equal(params.has("role"), false, "unset filters are left out");
+
+  h.form.elements.faction.value = "";
+  h.form.elements.class.value = "";
+  h.form.elements.search.value = "";
+  h.form.elements.sort.value = "name";
+  h.fire();
+  assert.equal(h.urls.at(-1), "/members", "clearing every filter restores the clean address");
+});
+
+test("opening a shared link applies exactly that view, ignoring anything remembered", () => {
+  const stale = { search: "warrior", class: "Warrior", faction: "Horde", sort: "role" };
+  const h = harness({ withFaction: true, saved: stale, search: "?faction=Alliance&class=Priest&sort=class" });
+  assert.equal(h.form.elements.faction.value, "Alliance");
+  assert.equal(h.form.elements.class.value, "Priest");
+  assert.equal(h.form.elements.sort.value, "class");
+  assert.equal(h.form.elements.search.value, "", "remembered text does not leak into a shared link");
+  assert.deepEqual(h.visible(), ["000001"]);
+  assert.equal(h.count.textContent, "1 member");
+});
+
+test("shared links accept the search text and ruleset, and the address stays in sync after loading", () => {
+  const h = harness({ search: "?q=troll&ruleset=PvP" });
+  assert.equal(h.form.elements.search.value, "troll");
+  assert.equal(h.form.elements.server.value, "PvP");
+  assert.deepEqual(h.visible(), ["000001"]);
+  const params = new URLSearchParams(h.urls.at(-1).split("?")[1]);
+  assert.equal(params.get("q"), "troll");
+  assert.equal(params.get("ruleset"), "PvP");
+});
+
+test("unknown or hostile values in a shared link are ignored and the remembered view is used instead", () => {
+  const saved = { search: "priest", class: "", role: "", server: "", sort: "name" };
+  const h = harness({ withFaction: true, saved, search: "?faction=Mordor&class=%3Cscript%3E&sort=drop%20table&role=Nobody" });
+  assert.equal(h.form.elements.faction.value, "", "an option that does not exist is not applied");
+  assert.equal(h.form.elements.class.value, "");
+  assert.equal(h.form.elements.sort.value, "name", "an unknown sort falls back");
+  assert.equal(h.form.elements.search.value, "priest", "with nothing usable in the link, the remembered view applies");
+  assert.equal(h.urls.at(-1).includes("script"), false);
+  assert.equal(harness({ search: `?q=${"x".repeat(500)}` }).form.elements.search.value.length, 100, "search text is capped");
+});
+
+test("an unavailable address bar never breaks filtering", () => {
+  const h = harness();
+  h.form.elements.search.value = "hunter";
+  assert.doesNotThrow(() => h.fire());
+  assert.deepEqual(h.visible(), ["000004"]);
 });

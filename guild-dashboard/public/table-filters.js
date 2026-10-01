@@ -37,6 +37,49 @@
     }
   }
 
+  // Filters live in the address (?q=…&class=…&faction=…&ruleset=…&sort=…) so a filtered view can be shared.
+  const URL_KEYS = { search: "q", class: "class", role: "role", faction: "faction", server: "ruleset", sort: "sort" };
+  const SORTS = ["name", "class", "role"];
+
+  function readUrl() {
+    let found = false;
+    try {
+      const params = new URLSearchParams(location.search);
+      for (const [field, key] of Object.entries(URL_KEYS)) {
+        const control = form.elements[field];
+        const value = params.get(key);
+        if (!control || value === null) continue;
+        if (field === "search") {
+          control.value = value.slice(0, 100);
+          found = true;
+        } else if (field === "sort") {
+          if (SORTS.includes(value)) { control.value = value; found = true; }
+        } else if ([...control.options].some((option) => option.value === value)) {
+          control.value = value;
+          found = true;
+        }
+      }
+    } catch {
+      // A malformed address simply falls back to the remembered filters.
+    }
+    return found;
+  }
+
+  function writeUrl() {
+    try {
+      const params = new URLSearchParams(location.search);
+      for (const [field, key] of Object.entries(URL_KEYS)) {
+        params.delete(key);
+        const control = form.elements[field];
+        if (control && control.value && !(field === "sort" && control.value === "name")) params.set(key, control.value);
+      }
+      const query = params.toString();
+      history.replaceState(null, "", `${location.pathname}${query ? `?${query}` : ""}${location.hash}`);
+    } catch {
+      // The address is a convenience; filtering still works without it.
+    }
+  }
+
   const bySortKey = (a, b) => a.dataset.sort.localeCompare(b.dataset.sort);
 
   function update() {
@@ -60,8 +103,9 @@
     noResults.hidden = visible !== 0;
   }
 
-  form.addEventListener("input", () => { remember(); update(); });
-  form.addEventListener("change", () => { remember(); update(); });
-  restore();
+  form.addEventListener("input", () => { remember(); writeUrl(); update(); });
+  form.addEventListener("change", () => { remember(); writeUrl(); update(); });
+  if (!readUrl()) restore();
   update();
+  writeUrl();
 })();
