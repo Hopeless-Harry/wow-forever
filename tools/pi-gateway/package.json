@@ -1,0 +1,12 @@
+{
+  "name": "mam-pi-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Companion for the owner's PC: reads the addon's SavedVariables, uploads to the Pi hub, writes the command inbox. No dependencies.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test --test-concurrency=1"
+  }
+}

@@ -12,6 +12,7 @@ EnvironmentFile=-/etc/mam-pi-hub.env
 Environment=NODE_ENV=production
 Environment=DB_PATH=/var/lib/mam-pi-hub/pi-hub.sqlite
 Environment=BACKUP_DIR=/var/lib/mam-pi-hub/backups
+Environment=COMPANION_DIR=/opt/mam-pi-hub/companion
 ExecStart=/usr/bin/node --experimental-sqlite src/server.js
 Restart=on-failure
 RestartSec=5

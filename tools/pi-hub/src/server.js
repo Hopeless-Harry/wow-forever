@@ -7,6 +7,7 @@ import { loadConfig } from './config.js';
 import { hashPassword, verifyPassword, strongEnough, LoginLimiter, parseCookies, isPrivateAddress } from './auth.js';
 import { validateIngest, validateCommand, canSend, ROLE_COMMANDS } from './validate.js';
 import * as views from './views.js';
+import { companionManifest, companionFile } from './companion.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const STATIC = { '/static/style.css': ['public/style.css', 'text/css; charset=utf-8'], '/static/app.js': ['public/app.js', 'text/javascript; charset=utf-8'] };
@@ -49,7 +50,7 @@ export function createApp({ store, config = loadConfig(), now = () => Math.floor
     if (path === '/healthz') return send(res, 200, 'ok', 'text/plain; charset=utf-8');
 
     // ---- companion API (source key)
-    if (path === '/api/ingest' || path === '/api/commands') {
+    if (path === '/api/ingest' || path === '/api/commands' || path === '/api/companion/manifest' || path === '/api/companion/file') {
       const source = sourceOf(req);
       if (!source) return json(res, 401, { ok: false, error: 'unauthorised' });
       if (path === '/api/ingest' && req.method === 'POST') {
@@ -58,6 +59,8 @@ export function createApp({ store, config = loadConfig(), now = () => Math.floor
         const summary = store.ingest(result.value, source.label);
         return json(res, 200, { ok: true, ...summary, rejected: result.errors.length });
       }
+      if (path === '/api/companion/manifest' && req.method === 'GET') { const m = companionManifest(config.companionDir); return m ? json(res, 200, { ok: true, ...m }) : json(res, 404, { ok: false, error: 'no companion bundle on this hub' }); }
+      if (path === '/api/companion/file' && req.method === 'GET') { const body = companionFile(config.companionDir, url.searchParams.get('name')); return body ? send(res, 200, body, 'application/octet-stream') : json(res, 404, { ok: false, error: 'no such file' }); }
       if (path === '/api/commands' && req.method === 'GET') return json(res, 200, { ok: true, commands: store.pendingCommands(Number(url.searchParams.get('after')) || 0) });
       return json(res, 405, { ok: false, error: 'method not allowed' });
     }

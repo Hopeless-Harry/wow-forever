@@ -7,6 +7,8 @@ export function loadConfig(env = process.env) {
     host: env.HOST || '0.0.0.0',
     dbPath: resolve(env.DB_PATH || 'data/pi-hub.sqlite'),
     backupDir: resolve(env.BACKUP_DIR || 'data/backups'),
+    // Folder holding the companion app (tools/pi-gateway) that the companion can update itself from.
+    companionDir: env.COMPANION_DIR ? resolve(env.COMPANION_DIR) : null,
     // Requests from addresses outside private networks are refused unless this is set. Do not set it without approval.
     allowPublic: env.ALLOW_PUBLIC === 'true',
     // Set true only when the hub is served over HTTPS (for example behind Tailscale or a tunnel later).

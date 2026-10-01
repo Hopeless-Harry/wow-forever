@@ -1,2 +1,6 @@
 dist/
 node_modules/
+tools/pi-gateway/config.json
+tools/pi-gateway/state.json
+tools/pi-gateway/gateway.log
+tools/pi-hub/data/

@@ -10,6 +10,11 @@ node -e 'const [a,b]=process.versions.node.split(".").map(Number); process.exit(
 id mam-hub >/dev/null 2>&1 || useradd --system --home /var/lib/mam-pi-hub --shell /usr/sbin/nologin mam-hub
 mkdir -p /opt/mam-pi-hub/app /var/lib/mam-pi-hub/backups
 cp -r package.json src public /opt/mam-pi-hub/app/
+# The companion app is served to the PC so it can update itself (tools/pi-gateway sits next to tools/pi-hub).
+if [ -d ../pi-gateway ]; then
+  mkdir -p /opt/mam-pi-hub/companion
+  cp -r ../pi-gateway/package.json ../pi-gateway/src /opt/mam-pi-hub/companion/
+fi
 chown -R root:root /opt/mam-pi-hub
 chown -R mam-hub:mam-hub /var/lib/mam-pi-hub
 chmod 700 /var/lib/mam-pi-hub

@@ -1,0 +1,10 @@
+{
+  "hubUrl": "http://192.168.1.50:8080",
+  "key": "paste the 64 character key printed by add-source on the Pi",
+  "wowRoots": [
+    "C:/Program Files (x86)/World of Warcraft/_retail_",
+    "C:/Program Files (x86)/World of Warcraft/_classic_beta_"
+  ],
+  "pollSeconds": 60,
+  "autoUpdate": true
+}
