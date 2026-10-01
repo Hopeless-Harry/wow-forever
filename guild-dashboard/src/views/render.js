@@ -96,7 +96,7 @@ export function renderDashboard(snapshot, memberData = { events: [] }) {
   const { leaders, distributions, totalResponses } = snapshot.stats;
   const content = `<aside class="launch-banner" data-launch="${escapeHtml(LAUNCH_AT)}"><span>WoW Forever launches</span><strong id="launch-countdown">4 November 2026, 3 PM PST</strong><small>Reported launch date</small></aside>
   <section class="ledger-overview" aria-labelledby="muster-heading">
-    <div class="muster-count"><span>Names sealed</span><strong>${totalResponses}</strong><h2 id="muster-heading">Adventurers mustered</h2></div>
+    <div class="muster-count"><span>Responses received</span><strong>${totalResponses}</strong><h2 id="muster-heading">Adventurers mustered</h2></div>
     <div class="stat-rack">${leaderCard("Favoured ruleset", leaders.server)}${leaderCard("Largest class", leaders.characterClass, "class-ledger")}${leaderCard("Main calling", leaders.role)}${leaderCard("Top profession", leaders.professions)}</div>
   </section>
   <section class="dashboard-grid">${bars("Class muster", distributions.characterClass, "wide")}${bars("Role balance", distributions.role)}${bars("Ruleset preference", distributions.server)}</section>
@@ -107,7 +107,7 @@ export function renderDashboard(snapshot, memberData = { events: [] }) {
 
 export function renderResponses(snapshot) {
   const rows = snapshot.records.map((record, index) => `<tr ${rowAttrs({ search: Object.values(record).join(" "), characterClass: record.characterClass, role: record.role, server: record.server, sort: String(index + 1).padStart(6, "0") })}><th scope="row">${escapeHtml(record.anonymousId)}</th><td><span class="class-chip${classToken(record.characterClass)}">${escapeHtml(record.characterClass)}</span></td><td>${escapeHtml(record.role)}</td><td>${escapeHtml(record.race)}</td><td>${escapeHtml(record.server)}</td><td>${escapeHtml(record.profession1)}</td><td>${escapeHtml(record.profession2)}</td></tr>`).join("");
-  const content = `<section class="parchment-panel census-panel"><div class="panel-heading"><div><span>Roster vault</span><h2>Guild Census</h2><p>Aggregate plans by entry number. Named listings are in the roster.</p></div><strong id="visible-count" aria-live="polite" aria-atomic="true" data-singular="entry" data-plural="entries">${snapshot.records.length} entries</strong></div>
+  const content = `<section class="parchment-panel census-panel"><div class="panel-heading"><div><span>By entry number</span><h2>Guild Census</h2><p>Aggregate plans by entry number. Named listings are in the roster.</p></div><strong id="visible-count" aria-live="polite" aria-atomic="true" data-singular="entry" data-plural="entries">${snapshot.records.length} entries</strong></div>
     ${filterForm("Search the census", "Class, role, race or profession", "Response number")}
     <div class="table-scroll"><table id="census-table" aria-label="Guild census entries"><thead><tr><th>Entry</th><th>Class</th><th>Role</th><th>Race</th><th>Ruleset</th><th>Profession 1</th><th>Profession 2</th></tr></thead><tbody>${rows}</tbody></table></div><p class="no-results" role="status" hidden>No roster entries match those filters.</p>
   </section>`;
