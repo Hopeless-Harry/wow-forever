@@ -175,3 +175,13 @@ test("on phones the headline stat cards sit two per row so the raid answer is no
   assert.match(phone, /\.stat-rack\s*\{[^}]*grid-template-columns:\s*repeat\(2,/);
   assert.doesNotMatch(phone, /\.stat-rack,\s*\.dashboard-grid/, "stat cards no longer collapse to one column");
 });
+
+test("on phones the first column of scrolling tables stays pinned and opaque", async () => {
+  const css = await readFile(path.join(projectRoot, "public", "styles.css"), "utf8");
+  const phone = css.slice(css.lastIndexOf("@media (max-width: 700px)"));
+  assert.match(phone, /\.table-scroll tbody th\[scope="row"\]\s*\{[^}]*position:\s*sticky;[^}]*left:\s*0/);
+  assert.match(phone, /\.table-scroll tbody th\[scope="row"\]\s*\{[^}]*background:\s*#[0-9a-f]{6}/i, "opaque, so scrolled cells do not show through");
+  assert.match(phone, /\.table-scroll thead th:first-child\s*\{[^}]*position:\s*sticky/);
+  assert.match(phone, /max-width:\s*8\.5rem/, "a very long name cannot take over the screen");
+  assert.match(phone, /\.table-scroll tbody th\[scope="row"\] a\s*\{[^}]*max-width:\s*100%[^}]*overflow-wrap:\s*break-word/, "the link inside wraps within the cell instead of spilling over its neighbours");
+});
