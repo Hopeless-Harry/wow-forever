@@ -557,3 +557,9 @@ th[scope="row"] a, .panel-heading p a, .empty-ledger a, .profile-card a { displa
 .check-subheading { margin: 1rem 0 .3rem; }
 
 .flex-help { display: block; margin-top: .15rem; font-weight: 400; color: #3b2815; }
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.join-bar { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; max-width: 93rem; margin: 0 auto 1.1rem; padding: .6rem 1rem; border: 1px solid var(--gold-dark); background: rgba(255, 255, 255, .03); }
+.join-bar span:first-child { color: var(--parchment); font-weight: 700; }
+.join-bar .wow-button { width: auto; }
+@media print { .join-bar { display: none !important; } }

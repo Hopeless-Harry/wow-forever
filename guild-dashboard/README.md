@@ -17,6 +17,7 @@ A lightweight, privacy-first guild census for the **Moms Against Magic — WoW F
 - Mistyped or outdated links show a friendly in-app page ("That page isn't here") with the normal navigation instead of raw JSON, and an unexpected failure shows a calm "try again in a minute" page. Neither repeats the address or any error detail. `/api/` and `/assets/` keep short JSON.
 - "Copy names" on the roster copies the names currently shown (after any filters and sorting) as a comma-separated list, ready for invites or a Discord ping.
 - The dashboard shows a notice ("3 roster answers look unusual. Review them on the roster") when any answers are flagged, so officers see it without opening the roster.
+- "Add yourself" button (optional, set `FORM_URL`): new members can find the sign-up Form from the dashboard and the roster.
 - Possible duplicate entries: when the same person submits the Form twice (a bare "Mira" and a BattleTag "Mira#1234"), the roster's double-check panel lists the pair and the dashboard notice counts it. A different tag number ("Al#1234" vs "Al#5678") is a different account and is not flagged. Nothing is merged automatically; remove the unwanted row from the response sheet.
 - "Answers to double-check" on the roster: a short list at the top of members whose race/class or role/class answer looks impossible (for example a Mage tank), each linked to their profile. Only clear impossibilities are listed, and nothing is changed automatically.
 - Every page's status line says when the data was last updated ("updated 3 min ago"), kept current in the browser and shown outside the screen-reader announcement so it does not keep interrupting.
@@ -131,6 +132,7 @@ Do not publish the Sheet to the web. Publishing it could reveal the excluded nam
 | `GOOGLE_SHEET_RANGE` | `Form Responses 1!A:Z` | Response tab and columns |
 | `GOOGLE_CLIENT_EMAIL` | empty | Read-only service account email |
 | `GOOGLE_PRIVATE_KEY` | empty | RSA private key with literal `\n` line breaks |
+| `FORM_URL` | empty | The public sign-up Form address. When set, the dashboard and roster show an "Add yourself" button that opens it in a new tab. Must be a full `https://` address; anything else stops the service at startup |
 | `RATE_LIMIT_PER_MINUTE` | `300` | Per-IP request limit; over it the site answers 429 with `Retry-After`. `0` disables. The two health routes are exempt. Clients are keyed on Cloudflare's `CF-Connecting-IP` (only trusted from the local tunnel), IPv6 by /64 |
 | `USE_FIXTURE` | `false` | Local visual testing only |
 

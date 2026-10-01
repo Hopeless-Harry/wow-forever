@@ -9,6 +9,19 @@ const DEFAULT_MAPPING = Object.freeze({
   profession2: "Profession 2"
 });
 
+// The public sign-up Form address, shown as an "Add yourself" button. Optional; https only.
+function formUrlSetting(value) {
+  if (!value) return "";
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("FORM_URL must be a full https:// address");
+  }
+  if (url.protocol !== "https:" || value.length > 300) throw new Error("FORM_URL must be a full https:// address");
+  return url.toString();
+}
+
 function integerSetting(value, fallback, name, minimum = 1) {
   if (value === undefined || value === "") return fallback;
   const parsed = Number(value);
@@ -20,6 +33,7 @@ function integerSetting(value, fallback, name, minimum = 1) {
 export function loadConfig(env = process.env) {
   return {
     nodeEnv: env.NODE_ENV || "production",
+    formUrl: formUrlSetting(env.FORM_URL),
     host: env.HOST || "127.0.0.1",
     port: integerSetting(env.PORT, 3000, "PORT"),
     refreshMs: integerSetting(env.REFRESH_SECONDS, 120, "REFRESH_SECONDS") * 1000,

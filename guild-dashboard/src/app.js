@@ -40,7 +40,9 @@ function publicPayload(snapshot) {
   };
 }
 
-export function buildApp({ dataService, rateLimitPerMinute = 300, logger = true }) {
+export function buildApp({ dataService: source, rateLimitPerMinute = 300, formUrl = "", logger = true }) {
+  // Pages see the sign-up Form address as part of the snapshot; the public API payload picks its own fields.
+  const dataService = { snapshot: () => ({ ...source.snapshot(), formUrl }), memberSnapshot: source.memberSnapshot ? () => source.memberSnapshot() : undefined };
   const app = Fastify({
     logger,
     bodyLimit: 16 * 1024,
