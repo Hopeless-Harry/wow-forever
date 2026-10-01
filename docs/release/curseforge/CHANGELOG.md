@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0-alpha24
+
+- Location sharing is now ON by default (new installs and anyone who never touched the setting). Untick Settings, Guild map, Share my location to stop. Still never saved, never sent in instances, and only guildmates running the addon receive it. If you had already turned it off, it stays off.
+
 ## 0.2.0-alpha23
 
 - Medal progress bars (jumps, food and so on) now update live while the Medals tab is open.
@@ -11,7 +15,7 @@ Jump fix, guild dungeons and a live guild map.
 
 - Jumps are now counted by watching for the character leaving the ground (the jump key never reached the old hook). Short hops and ledge drops may also count.
 - Dungeons and raids with guildmates: new counters, medals, titles and a weekly Mom Quest.
-- New Map tab: live guildmate locations on the right, click a name to open the world map at them. Sharing your own location is opt-in (Settings, Guild map), off by default, never saved, never sent in instances. /mam map opens it.
+- New Map tab: live guildmate locations on the right, click a name to open the world map at them. Sharing your own location is controlled in Settings, Guild map, never saved, never sent in instances. /mam map opens it.
 - You can now pin up to 6 medal goals (was 3).
 
 ## 0.2.0-alpha21

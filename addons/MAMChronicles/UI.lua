@@ -610,7 +610,7 @@ function UI:BuildSettingsPage(frame)
   end
 
   heading("Guild map")
-  check("shareLocation", "Share my location with the guild (live map)", "Sends your zone, position, level and class to guildmates who run the addon, about every 20 seconds while you are in the open world. Never saved, never sent in instances. Off by default.")
+  check("shareLocation", "Share my location with the guild (live map)", "Sends your zone, position, level and class to guildmates who run the addon, about every 20 seconds while you are in the open world. Never saved, never sent in instances. On by default; untick to stop.")
   check("showGuildMap", "Show guildmates on the map", "Receive location updates from guildmates and mark them on the world map.")
   y = y - 4
 

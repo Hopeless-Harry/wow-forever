@@ -565,3 +565,7 @@ SHA-256 C8E19F45AC5825471038283FB6C64C9BD28AD84491FF994F434B6E8F9EB6890D. Jump f
 ## alpha23 (published to both clients)
 
 SHA-256 E1D7575976A2E3AB72C22B5445CFD9E2697300D5AED0FC6573E691BD1955897B. Medals tab redraws live on counter changes; /mam map fake adds in-memory pretend guildmates. Map tab does NOT embed the game map (pins go on the real WorldMapFrame; embedding is not done). Party-style roster not done. Tracker still unbuilt.
+
+## alpha24 (published to both clients)
+
+SHA-256 3512B11DCBC68036D1470559A2CF5CCE334E20D7A0E1503F8D6A819179542655. Location sharing now ON by default (user decision, reverses the earlier default-off privacy stance; still in-memory, never in instances, only addon users in guild). Saved explicit false stays off.

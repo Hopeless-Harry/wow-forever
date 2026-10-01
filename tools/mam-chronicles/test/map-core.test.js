@@ -16,10 +16,10 @@ ${pre}`);
 const recv=(text,sender='Alice-Draenor',channel='GUILD')=>`MAMChronicles.Comms:OnAddonMessage("MAMCHR","${text}","${channel}","${sender}")`;
 const share='MAMChroniclesDB.settings.shareLocation=true';
 
-test('sharing is off by default and the settings are validated',()=>{
-  const h=setup(); assert.equal(h.get('MAMChroniclesDB.settings.shareLocation'),false); assert.equal(h.get('MAMChroniclesDB.settings.showGuildMap'),true); assert.equal(h.get('#MAMChroniclesDB.settings.pinnedPlayers'),0);
+test('sharing is on by default and the settings are validated',()=>{
+  const h=setup(); assert.equal(h.get('MAMChroniclesDB.settings.shareLocation'),true); assert.equal(h.get('MAMChroniclesDB.settings.showGuildMap'),true); assert.equal(h.get('#MAMChroniclesDB.settings.pinnedPlayers'),0);
   const g=setup('',{schemaVersion:1,settings:{shareLocation:'yes',showGuildMap:5,pinnedPlayers:['Alice','Alice',3,'Bob','C','D','E','F']}});
-  assert.equal(g.get('MAMChroniclesDB.settings.shareLocation'),false); assert.equal(g.get('MAMChroniclesDB.settings.showGuildMap'),true); assert.equal(g.get('#MAMChroniclesDB.settings.pinnedPlayers'),5); assert.equal(g.get('MAMChroniclesDB.settings.pinnedPlayers[2]'),'Bob');
+  assert.equal(g.get('MAMChroniclesDB.settings.shareLocation'),true); assert.equal(g.get('MAMChroniclesDB.settings.showGuildMap'),true); assert.equal(g.get('#MAMChroniclesDB.settings.pinnedPlayers'),5); assert.equal(g.get('MAMChroniclesDB.settings.pinnedPlayers[2]'),'Bob');
 });
 test('the location message is small and carries only map, position, level, class and version',()=>{
   const h=setup(); h.run('__m=MAMChronicles.Map:BuildMessage()'); assert.equal(h.get('__m'),'L1|2022|512|300|90|5|1'); assert.ok(h.get('#__m')<=64);
@@ -28,7 +28,7 @@ test('no message is built without a map position',()=>{
   const h=setup('__pos=nil'); h.run('__m=MAMChronicles.Map:BuildMessage()'); assert.equal(h.get('__m'),null);
 });
 test('sending needs the setting, a guild and the open world',()=>{
-  let h=setup(); h.run('__r=MAMChronicles.Map:Send(true)'); assert.equal(h.get('__r'),'sharing is off'); assert.equal(h.get('#__sent'),0);
+  let h=setup(); h.run('MAMChroniclesDB.settings.shareLocation=false; __r=MAMChronicles.Map:Send(true)'); assert.equal(h.get('__r'),'sharing is off'); assert.equal(h.get('#__sent'),0);
   h=setup(); h.run(share+'; __guild=false; __r=MAMChronicles.Map:Send(true)'); assert.equal(h.get('__r'),'not in guild');
   h=setup(); h.run(share+'; __inst=true; __r=MAMChronicles.Map:Send(true)'); assert.equal(h.get('__r'),'in an instance');
   h=setup(); h.run(share+'; __pos=nil; __r=MAMChronicles.Map:Send(true)'); assert.equal(h.get('__r'),'no position');
@@ -99,8 +99,8 @@ test('pins are not created during combat and a missing world map frame is harmle
   const g=setup(); g.run(recv('L1|1|250|750|42|8|1')+'; MAMChronicles.Map:ShowPins()'); assert.equal(g.get('MAMChronicles.errorStats.count'),0);
 });
 test('the sending loop only runs while sharing is on',()=>{
-  const h=setup('__timers={}; C_Timer={After=function(d,fn) table.insert(__timers,fn) end}'); h.run('MAMChronicles.Map:Start(); __n0=#__timers'); assert.equal(h.get('__n0'),0);
-  h.run(share+'; MAMChronicles.Map:Start(); __n1=#__timers; table.remove(__timers,1)(); __n2=#__timers; MAMChroniclesDB.settings.shareLocation=false; table.remove(__timers,1)(); __n3=#__timers'); assert.equal(h.get('__n1'),1); assert.ok(h.get('__sent')!==null); assert.equal(h.get('__n2'),1); assert.equal(h.get('__n3'),0);
+  const h=setup('__timers={}; C_Timer={After=function(d,fn) table.insert(__timers,fn) end}'); h.run('MAMChroniclesDB.settings.shareLocation=false; MAMChronicles.Map.loopRunning=false; __timers={}; MAMChronicles.Map:Start(); __n0=#__timers'); assert.equal(h.get('__n0'),0);
+  h.run(share+'; __timers={}; MAMChronicles.Map.loopRunning=false; MAMChronicles.Map:Start(); __n1=#__timers; table.remove(__timers,1)(); __n2=#__timers; MAMChroniclesDB.settings.shareLocation=false; table.remove(__timers,1)(); __n3=#__timers'); assert.equal(h.get('__n1'),1); assert.ok(h.get('__sent')!==null); assert.equal(h.get('__n2'),1); assert.equal(h.get('__n3'),0);
 });
 test('diagnostics report location sharing without positions',()=>{
   const h=setup(); h.run(share+'; MAMChronicles.Map:Send(true); '+recv('L1|1|250|750|42|8|1')+'; __d=MAMChronicles.Export:BuildDiagnosticReport()');
