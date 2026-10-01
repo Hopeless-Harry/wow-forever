@@ -97,6 +97,16 @@ test('the snapshot copies live locations, skips pretend guildmates and stays bou
   assert.equal(h.get('MAMChroniclesDB.gateway.meta.writtenAt'),1790700000);assert.equal(h.get('MAMChroniclesDB.gateway.meta.version'),1);
 });
 
+test('the snapshot lists guild-verified medals, quest templates and zone names for the dashboard',()=>{
+  const h=setup();
+  h.run('MAMChronicles.Map.members={Zed={mapID=2022,x=0.5,y=0.4,level=80,classID=3,at=__now}}; C_Map={GetMapInfo=function(id) return {name="The Waking Shores"} end}; MAMChronicles.Gateway:Snapshot()');
+  assert.equal(h.get('MAMChroniclesDB.gateway.locations.Zed.zone'),'The Waking Shores');
+  assert.equal(h.get('MAMChroniclesDB.gateway.catalog.verified[1].id'),'selfie_squad');
+  assert.equal(h.get('MAMChroniclesDB.gateway.catalog.verified[1].name'),'Selfie Squad');
+  assert.equal(h.get('MAMChroniclesDB.gateway.catalog.templates[1].slot')>=1,true);
+  assert.equal(h.get('#MAMChroniclesDB.gateway.catalog.templates')<=80,true);
+});
+
 test('the gateway records its own character when sharing is consented',()=>{
   const h=setup('',true);h.run('MAMChroniclesDB.settings.shareStats=true; MAMChronicles.Gateway:Snapshot()');
   assert.equal(h.get('MAMChroniclesDB.gateway.members.Mumtest.level'),42);

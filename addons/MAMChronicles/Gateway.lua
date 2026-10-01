@@ -283,11 +283,24 @@ function Gateway:Snapshot()
     for memberName, member in pairs(map.members) do
       if not member.fake and validName(memberName) and t - (tonumber(member.at) or 0) <= expire and count < self.MAX_MEMBERS then
         count = count + 1
-        locations[memberName] = { mapID = member.mapID, x = member.x, y = member.y, level = member.level, classID = member.classID, at = member.at }
+        local zone = map.ZoneName and safe(map.ZoneName, map, member.mapID)
+        locations[memberName] = { mapID = member.mapID, x = member.x, y = member.y, level = member.level, classID = member.classID, at = member.at, zone = type(zone) == "string" and zone:sub(1, 40) or nil }
       end
     end
   end
   data.locations = locations
+  -- Names for the dashboard's command composer: guild-verified medals and this week's quest templates.
+  local catalog = { verified = {}, templates = {} }
+  local medals = Addon.Medals
+  if medals then
+    for _, entry in ipairs(medals.verifiedMedals or {}) do
+      if #catalog.verified < 80 and type(entry.id) == "string" then catalog.verified[#catalog.verified + 1] = { id = entry.id, name = tostring(entry.name or entry.id):sub(1, 60) } end
+    end
+    for _, template in ipairs(medals:GetQuestTemplates() or {}) do
+      if #catalog.templates < 80 then catalog.templates[#catalog.templates + 1] = { id = template.id, slot = template.slot, text = tostring(template.text or template.id):sub(1, 80) } end
+    end
+  end
+  data.catalog = catalog
   data.enabled = true
   data.meta = { writtenAt = t, version = self.version }
   return true
