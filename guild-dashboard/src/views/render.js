@@ -85,8 +85,8 @@ function matrixPanel(records) {
 }
 
 function emptyPanel(snapshot = {}) {
-  if (snapshot.status && snapshot.status !== "empty") return `<section class="parchment-panel empty-ledger"><h2>No responses yet</h2><p>The sheet is connected and synced, but nobody has filled in the Form yet. Entries appear here automatically.</p></section>`;
-  return `<section class="parchment-panel empty-ledger"><h2>The ledger is ready</h2><p>Link the Form to a Google Sheet and add the read-only credentials on the Pi. The first anonymous census will appear automatically.</p></section>`;
+  if (snapshot.status && snapshot.status !== "empty") return `<section class="parchment-panel empty-ledger"><h2>No responses yet</h2><p>Nobody has filled in the roster Form yet. Entries appear here automatically.</p></section>`;
+  return `<section class="parchment-panel empty-ledger"><h2>Waiting for the first sync</h2><p>The ledger has not received any guild data yet. It fills in automatically once the first sync completes. If it stays empty, ask a guild officer to check the response sheet connection.</p></section>`;
 }
 
 function rulesetCard(records) {

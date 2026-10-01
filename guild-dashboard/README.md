@@ -231,7 +231,7 @@ The status line in the page header says what went wrong. In every case the site 
 
 "No responses yet" means the sync works but nobody has answered the Form. A footer note says how many incomplete responses were skipped.
 
-**The dashboard says it is waiting for a sync**
+**The dashboard says "Waiting for the first sync"**
 
 - Check `/health/ready` and `journalctl`.
 - Confirm the Form is linked to a Sheet.

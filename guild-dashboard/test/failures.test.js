@@ -79,11 +79,11 @@ test("a synced but empty sheet says no responses yet instead of asking to link t
   await svc.refresh();
   const body = await page(svc, "/");
   assert.match(body, /No responses yet/);
-  assert.equal(body.includes("Link the Form"), false);
+  assert.equal(body.includes("Waiting for the first sync"), false);
 
   const fresh = service(async () => { throw new Error("Google Sheets request failed with status 503"); });
   await fresh.refresh();
-  assert.match(await page(fresh, "/"), /Link the Form/);
+  assert.match(await page(fresh, "/"), /Waiting for the first sync/);
 });
 
 test("incomplete responses are reported in the footer", async () => {

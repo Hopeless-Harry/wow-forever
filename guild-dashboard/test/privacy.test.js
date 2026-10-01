@@ -41,3 +41,22 @@ test("page copy never promises secrecy or anonymity, since names are public", as
     assert.doesNotMatch(visible, /sealed|vault|anonymous|never leave|without revealing/i, `${url} still implies secrecy`);
   }
 });
+
+test("empty and not-yet-synced pages speak to guild members, not to whoever installs the site", async (t) => {
+  const empty = { records: [], stats: buildStats([]), status: "empty", fetchedAt: null, lastRefreshFailed: false, rejectedRows: 0 };
+  const synced = { ...empty, status: "fresh", fetchedAt: "2026-09-22T12:00:00.000Z" };
+  const jargon = /\bPi\b|raspberry|credential|service account|environment|systemd|tunnel|\.env|google sheet|anonymous|sealed|vault/i;
+
+  for (const snapshot of [empty, synced]) {
+    const app = buildApp({ dataService: { snapshot: () => snapshot, memberSnapshot: () => ({ members: [], events: [], fetchedAt: null }) }, logger: false, rateLimitPerMinute: 0 });
+    t.after(() => app.close());
+    for (const url of ["/", "/responses", "/statistics", "/raid", "/members", "/members/chronicle", "/members/professions", "/member?name=x"]) {
+      const text = (await app.inject({ url })).body.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, " ");
+      assert.doesNotMatch(text, jargon, `${snapshot.status} ${url} shows setup jargon: ${text.match(jargon)?.[0]}`);
+    }
+  }
+  const app = buildApp({ dataService: { snapshot: () => empty }, logger: false, rateLimitPerMinute: 0 });
+  t.after(() => app.close());
+  assert.match((await app.inject({ url: "/" })).body, /Waiting for the first sync/);
+  assert.match((await app.inject({ url: "/" })).body, /ask a guild officer/);
+});
