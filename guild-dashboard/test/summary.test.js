@@ -153,3 +153,12 @@ test("several copy buttons on one page each copy their own text box and report i
   const ghost = { textContent: "x", dataset: { copyTarget: "missing" }, handlers: {}, addEventListener() { throw new Error("must not bind"); } };
   assert.doesNotThrow(() => vm.runInNewContext(readFileSync(new URL("../public/copy-summary.js", import.meta.url), "utf8"), vm.createContext({ document: { querySelectorAll: () => [ghost], getElementById: () => null }, navigator: {}, window: {} })));
 });
+
+test("the Discord summary mentions flexible players who could help close the gap", () => {
+  const base = [...many(1, "Orc", "Warrior", "Tank"), ...many(3, "Troll", "Priest", "Healer"), ...many(5, "Undead", "Mage", "DPS")];
+  const flexible = (n, characterClass) => rec(n, "Orc", characterClass, "Flexible / happy to fill");
+  const text = buildSummary({ records: [...base, flexible(80, "Warrior"), flexible(81, "Druid")] }, {}, NOW);
+  assert.match(text, /not ready for 10-player yet \(needs 1 tank; 2 flexible players could help\)/);
+  assert.match(buildSummary({ records: [...base, flexible(80, "Warrior")] }, {}, NOW), /\(needs 1 tank; 1 flexible player could help\)/);
+  assert.match(buildSummary({ records: [...base, flexible(80, "Mage")] }, {}, NOW), /\(needs 1 tank\)\n/, "no mention when nobody flexible can help");
+});

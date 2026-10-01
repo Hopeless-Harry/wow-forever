@@ -35,7 +35,7 @@ export function buildSummary(snapshot, memberData = {}, now = new Date()) {
       const smallest = row.sizes[0];
       lines.push(readySizes.length
         ? `- ${row.label} — ready for a ${Math.max(...readySizes)}-player raid`
-        : `- ${row.label} — not ready for ${smallest.size}-player yet (needs ${smallest.needs.join(", ")})`);
+        : `- ${row.label} — not ready for ${smallest.size}-player yet (needs ${smallest.needs.join(", ")}${smallest.flexHelp ? `; ${smallest.flexHelp} flexible ${smallest.flexHelp === 1 ? "player" : "players"} could help` : ""})`);
     }
 
     lines.push(`**Top classes:** ${tally(records.map((record) => record.characterClass)).slice(0, 3).map(([name, count]) => `${name} ${count}`).join(", ")}`);

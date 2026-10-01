@@ -129,7 +129,10 @@ export function raidReadiness(records, sizes = RAID_SIZES) {
             .map((role) => ({ role, short: Math.max(0, targets[role] - have[role]) }))
             .filter((item) => item.short > 0)
             .map(({ role, short }) => `${short} ${ROLE_NOUNS[role][short === 1 ? 0 : 1]}`);
-          return { size, ready: needs.length === 0, needs };
+          const shortRoles = ["tank", "healer", "dps"].filter((role) => targets[role] - have[role] > 0);
+          // Flexible players whose class can take at least one of the short roles.
+          const flexHelp = players.filter((record) => roleOf(record.role) === "flex" && shortRoles.some((role) => canFillRole(record.characterClass, role))).length;
+          return { size, ready: needs.length === 0, needs, flexHelp };
         })
       });
     }

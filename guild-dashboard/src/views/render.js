@@ -140,7 +140,7 @@ function readinessPanel(records) {
   const plan = raidReadiness(records);
   if (!plan.length) return "";
   const head = RAID_SIZES.map((size) => `<th scope="col">${size}-player</th>`).join("");
-  const rows = plan.map((group) => `<tr><th scope="row">${escapeHtml(group.label)}<small>${count(group.total, "player", "players")}</small></th>${group.sizes.map((item) => `<td class="${item.ready ? "plan-ready" : "plan-short"}"><span class="plan-badge">${item.ready ? "Ready" : `Needs ${escapeHtml(item.needs.join(", "))}`}</span></td>`).join("")}</tr>`).join("");
+  const rows = plan.map((group) => `<tr><th scope="row">${escapeHtml(group.label)}<small>${count(group.total, "player", "players")}</small></th>${group.sizes.map((item) => `<td class="${item.ready ? "plan-ready" : "plan-short"}"><span class="plan-badge">${item.ready ? "Ready" : `Needs ${escapeHtml(item.needs.join(", "))}`}</span>${!item.ready && item.flexHelp ? `<small class="flex-help">${item.flexHelp} flexible ${item.flexHelp === 1 ? "player" : "players"} could help</small>` : ""}</td>`).join("")}</tr>`).join("");
   return `<section class="parchment-panel readiness-panel"><div class="panel-heading"><div><span>Raid readiness</span><h2>Can we raid?</h2><p>What each faction can field today, using rough role targets. Flexible players can close some gaps.</p></div><a class="wow-button" href="/raid">Open raid planner</a></div><div class="table-scroll"><table aria-label="Raid readiness by faction and raid size"><thead><tr><th scope="col">Faction</th>${head}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 

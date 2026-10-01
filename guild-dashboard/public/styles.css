@@ -555,3 +555,5 @@ th[scope="row"] a, .panel-heading p a, .empty-ledger a, .profile-card a { displa
 @media print { .copy-names { display: none !important; } }
 
 .check-subheading { margin: 1rem 0 .3rem; }
+
+.flex-help { display: block; margin-top: .15rem; font-weight: 400; color: #3b2815; }

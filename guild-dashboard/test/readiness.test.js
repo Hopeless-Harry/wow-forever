@@ -15,7 +15,7 @@ test("a faction is ready for a size only when every role target is met, and says
   assert.equal(group.total, 10);
 
   const ten = group.sizes.find((item) => item.size === 10);
-  assert.deepEqual(ten, { size: 10, ready: true, needs: [] });
+  assert.deepEqual(ten, { size: 10, ready: true, needs: [], flexHelp: 0 });
 
   const twenty = group.sizes.find((item) => item.size === 20);
   assert.equal(twenty.ready, false);
@@ -117,4 +117,52 @@ test("the dashboard puts the raid answer before the charts so it is not buried",
   const order = ["Responses received", "Can we raid?", "Class muster", "Guild summary for Discord", "Recent roster entries"].map((text) => body.indexOf(text));
   assert.ok(order.every((index) => index > 0), `all panels present: ${order}`);
   assert.deepEqual([...order].sort((a, b) => a - b), order, "panels appear in this order: headline numbers, raid readiness, charts, summary, recent entries");
+});
+
+const FLEX = "Flexible / happy to fill";
+
+test("flexible players who could take a short role are counted as help, and ones who cannot are not", () => {
+  const base = [...many(1, "Orc", "Warrior", "Tank"), ...many(3, "Troll", "Priest", "Healer"), ...many(5, "Undead", "Mage", "DPS")];
+  const row = (extra) => raidReadiness([...base, ...extra])[0].sizes.find((item) => item.size === 10);
+
+  assert.equal(row([rec(90, "Orc", "Warrior", FLEX), rec(91, "Orc", "Druid", FLEX)]).flexHelp, 2, "a Warrior and a Druid could both take the missing tank");
+  assert.equal(row([rec(92, "Orc", "Mage", FLEX)]).flexHelp, 0, "a flexible Mage cannot tank, and tanks are the only gap");
+  assert.deepEqual(row([rec(92, "Orc", "Mage", FLEX)]).needs, ["1 tank"]);
+  assert.equal(row([]).flexHelp, 0, "no flexible players, no help");
+});
+
+test("a ready group has nothing to help with, and role-assigned players are never counted as flexible", () => {
+  const full = [...many(2, "Orc", "Warrior", "Tank"), ...many(3, "Troll", "Priest", "Healer"), ...many(5, "Undead", "Mage", "DPS"), rec(99, "Orc", "Warrior", FLEX)];
+  const ten = raidReadiness(full)[0].sizes.find((item) => item.size === 10);
+  assert.equal(ten.ready, true);
+  assert.equal(ten.flexHelp, 0, "no shortage left to help with");
+  const twenty = raidReadiness(full)[0].sizes.find((item) => item.size === 20);
+  assert.equal(twenty.flexHelp, 1, "for a bigger raid the flexible Warrior could take a tank slot");
+  assert.equal(raidReadiness([rec(1, "Orc", "Warrior", "Tank")])[0].sizes[0].flexHelp, 0);
+});
+
+test("help is counted within each ruleset row, using flexible players of that ruleset or happy with either", () => {
+  const records = [
+    { ...rec(1, "Orc", "Warrior", FLEX), server: "Normal" },
+    { ...rec(2, "Orc", "Warrior", FLEX), server: "PvP" },
+    { ...rec(3, "Orc", "Priest", "Healer"), server: "Normal" },
+    { ...rec(4, "Orc", "Mage", "DPS"), server: "PvP" }
+  ];
+  const [normal, pvp] = raidReadiness(records);
+  assert.deepEqual([normal.label, pvp.label], ["Horde · Normal", "Horde · PvP"]);
+  assert.equal(normal.sizes[0].flexHelp, 1, "only the Normal Warrior");
+  assert.equal(pvp.sizes[0].flexHelp, 1, "only the PvP Warrior");
+});
+
+test("the dashboard says how many flexible players could help, with singular wording, and omits it when none can", async () => {
+  const base = [...many(1, "Orc", "Warrior", "Tank"), ...many(3, "Troll", "Priest", "Healer"), ...many(5, "Undead", "Mage", "DPS")];
+  const two = await dashboard([...base, rec(90, "Orc", "Warrior", FLEX), rec(91, "Orc", "Druid", FLEX)]);
+  assert.match(two, /Needs 1 tank<\/span><small class="flex-help">2 flexible players could help<\/small>/);
+  const one = await dashboard([...base, rec(90, "Orc", "Warrior", FLEX)]);
+  assert.match(one, /<small class="flex-help">1 flexible player could help<\/small>/);
+  const none = await dashboard([...base, rec(92, "Orc", "Mage", FLEX)]);
+  assert.match(none, /Needs 1 tank<\/span><\/td>/, "a flexible Mage cannot tank, so the 10-player cell offers no help");
+  assert.match(none, /Needs [^<]*DPS<\/span><small class="flex-help">1 flexible player could help<\/small>/, "but for bigger raids the same Mage could add damage");
+  const ready = await dashboard([...many(2, "Orc", "Warrior", "Tank"), ...many(3, "Troll", "Priest", "Healer"), ...many(5, "Undead", "Mage", "DPS"), rec(99, "Orc", "Warrior", FLEX)]);
+  assert.match(ready, /<span class="plan-badge">Ready<\/span><\/td>/);
 });
