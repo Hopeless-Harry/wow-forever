@@ -8,6 +8,7 @@ A lightweight, privacy-first guild census for the **Moms Against Magic — WoW F
 - Provides a searchable and filterable Guild Census.
 - Raid Planner (`/raid?size=10|20|40`): per-faction role balance against rough community targets (about 4 tanks, 11 healers, 25 DPS for 40 players) and class coverage (Warrior tank, Druid, Hunter, Paladin, Shaman, Priest, Mage, Warlock). Factions are planned separately because they cannot group together.
 - Suggested raid groups on `/raid`: names placed into groups of five per faction (a tank per group, healers spread out), with overflow benched and a ruleset breakdown, because players can only group within one faction and one ruleset.
+- Every page prints cleanly (black on white, no navigation or controls, cards kept whole), so a raid leader can print the suggested groups with the browser's Print or Save as PDF.
 - Profession Directory (`/members/professions`): who can craft or gather each profession, most-covered first, plus the professions nobody has yet.
 - Member profile pages (`/member?name=...`), a roster CSV download (`/members.csv`, formula-safe) and a recent-activity feed on the dashboard.
 - Soft sanity flags for impossible race/class and role/class answers (for example a Mage tank).

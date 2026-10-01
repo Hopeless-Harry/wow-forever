@@ -135,3 +135,14 @@ test("every table is named and filter feedback is announced to screen readers", 
     assert.match(body, /class="no-results" role="status" hidden/);
   }
 });
+
+test("a print stylesheet hides navigation and controls and keeps cards whole", async () => {
+  const css = await readFile(path.join(projectRoot, "public", "styles.css"), "utf8");
+  const print = css.slice(css.indexOf("@media print"));
+  assert.ok(css.includes("@media print"));
+  assert.match(print, /\.guild-rail[^}]*display:\s*none/);
+  assert.match(print, /\.census-tools[^}]*display:\s*none/);
+  assert.match(print, /\.group-card[^}]*break-inside:\s*avoid/);
+  assert.match(print, /background:\s*#fff/);
+  assert.match(print, /\.statistics-grid[^}]*display:\s*block/, "grids collapse to one full-width column");
+});

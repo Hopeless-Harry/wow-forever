@@ -463,3 +463,23 @@ th[scope="row"] a, .panel-heading p a, .empty-ledger a, .profile-card a { displa
 
 /* Helper text on parchment needs a dark colour; --muted is built for the dark panels. */
 .parchment-panel .quiet, .parchment-panel .no-results { color: #3b2815; }
+
+/* Printing: plain black on white, no navigation or controls, cards never split across pages. */
+@media print {
+  body { min-height: 0; color: #000; background: #fff; }
+  .skip-link, .guild-rail, .member-tabs, .census-tools, .wow-button, .sync-rune, .launch-banner, .no-results, footer { display: none !important; }
+  .ledger-shell { display: block; }
+  .ledger-main { padding: 0; }
+  .ledger-topbar { border-bottom: 1px solid #000; }
+  .ledger-topbar h1, .realm-mark, h2, h3, strong { color: #000 !important; text-shadow: none !important; }
+  .parchment-panel, .chart-panel, .ledger-stat, .group-card, .launch-banner { color: #000 !important; background: #fff !important; box-shadow: none !important; border: 1px solid #000 !important; }
+  .panel-heading span, .panel-heading p, .quiet, .chronicle-entry time, .profile-facts dt, .raid-panel th small, .ledger-stat span, .ledger-stat small, .plan-badge, .combo-flag { color: #000 !important; }
+  .group-card, .profession-card, .chronicle-entry, .ledger-stat, tr { break-inside: avoid; }
+  .table-scroll { overflow: visible; }
+  table { min-width: 0; }
+  th { color: #000 !important; background: #eee !important; }
+  .statistics-grid, .dashboard-grid, .stat-rack, .ledger-overview { display: block; }
+  .statistics-grid > *, .dashboard-grid > *, .stat-rack > * { margin: 0 0 .75rem; }
+  .parchment-panel { overflow: visible; }
+  a { color: #000; text-decoration: none; }
+}
