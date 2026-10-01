@@ -532,3 +532,10 @@ th[scope="row"] a, .panel-heading p a, .empty-ledger a, .profile-card a { displa
 
 .faction-tag { color: #3b2815; font-size: .85rem; }
 .profession-card li a { font-weight: 700; }
+
+.matrix-panel table { min-width: 0; table-layout: auto; }
+.matrix-panel td, .matrix-panel th { padding: .55rem .6rem; }
+.matrix-panel td:not(:first-child), .matrix-panel thead th:not(:first-child), .matrix-panel tfoot td { text-align: center; }
+.matrix-panel .zero { color: #6b5636; }
+.matrix-panel tfoot th, .matrix-panel tfoot td { border-top: 2px solid #3b2815; font-weight: 700; }
+@media (max-width: 700px) { .matrix-panel td, .matrix-panel th { padding: .5rem .35rem; font-size: .85rem; } }

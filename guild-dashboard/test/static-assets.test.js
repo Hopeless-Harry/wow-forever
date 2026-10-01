@@ -178,7 +178,9 @@ test("on phones the headline stat cards sit two per row so the raid answer is no
 
 test("on phones the first column of scrolling tables stays pinned and opaque", async () => {
   const css = await readFile(path.join(projectRoot, "public", "styles.css"), "utf8");
-  const phone = css.slice(css.lastIndexOf("@media (max-width: 700px)"));
+  const start = css.indexOf("keep the name column pinned");
+  assert.ok(start > 0, "the pinned-column block is present");
+  const phone = css.slice(start, css.indexOf("@media (max-width: 700px)", start) + 900);
   assert.match(phone, /\.table-scroll tbody th\[scope="row"\]\s*\{[^}]*position:\s*sticky;[^}]*left:\s*0/);
   assert.match(phone, /\.table-scroll tbody th\[scope="row"\]\s*\{[^}]*background:\s*#[0-9a-f]{6}/i, "opaque, so scrolled cells do not show through");
   assert.match(phone, /\.table-scroll thead th:first-child\s*\{[^}]*position:\s*sticky/);

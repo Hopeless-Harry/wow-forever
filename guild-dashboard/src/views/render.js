@@ -1,3 +1,4 @@
+import { classRoleMatrix } from "../domain/stats.js";
 import { ERROR_COPY } from "../data/errors.js";
 import { groupPlan, groupsToText } from "../domain/groups.js";
 import { buildSummary } from "../domain/summary.js";
@@ -76,6 +77,13 @@ function groupsSharePanel(text) {
   return `<section class="parchment-panel summary-panel"><div class="panel-heading"><div><span>Share it</span><h2>Raid groups for Discord</h2><p>Names and classes of the suggested groups above, ready to paste.</p></div><button class="wow-button" type="button" data-copy-target="raid-groups-text" data-copy-status="raid-copy-status">Copy for Discord</button></div><label for="raid-groups-text" class="summary-label">Group list</label><textarea id="raid-groups-text" class="summary-text" readonly rows="8">${escapeHtml(text)}</textarea><p id="raid-copy-status" class="quiet" role="status"></p><p class="quiet">${text.length} characters${over ? ". That is over Discord's 2,000-character message limit, so paste it in two messages." : "."}</p></section>`;
 }
 
+function matrixPanel(records) {
+  const { rows, totals } = classRoleMatrix(records);
+  const cell = (value) => `<td class="${value ? "" : "zero"}">${value}</td>`;
+  const body = rows.map((row) => `<tr><th scope="row"><span class="class-chip${classToken(row.characterClass)}">${escapeHtml(row.characterClass)}</span></th>${cell(row.tank)}${cell(row.healer)}${cell(row.dps)}${cell(row.flex)}<td><strong>${row.total}</strong></td></tr>`).join("");
+  return `<section class="parchment-panel matrix-panel wide"><div class="panel-heading"><div><span>Who plays what</span><h2>Class by role</h2><p>How many players of each class chose each role. Counts only.</p></div></div><div class="table-scroll"><table aria-label="Players by class and role"><thead><tr><th scope="col">Class</th><th scope="col">Tank</th><th scope="col">Healer</th><th scope="col">DPS</th><th scope="col">Flexible</th><th scope="col">Total</th></tr></thead><tbody>${body}</tbody><tfoot><tr><th scope="row">All classes</th><td>${totals.tank}</td><td>${totals.healer}</td><td>${totals.dps}</td><td>${totals.flex}</td><td><strong>${totals.total}</strong></td></tr></tfoot></table></div></section>`;
+}
+
 function emptyPanel(snapshot = {}) {
   if (snapshot.status && snapshot.status !== "empty") return `<section class="parchment-panel empty-ledger"><h2>No responses yet</h2><p>The sheet is connected and synced, but nobody has filled in the Form yet. Entries appear here automatically.</p></section>`;
   return `<section class="parchment-panel empty-ledger"><h2>The ledger is ready</h2><p>Link the Form to a Google Sheet and add the read-only credentials on the Pi. The first anonymous census will appear automatically.</p></section>`;
@@ -142,7 +150,7 @@ export function renderResponses(snapshot) {
 
 export function renderStatistics(snapshot) {
   const d = snapshot.stats.distributions;
-  const content = snapshot.records.length ? `<section class="statistics-intro"><p>${count(snapshot.stats.totalResponses, "plan", "plans")}, counted exactly as submitted.</p></section><section class="statistics-grid">${bars("Class distribution", d.characterClass)}${bars("Role distribution", d.role)}${bars("Race distribution", d.race)}${bars("Faction split", d.faction)}${bars("Ruleset preference", d.server)}${bars("Profession demand", d.professions, "wide")}</section>` : emptyPanel(snapshot);
+  const content = snapshot.records.length ? `<section class="statistics-intro"><p>${count(snapshot.stats.totalResponses, "plan", "plans")}, counted exactly as submitted.</p></section><section class="statistics-grid">${bars("Class distribution", d.characterClass)}${bars("Role distribution", d.role)}${bars("Race distribution", d.race)}${bars("Faction split", d.faction)}${bars("Ruleset preference", d.server)}${matrixPanel(snapshot.records)}${bars("Profession demand", d.professions, "wide")}</section>` : emptyPanel(snapshot);
   return shell({ title: "Guild Statistics", active: "/statistics", snapshot, content, scripts: ["/assets/live-refresh.js"] });
 }
 

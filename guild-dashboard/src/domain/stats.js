@@ -1,4 +1,4 @@
-import { factionOf } from "./wow-data.js";
+import { factionOf, roleOf } from "./wow-data.js";
 
 const DISTRIBUTION_FIELDS = ["server", "race", "characterClass", "role"];
 
@@ -36,4 +36,18 @@ export function buildStats(records) {
     distributions,
     leaders
   };
+}
+
+// How many players of each class chose each role. Counts only, so it stays anonymous.
+export function classRoleMatrix(records) {
+  const rows = new Map();
+  for (const record of records) {
+    if (!rows.has(record.characterClass)) rows.set(record.characterClass, { characterClass: record.characterClass, tank: 0, healer: 0, dps: 0, flex: 0, total: 0 });
+    const row = rows.get(record.characterClass);
+    row[roleOf(record.role)] += 1;
+    row.total += 1;
+  }
+  const list = [...rows.values()].sort((a, b) => b.total - a.total || a.characterClass.localeCompare(b.characterClass));
+  const totals = list.reduce((sum, row) => ({ tank: sum.tank + row.tank, healer: sum.healer + row.healer, dps: sum.dps + row.dps, flex: sum.flex + row.flex, total: sum.total + row.total }), { tank: 0, healer: 0, dps: 0, flex: 0, total: 0 });
+  return { rows: list, totals };
 }

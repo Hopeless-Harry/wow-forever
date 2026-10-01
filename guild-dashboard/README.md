@@ -6,6 +6,7 @@ A lightweight, privacy-first guild census for the **Moms Against Magic — WoW F
 
 - Shows anonymous class, role, race, ruleset, and profession summaries.
 - Provides a searchable and filterable Guild Census.
+- "Class by role" table on `/statistics`: how many players of each class chose tank, healer, DPS or flexible, with totals. Counts only, so it stays anonymous.
 - Chronicle filter tabs (`/members/chronicle?type=joined|left|changed`) with counts, so an officer can see just who left or who changed their plans.
 - Raid Planner (`/raid?size=10|20|40`): per-faction role balance against rough community targets (about 4 tanks, 11 healers, 25 DPS for 40 players) and class coverage (Warrior tank, Druid, Hunter, Paladin, Shaman, Priest, Mage, Warlock). Factions are planned separately because they cannot group together.
 - "Can we raid?" on the dashboard, placed right under the headline numbers so it is the first thing an officer sees: for each faction and raid size (10, 20, 40), either Ready or exactly what is missing (for example "Needs 3 healers, 7 DPS"), using the same rough role targets as the raid planner. Flexible players are not counted, so it is a cautious answer. Players can only group within one ruleset, so when a faction's members chose several rulesets it gets one row per ruleset (players happy with either count toward each) instead of pooling people who can never group.
