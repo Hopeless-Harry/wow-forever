@@ -87,3 +87,58 @@ test("group cards put each member's class and role on their own line and filters
   assert.match(css, /\.group-card li\s*\{[^}]*display:\s*grid/);
   assert.doesNotMatch(css, /\.census-tools\s*\{\s*grid-template-columns:\s*1fr;\s*\}/, "filters no longer collapse to one column");
 });
+
+import { groupsToText } from "../src/domain/groups.js";
+
+test("group text lists each non-empty group with names and classes, then the bench", () => {
+  const plan = groupPlan(horde, 10);
+  const text = groupsToText(plan, 10);
+  const lines = text.split("\n");
+  assert.equal(lines[0], "**Raid groups — 10-player**");
+  assert.equal(lines[1], "**Horde**");
+  assert.match(lines[2], /^Group 1: [A-Za-z0-9]+ \((Warrior|Druid|Priest|Shaman|Mage|Rogue|Hunter)\)(, [A-Za-z0-9]+ \([A-Za-z]+\))+$/);
+  assert.ok(lines.some((line) => line.startsWith("Group 2: ")));
+  assert.match(lines.at(-1), /^Bench: /, "overflow players are listed last");
+  assert.equal((text.match(/\(/g) ?? []).length, 10, "a class is shown for each of the ten placed players, none for the bench");
+});
+
+test("group text names the ruleset, separates factions and skips empty groups", () => {
+  const mixed = [make("Aldo", "Paladin", "Tank", "Human"), make("Thok", "Warrior", "Tank", "Orc")];
+  const text = groupsToText(groupPlan(mixed, 20), 20, "PvP");
+  assert.match(text, /^\*\*Raid groups — 20-player \(PvP\)\*\*/);
+  assert.match(text, /\*\*Horde\*\*\nGroup 1: Thok \(Warrior\)/);
+  assert.match(text, /\*\*Alliance\*\*\nGroup 1: Aldo \(Paladin\)/);
+  assert.equal(text.includes("Group 2"), false, "empty groups are not listed");
+  assert.equal(groupsToText([], 10), null);
+  assert.equal(groupsToText(groupPlan([], 10), 10), null);
+});
+
+test("the raid page offers the group list for copying, with a length note and a long-list warning", async () => {
+  const records = horde.map((m, i) => ({ anonymousId: `Response #${i + 1}`, server: m.server, race: m.race, characterClass: m.characterClass, role: m.role, profession1: m.profession1, profession2: m.profession2 }));
+  const snapshot = { records, stats: buildStats(records), status: "fresh", fetchedAt: "2026-09-22T12:00:00.000Z", lastRefreshFailed: false };
+  const page = async (members, url = "/raid?size=10") => {
+    const app = buildApp({ dataService: { snapshot: () => snapshot, memberSnapshot: () => ({ members, events: [], fetchedAt: snapshot.fetchedAt }) }, logger: false, rateLimitPerMinute: 0 });
+    const body = (await app.inject({ url })).body;
+    await app.close();
+    return body;
+  };
+
+  const body = await page(horde);
+  assert.match(body, /Raid groups for Discord/);
+  assert.match(body, /<label for="raid-groups-text"/);
+  assert.match(body, /<textarea id="raid-groups-text"[^>]*readonly[^>]*>\*\*Raid groups — 10-player\*\*/);
+  assert.match(body, /data-copy-target="raid-groups-text" data-copy-status="raid-copy-status"/);
+  assert.match(body, /id="raid-copy-status"[^>]*role="status"/);
+  assert.match(body, /\/assets\/copy-summary\.js/);
+  assert.match(body, /\d+ characters\./);
+  assert.equal(body.includes("over Discord"), false);
+
+  const hostile = await page([make("<b>Bad</b>", "Mage", "DPS")]);
+  assert.equal(hostile.includes("<b>Bad"), false, "names are escaped inside the text box");
+
+  const huge = Array.from({ length: 80 }, (_, i) => make(`LongerPlayerName${String(i).padStart(3, "0")}`, "Mage", i % 9 === 0 ? "Tank" : i % 5 === 0 ? "Healer" : "DPS"));
+  assert.match(await page(huge, "/raid?size=40"), /over Discord's 2,000-character message limit, so paste it in two messages/);
+
+  const none = await page([]);
+  assert.equal(none.includes("Raid groups for Discord"), false, "no panel without a roster");
+});

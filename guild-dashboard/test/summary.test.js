@@ -59,7 +59,7 @@ test("dashboard shows the summary with a labelled box and copy button, and /summ
   assert.match(page, /Guild summary for Discord/);
   assert.match(page, /<label for="guild-summary"/);
   assert.match(page, /<textarea id="guild-summary"[^>]*readonly/);
-  assert.match(page, /data-copy-summary>Copy for Discord<\/button>/);
+  assert.match(page, /data-copy-target="guild-summary" data-copy-status="copy-status">Copy for Discord<\/button>/);
   assert.match(page, /id="copy-status"[^>]*role="status"/);
   assert.match(page, /\/assets\/copy-summary\.js/);
   assert.match(page, /6 responses · Horde 5 · Alliance 1/);
@@ -73,8 +73,8 @@ test("dashboard shows the summary with a labelled box and copy button, and /summ
 });
 
 function copyHarness({ clipboard, execCommand }) {
-  const state = { button: { textContent: "Copy for Discord", handlers: {}, addEventListener(type, fn) { this.handlers[type] = fn; } }, field: { value: "SUMMARY", selected: false, focused: false, handlers: {}, focus() { this.focused = true; }, select() { this.selected = true; }, addEventListener(type, fn) { this.handlers[type] = fn; } }, status: { textContent: "" }, timers: [] };
-  const document = { querySelector: (selector) => ({ "[data-copy-summary]": state.button, "#guild-summary": state.field, "#copy-status": state.status })[selector] ?? null, execCommand };
+  const state = { button: { textContent: "Copy for Discord", dataset: { copyTarget: "guild-summary", copyStatus: "copy-status" }, handlers: {}, addEventListener(type, fn) { this.handlers[type] = fn; } }, field: { value: "SUMMARY", selected: false, focused: false, handlers: {}, focus() { this.focused = true; }, select() { this.selected = true; }, addEventListener(type, fn) { this.handlers[type] = fn; } }, status: { textContent: "" }, timers: [] };
+  const document = { querySelectorAll: (selector) => (selector === "[data-copy-target]" ? [state.button] : []), getElementById: (id) => ({ "guild-summary": state.field, "copy-status": state.status })[id] ?? null, execCommand };
   vm.runInNewContext(readFileSync(new URL("../public/copy-summary.js", import.meta.url), "utf8"), vm.createContext({ document, navigator: { clipboard }, window: { setTimeout: (fn, ms) => state.timers.push({ fn, ms }) } }));
   return state;
 }
@@ -133,4 +133,23 @@ test("a larger ready guild reports its biggest ready size and the summary still 
   assert.match(text, /- Horde — ready for a 40-player raid/);
   assert.ok(text.length < 2000, `summary is ${text.length} characters`);
   assert.equal(buildSummary({ records: [] }, {}, NOW).includes("Raid readiness"), false, "nothing to report for an empty guild");
+});
+
+test("several copy buttons on one page each copy their own text box and report in their own status line", async () => {
+  const written = [];
+  const make = (target, status, value) => ({ button: { textContent: "Copy for Discord", dataset: { copyTarget: target, copyStatus: status }, handlers: {}, addEventListener(type, fn) { this.handlers[type] = fn; } }, field: { value, handlers: {}, focus() {}, select() {}, addEventListener(type, fn) { this.handlers[type] = fn; } }, status: { textContent: "" } });
+  const one = make("a-text", "a-status", "FIRST");
+  const two = make("b-text", "b-status", "SECOND");
+  const byId = { "a-text": one.field, "a-status": one.status, "b-text": two.field, "b-status": two.status };
+  const document = { querySelectorAll: () => [one.button, two.button], getElementById: (id) => byId[id] ?? null };
+  vm.runInNewContext(readFileSync(new URL("../public/copy-summary.js", import.meta.url), "utf8"), vm.createContext({ document, navigator: { clipboard: { writeText: async (text) => { written.push(text); } } }, window: { setTimeout() {} } }));
+
+  await two.button.handlers.click();
+  await one.button.handlers.click();
+  assert.deepEqual(written, ["SECOND", "FIRST"]);
+  assert.match(two.status.textContent, /Copied/);
+  assert.match(one.status.textContent, /Copied/);
+
+  const ghost = { textContent: "x", dataset: { copyTarget: "missing" }, handlers: {}, addEventListener() { throw new Error("must not bind"); } };
+  assert.doesNotThrow(() => vm.runInNewContext(readFileSync(new URL("../public/copy-summary.js", import.meta.url), "utf8"), vm.createContext({ document: { querySelectorAll: () => [ghost], getElementById: () => null }, navigator: {}, window: {} })));
 });

@@ -1,24 +1,27 @@
 (() => {
-  const button = document.querySelector("[data-copy-summary]");
-  const field = document.querySelector("#guild-summary");
-  const status = document.querySelector("#copy-status");
-  if (!button || !field) return;
+  // Every button with data-copy-target copies the text box with that id and reports in the element named by data-copy-status.
+  for (const button of document.querySelectorAll("[data-copy-target]")) {
+    const field = document.getElementById(button.dataset.copyTarget);
+    const status = button.dataset.copyStatus ? document.getElementById(button.dataset.copyStatus) : null;
+    if (!field) continue;
+    const label = button.textContent;
 
-  async function copy() {
-    let copied = false;
-    try {
-      await navigator.clipboard.writeText(field.value);
-      copied = true;
-    } catch {
-      field.focus();
-      field.select();
-      try { copied = document.execCommand("copy"); } catch { copied = false; }
+    async function copy() {
+      let copied = false;
+      try {
+        await navigator.clipboard.writeText(field.value);
+        copied = true;
+      } catch {
+        field.focus();
+        field.select();
+        try { copied = document.execCommand("copy"); } catch { copied = false; }
+      }
+      if (status) status.textContent = copied ? "Copied — paste it into Discord." : "Press Ctrl+C to copy the selected text.";
+      button.textContent = copied ? "Copied!" : label;
+      window.setTimeout(() => { button.textContent = label; }, 2500);
     }
-    if (status) status.textContent = copied ? "Copied — paste it into Discord." : "Press Ctrl+C to copy the selected text.";
-    button.textContent = copied ? "Copied!" : "Copy for Discord";
-    window.setTimeout(() => { button.textContent = "Copy for Discord"; }, 2500);
-  }
 
-  button.addEventListener("click", copy);
-  field.addEventListener("focus", () => field.select());
+    button.addEventListener("click", copy);
+    field.addEventListener("focus", () => field.select());
+  }
 })();

@@ -1,5 +1,5 @@
 import { ERROR_COPY } from "../data/errors.js";
-import { groupPlan } from "../domain/groups.js";
+import { groupPlan, groupsToText } from "../domain/groups.js";
 import { buildSummary } from "../domain/summary.js";
 import { buildRaidPlan, gapCandidates, missingProfessions, professionDirectory, raidReadiness } from "../domain/raid.js";
 import { LAUNCH_AT, RAID_SIZES, comboWarning, factionOf, forRuleset, roleWarning, rulesetOptions } from "../domain/wow-data.js";
@@ -70,6 +70,12 @@ function count(total, one, many) {
   return `${total} ${total === 1 ? one : many}`;
 }
 
+function groupsSharePanel(text) {
+  if (!text) return "";
+  const over = text.length > 2000;
+  return `<section class="parchment-panel summary-panel"><div class="panel-heading"><div><span>Share it</span><h2>Raid groups for Discord</h2><p>Names and classes of the suggested groups above, ready to paste.</p></div><button class="wow-button" type="button" data-copy-target="raid-groups-text" data-copy-status="raid-copy-status">Copy for Discord</button></div><label for="raid-groups-text" class="summary-label">Group list</label><textarea id="raid-groups-text" class="summary-text" readonly rows="8">${escapeHtml(text)}</textarea><p id="raid-copy-status" class="quiet" role="status"></p><p class="quiet">${text.length} characters${over ? ". That is over Discord's 2,000-character message limit, so paste it in two messages." : "."}</p></section>`;
+}
+
 function emptyPanel(snapshot = {}) {
   if (snapshot.status && snapshot.status !== "empty") return `<section class="parchment-panel empty-ledger"><h2>No responses yet</h2><p>The sheet is connected and synced, but nobody has filled in the Form yet. Entries appear here automatically.</p></section>`;
   return `<section class="parchment-panel empty-ledger"><h2>The ledger is ready</h2><p>Link the Form to a Google Sheet and add the read-only credentials on the Pi. The first anonymous census will appear automatically.</p></section>`;
@@ -99,7 +105,7 @@ function readinessPanel(records) {
 
 function summaryPanel(snapshot, memberData) {
   const text = buildSummary(snapshot, memberData);
-  return `<section class="parchment-panel summary-panel"><div class="panel-heading"><div><span>Share it</span><h2>Guild summary for Discord</h2><p>Counts only, no names. Paste it into your channel.</p></div><button class="wow-button" type="button" data-copy-summary>Copy for Discord</button></div><label for="guild-summary" class="summary-label">Summary text</label><textarea id="guild-summary" class="summary-text" readonly rows="9">${escapeHtml(text)}</textarea><p id="copy-status" class="quiet" role="status"></p></section>`;
+  return `<section class="parchment-panel summary-panel"><div class="panel-heading"><div><span>Share it</span><h2>Guild summary for Discord</h2><p>Counts only, no names. Paste it into your channel.</p></div><button class="wow-button" type="button" data-copy-target="guild-summary" data-copy-status="copy-status">Copy for Discord</button></div><label for="guild-summary" class="summary-label">Summary text</label><textarea id="guild-summary" class="summary-text" readonly rows="9">${escapeHtml(text)}</textarea><p id="copy-status" class="quiet" role="status"></p></section>`;
 }
 
 function activityPanel(events = []) {
@@ -203,11 +209,12 @@ export function renderRaidPlan(snapshot, size = 40, memberData = { members: [] }
   const panels = plan.map((group) => `<section class="parchment-panel raid-panel"><div class="panel-heading"><div><span>${escapeHtml(group.faction)} muster</span><h2>${group.total} ${group.total === 1 ? "adventurer" : "adventurers"}</h2></div></div>
     <h3>Roles</h3><div class="table-scroll"><table aria-label="${escapeHtml(group.faction)} role balance"><thead><tr><th>Role</th><th>Have / aim</th><th>Status</th></tr></thead><tbody>${group.roles.map((row) => planRow(ROLE_LABELS[row.role], "", row.have, row.need, row.status)).join("")}</tbody></table></div>${gapNote(group, gapsByFaction.get(group.faction))}
     <h3>Class coverage</h3><div class="table-scroll"><table aria-label="${escapeHtml(group.faction)} class coverage"><thead><tr><th>Class</th><th>Have / aim</th><th>Status</th></tr></thead><tbody>${group.utility.map((row) => planRow(row.label, row.note, row.have, row.need, row.status)).join("")}</tbody></table></div></section>`).join("");
-  const groups = groupPlan(forRuleset(memberData.members, ruleset), size).map((faction) => `<section class="parchment-panel raid-panel wide"><div class="panel-heading"><div><span>${escapeHtml(faction.faction)} suggested groups</span><h2>${faction.groups.reduce((sum, group) => sum + group.members.length, 0)} placed${faction.bench.length ? `, ${faction.bench.length} on the bench` : ""}</h2></div></div><p class="quiet">Ruleset preferences: ${faction.rulesets.map((item) => `${escapeHtml(item.label)} (${item.count})`).join(" · ")}. Players can only group within one faction and one ruleset.</p><div class="group-grid">${faction.groups.map((group, index) => `<article class="group-card"><h3>Group ${index + 1}</h3><ul>${group.members.map((member) => `<li><strong>${escapeHtml(member.name)}</strong><span class="member-meta"><span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span> <span aria-hidden="true">·</span> ${escapeHtml(member.role)}</span></li>`).join("") || '<li class="quiet">Open slots</li>'}</ul></article>`).join("")}</div>${faction.bench.length ? `<p class="quiet">Bench: ${faction.bench.map((member) => escapeHtml(member.name)).join(", ")}</p>` : ""}</section>`).join("");
+  const groupData = groupPlan(forRuleset(memberData.members, ruleset), size);
+  const groups = groupData.map((faction) => `<section class="parchment-panel raid-panel wide"><div class="panel-heading"><div><span>${escapeHtml(faction.faction)} suggested groups</span><h2>${faction.groups.reduce((sum, group) => sum + group.members.length, 0)} placed${faction.bench.length ? `, ${faction.bench.length} on the bench` : ""}</h2></div></div><p class="quiet">Ruleset preferences: ${faction.rulesets.map((item) => `${escapeHtml(item.label)} (${item.count})`).join(" · ")}. Players can only group within one faction and one ruleset.</p><div class="group-grid">${faction.groups.map((group, index) => `<article class="group-card"><h3>Group ${index + 1}</h3><ul>${group.members.map((member) => `<li><strong>${escapeHtml(member.name)}</strong><span class="member-meta"><span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span> <span aria-hidden="true">·</span> ${escapeHtml(member.role)}</span></li>`).join("") || '<li class="quiet">Open slots</li>'}</ul></article>`).join("")}</div>${faction.bench.length ? `<p class="quiet">Bench: ${faction.bench.map((member) => escapeHtml(member.name)).join(", ")}</p>` : ""}</section>`).join("");
   const content = snapshot.records.length
-    ? `${sizeTabs}${rulesetTabs}<p class="quiet">Factions cannot group together, so each side is planned separately.${ruleset ? ` Showing players who chose ${escapeHtml(ruleset)} or are happy with either.` : ""}${options.length > 1 && !ruleset ? ' <strong class="pool-warning">Members chose different rulesets, so these totals pool everyone. Pick a ruleset above to plan a group that can really play together.</strong>' : ""} Targets are a rough guide from community raid advice, not a rule.</p><div class="statistics-grid">${panels}</div>${groups}`
+    ? `${sizeTabs}${rulesetTabs}<p class="quiet">Factions cannot group together, so each side is planned separately.${ruleset ? ` Showing players who chose ${escapeHtml(ruleset)} or are happy with either.` : ""}${options.length > 1 && !ruleset ? ' <strong class="pool-warning">Members chose different rulesets, so these totals pool everyone. Pick a ruleset above to plan a group that can really play together.</strong>' : ""} Targets are a rough guide from community raid advice, not a rule.</p><div class="statistics-grid">${panels}</div>${groups}${groupsSharePanel(groupsToText(groupData, size, ruleset))}`
     : emptyPanel(snapshot);
-  return shell({ title: "Raid Planner", active: "/raid", snapshot, content, scripts: ["/assets/live-refresh.js"] });
+  return shell({ title: "Raid Planner", active: "/raid", snapshot, content, scripts: ["/assets/copy-summary.js", "/assets/live-refresh.js"] });
 }
 
 export function renderProfessions(snapshot, memberData) {

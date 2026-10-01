@@ -63,3 +63,18 @@ export function groupPlan(members, size) {
     };
   });
 }
+
+// Discord-ready text for the suggested groups. Empty groups are left out; null when nobody is placed.
+export function groupsToText(plan, size, ruleset = "") {
+  const sections = [];
+  for (const faction of plan) {
+    const lines = [];
+    faction.groups.forEach((group, index) => {
+      if (group.members.length) lines.push(`Group ${index + 1}: ${group.members.map((member) => `${member.name} (${member.characterClass})`).join(", ")}`);
+    });
+    if (faction.bench.length) lines.push(`Bench: ${faction.bench.map((member) => member.name).join(", ")}`);
+    if (lines.length) sections.push([`**${faction.faction}**`, ...lines].join("\n"));
+  }
+  if (!sections.length) return null;
+  return [`**Raid groups — ${size}-player${ruleset ? ` (${ruleset})` : ""}**`, ...sections].join("\n");
+}
