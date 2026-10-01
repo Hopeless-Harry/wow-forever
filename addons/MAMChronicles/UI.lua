@@ -106,7 +106,7 @@ end
 
 function UI:OpenMoreMenu(anchor)
   if not self.moreTabs or #self.moreTabs==0 then return end
-  self:OpenMenu(anchor or self.moreButton,self.moreTabs,self.activeTab,function(value) UI:CloseMenu(); UI:SetActiveTab(value) end)
+  self:OpenMenu(anchor or self.moreButton,self.moreTabs,self.activeTab,function(value) UI:CloseMenu(); UI:SetActiveTab(value) end,"right")
 end
 
 function UI:UpdateTabStates()
@@ -146,7 +146,7 @@ end
 
 function UI:CloseMenu() if self.menu then safeMethod(self.menu,"Hide") end end
 
-function UI:OpenMenu(anchor,options,current,onSelect)
+function UI:OpenMenu(anchor,options,current,onSelect,side)
   self:Create()
   if self.menu.shown and self.menuOptions==options then self:CloseMenu(); return end
   self.menuOptions=options
@@ -157,7 +157,10 @@ function UI:OpenMenu(anchor,options,current,onSelect)
       button.text=value; safeMethod(button,"SetScript","OnClick",function() onSelect(value) end); safeMethod(button,"Show")
     else button.value=nil; safeMethod(button,"Hide") end
   end
-  safeMethod(self.menu,"ClearAllPoints"); safeMethod(self.menu,"SetPoint","TOPLEFT",anchor or self.frame,"BOTTOMLEFT",0,-2)
+  safeMethod(self.menu,"ClearAllPoints")
+  -- side=="right" opens beside the anchor instead of under it, so it does not cover the page toolbar below the tabs.
+  if side=="right" then safeMethod(self.menu,"SetPoint","TOPLEFT",anchor or self.frame,"TOPRIGHT",6,0)
+  else safeMethod(self.menu,"SetPoint","TOPLEFT",anchor or self.frame,"BOTTOMLEFT",0,-2) end
   safeMethod(self.menu,"SetSize",130,#options*22+8); safeMethod(self.menu,"Show")
 end
 
@@ -756,7 +759,7 @@ function UI:BuildSettingsPage(frame)
   y = y - 34
 
   -- Only the guild's owner (rank 0 or 1) needs the hub gateway switches; everyone else is not shown them.
-  local showHubOwner = Addon.db.settings.gatewayMode == true or (Addon.Comms ~= nil and Addon.Comms.CanOwnHub ~= nil and Addon.Comms:CanOwnHub() == true)
+  local showHubOwner = self:InGuild() and (Addon.db.settings.gatewayMode == true or (Addon.Comms ~= nil and Addon.Comms.CanOwnHub ~= nil and Addon.Comms:CanOwnHub() == true))
   if showHubOwner then
   heading("Guild hub (owner only)")
   check("gatewayMode", "Act as the guild hub gateway", "Only for the owner, on a rank 0 or 1 character. Announces the hub, collects members' shared stats and locations and keeps them for the companion app. Does nothing for other ranks.")

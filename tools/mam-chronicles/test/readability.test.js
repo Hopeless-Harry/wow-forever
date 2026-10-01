@@ -56,3 +56,19 @@ test('a Medals search is cleared when you leave the tab', () => {
   h.run('UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Medals"); UI.medalSearchBox:SetText("guild"); UI:SetMedalSearch("guild"); __a=UI.medalSearch; UI:SetActiveTab("Home"); __b=UI.medalSearch; __box=UI.medalSearchBox:GetText(); UI:SetActiveTab("Medals"); __all=#UI.medalList');
   assert.equal(h.get('__a'), 'guild'); assert.equal(h.get('__b'), ''); assert.equal(h.get('__box'), ''); assert.ok(h.get('__all') > 21);
 });
+
+test('hub owner settings stay hidden outside a guild even if the gateway switch was left on', () => {
+  const h = setup();
+  h.run('function IsInGuild() return false end; MAMChroniclesDB.settings.gatewayMode=true; UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Settings"); __a=UI.settingChecks.gatewayMode~=nil');
+  assert.equal(h.get('__a'), false);
+  const g = setup();
+  g.run('MAMChroniclesDB.settings.gatewayMode=true; UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Settings"); __a=UI.settingChecks.gatewayMode~=nil');
+  assert.equal(g.get('__a'), true);
+});
+
+test('the More menu opens beside its tab so it does not cover the page toolbar', () => {
+  const h = setup();
+  h.run('UI=MAMChronicles.UI; UI:Show(); UI:SetActiveTab("Chronicle"); UI:OpenMoreMenu(); __p=UI.menu.point; __rel=UI.moreButton');
+  assert.equal(h.get('__p[1]'), 'TOPLEFT'); assert.equal(h.get('__p[3]'), 'TOPRIGHT');
+  h.run('UI:OpenFilterMenu(UI.filterButton); __f=UI.menu.point'); assert.equal(h.get('__f[3]'), 'BOTTOMLEFT');
+});
