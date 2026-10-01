@@ -78,3 +78,19 @@ export function diffMembers(previous, next, at) {
   }
   return events;
 }
+
+// People sometimes submit the Form twice, once with a bare name and once with their BattleTag
+// ("Mira" and "Mira#1234"). A different tag number is a different account, so only a bare name
+// that matches another entry's name is reported.
+export function possibleDuplicates(members) {
+  const groups = new Map();
+  for (const member of members) {
+    const key = member.name.split("#")[0].trim().toLowerCase();
+    if (!key) continue;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(member.name);
+  }
+  return [...groups.values()]
+    .filter((names) => names.length > 1 && names.some((name) => !name.includes("#")))
+    .map((names) => [...names].sort((a, b) => a.localeCompare(b)));
+}
