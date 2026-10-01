@@ -1075,12 +1075,6 @@ end
 
 -- ---------------------------------------------------------------- guild-verified awards
 -- Granted by the Guild Master's award message (or a local test grant), never by tracking.
-function Medals:ListVerifiedIds()
-  local ids = {}
-  for _, def in ipairs(definitions) do if def.verified then ids[#ids + 1] = def.id end end
-  return table.concat(ids, ", ")
-end
-
 function Medals:GrantVerified(id, opts)
   local def = definitionsById[id]
   local database, key = Addon.db, Addon.characterKey

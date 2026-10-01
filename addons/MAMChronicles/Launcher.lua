@@ -6,9 +6,7 @@ local ICON = "Interface\\AddOns\\MAMChronicles\\MAMChroniclesIcon"
 local DEFAULT_ANGLE = 225
 local RADIUS = 80
 
-local function safeMethod(object, method, ...)
-  if object and type(object[method]) == "function" then return pcall(object[method], object, ...) end
-end
+local safeMethod = Addon.SafeMethod
 local function finite(value) return type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge end
 
 local function ui()

@@ -1703,7 +1703,7 @@ UI.helpLines={
   "/mam tracker - show or hide the goal tracker window",
   "/mam mute [minutes] - hold all toasts for a while (default 30); /mam unmute shows them again",
   "/mam guild - open the Guild tab: leaderboard and recent guild medals (/mam guild send shares your totals now)",
-  "/mam map - open the live guild map (/mam map fake adds pretend guildmates to try it)",
+  "/mam map - open the live guild map (/mam map follow <name> moves your waypoint with a guildmate; /mam map fake adds pretend guildmates to try it)",
   "/mam share on|off|forget - share your stats with the guild hub, stop, or ask it to forget you",
   "/mam gateway on|off|sync - guild hub gateway for the owner (rank 0 or 1 only)",
   "/mam toast - show a sample toast (test alerts)",

@@ -32,6 +32,7 @@ Midnight (12.x) hardening and clean-up.
 - Optional LibDataBroker launcher, so Titan Panel, ElvUI, Bazooka and similar can open the Chronicle.
 - The ground check that counts jumps pauses while dead or on a flight path.
 - Settings now have a numbered migration list; /mam diag shows how many guild announcements are queued.
+- Tidy-up: one shared safe-method helper instead of six copies, six unused functions removed, /mam help lists /mam map follow, and the README now matches what the addon records and shares.
 - Map: removed a duplicated test helper. Counters: the ten-times-a-second ground check no longer allocates.
 
 ## 0.2.0-alpha24

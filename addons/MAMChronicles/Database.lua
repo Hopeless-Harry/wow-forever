@@ -75,8 +75,6 @@ function Database:Open(saved)
   return db
 end
 
-function Database:GetSettings() return self.db.settings end
-function Database:GetCharacter() return self.db.characters[Addon.characterKey] end
 
 function Database:NormaliseSettings()
   local settings = tableOr(self.db and self.db.settings)

@@ -29,6 +29,12 @@ function Addon:IsSecret(value)
   return type(issecretvalue) == "function" and issecretvalue(value) == true
 end
 
+-- Calls object:method(...) if it exists, in protected mode: returns pcall's results, or nothing when the method is missing.
+-- UI code uses this because widgets and optional client methods differ between Retail and Forever.
+function Addon.SafeMethod(object, method, ...)
+  if object and type(object[method]) == "function" then return pcall(object[method], object, ...) end
+end
+
 Addon.errorStats = { count = 0, last = nil }
 
 local function shortMessage(label, err)

@@ -9,9 +9,7 @@ local REFRESH_DELAY = 0.5
 
 Tracker.rows = {}
 
-local function safeMethod(object, method, ...)
-  if object and type(object[method]) == "function" then return pcall(object[method], object, ...) end
-end
+local safeMethod = Addon.SafeMethod
 local function settings() return Addon.db and Addon.db.settings or {} end
 
 -- Goals and quests are only read once the medal baseline exists (statistics have settled). Before that, reading them would

@@ -46,9 +46,7 @@ local typeInfo = {
   ["medal.earned"]         = { "Medal", "quest" },
 }
 
-local function safeMethod(object, method, ...)
-  if object and type(object[method]) == "function" then return pcall(object[method], object, ...) end
-end
+local safeMethod = Addon.SafeMethod
 
 local function unpackColor(color) return color[1], color[2], color[3], color[4] or 1 end
 
@@ -70,11 +68,6 @@ function Theme:DescribeType(eventType)
   if info then return info[1], self.kindColors[info[2]] or self.colors.muted end
   local readable = tostring(eventType or "event"):gsub("[%._]", " ")
   return readable:sub(1, 1):upper() .. readable:sub(2), self.colors.muted
-end
-
-function Theme:KindFor(eventType)
-  local info = typeInfo[eventType]
-  return info and info[2] or nil
 end
 
 -- Stock font objects have fixed colours (white, grey, gold) that vanish on the light Parchment panel,
@@ -116,11 +109,6 @@ function Theme:FlatPanel(frame, background, border)
   safeMethod(frame, "SetBackdropColor", unpackColor(background))
   safeMethod(frame, "SetBackdropBorderColor", unpackColor(border))
   return frame
-end
-
-function Theme:StyleLabel(label, color)
-  safeMethod(label, "SetFontObject", "GameFontHighlight")
-  safeMethod(label, "SetTextColor", unpackColor(color or self.colors.text))
 end
 
 function Theme:SetEnabled(button, enabled)

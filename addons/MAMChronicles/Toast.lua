@@ -11,9 +11,7 @@ local ICON = "Interface\\AddOns\\MAMChronicles\\MAMChroniclesIcon"
 Toast.queue = {}
 Toast.durations = DURATIONS
 
-local function safeMethod(object, method, ...)
-  if object and type(object[method]) == "function" then return pcall(object[method], object, ...) end
-end
+local safeMethod = Addon.SafeMethod
 
 local function inCombat() return InCombatLockdown and InCombatLockdown() and true or false end
 

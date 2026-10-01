@@ -310,12 +310,6 @@ function Comms:OnAddonMessage(prefix, text, channel, sender)
   self:Record(sender, def)
 end
 
--- The UI shows award actions to ranks 0 and 1 (or in test mode). The real check is on every receiver.
-function Comms:CanAward()
-  local player = Addon:SafeCall(UnitName, "player")
-  return self.testMode == true or (player ~= nil and self:IsAwarder(player))
-end
-
 function Comms:ApplyLocal(kind, medalId)
   if kind == "A1" then return Addon.Medals:GrantVerified(medalId, { test = true }) end
   return Addon.Medals:RevokeVerified(medalId, { testOnly = true })

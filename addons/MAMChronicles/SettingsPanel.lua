@@ -7,9 +7,7 @@ local POPUP = "MAMCHRONICLES_ERASE_HISTORY"
 local uiSettings = { enabled = true, recordQuestAccepts = true, recordCoordinates = true, notableQuality = true, maxEvents = true, recordStatistics = true, recordGoldStatistics = true,
   windowAlpha = true, theme = true, toastsEnabled = true, toastSound = true, announceMedals = true, announceGuildChat = true, receiveGuildAlerts = true }
 
-local function safeMethod(object, method, ...)
-  if object and type(object[method]) == "function" then return pcall(object[method], object, ...) end
-end
+local safeMethod = Addon.SafeMethod
 
 function SettingsPanel:ApplySetting(key, value)
   if not (Addon.db and Addon.db.settings) then return false end
