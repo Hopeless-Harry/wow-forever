@@ -1,5 +1,5 @@
 import { roleTargets } from "./raid.js";
-import { factionOf, roleOf } from "./wow-data.js";
+import { RAID_SIZES, factionOf, forRuleset, isFlexibleRuleset, roleOf } from "./wow-data.js";
 
 const GROUP_SIZE = 5;
 
@@ -77,4 +77,23 @@ export function groupsToText(plan, size, ruleset = "") {
   }
   if (!sections.length) return null;
   return [`**Raid groups — ${size}-player${ruleset ? ` (${ruleset})` : ""}**`, ...sections].join("\n");
+}
+
+// Where one member lands in the suggested groups, per raid size. The pool is the member's own
+// ruleset (plus players happy with either) and faction, matching the raid planner.
+export function placementsFor(members, member, sizes = RAID_SIZES) {
+  const ruleset = isFlexibleRuleset(member.server) ? "" : member.server;
+  const pool = forRuleset(members, ruleset);
+  const key = member.name.toLowerCase();
+  return sizes.map((size) => {
+    const faction = groupPlan(pool, size).find((entry) => entry.faction === factionOf(member.race));
+    const result = { size, ruleset, group: null, bench: false, mates: [] };
+    if (!faction) return result;
+    for (const [index, group] of faction.groups.entries()) {
+      if (group.members.some((other) => other.name.toLowerCase() === key)) {
+        return { ...result, group: index + 1, mates: group.members.filter((other) => other.name.toLowerCase() !== key).map((other) => other.name) };
+      }
+    }
+    return { ...result, bench: faction.bench.some((other) => other.name.toLowerCase() === key) };
+  });
 }

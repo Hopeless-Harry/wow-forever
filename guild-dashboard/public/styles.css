@@ -563,3 +563,7 @@ th[scope="row"] a, .panel-heading p a, .empty-ledger a, .profile-card a { displa
 .join-bar span:first-child { color: var(--parchment); font-weight: 700; }
 .join-bar .wow-button { width: auto; }
 @media print { .join-bar { display: none !important; } }
+
+.placement-list { margin: 0; padding-left: 1.1rem; display: grid; gap: .45rem; }
+.placement-list a { font-weight: 700; }
+@media print { .placement-panel .wow-button { display: none !important; } }

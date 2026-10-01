@@ -1,6 +1,6 @@
 import { classRoleMatrix } from "../domain/stats.js";
 import { ERROR_COPY } from "../data/errors.js";
-import { groupPlan, groupsToText } from "../domain/groups.js";
+import { groupPlan, groupsToText, placementsFor } from "../domain/groups.js";
 import { possibleDuplicates } from "../domain/members.js";
 import { buildSummary } from "../domain/summary.js";
 import { buildRaidPlan, factionProfessionGaps, gapCandidates, missingProfessions, professionDirectory, raidReadiness, rulesetVote } from "../domain/raid.js";
@@ -307,6 +307,20 @@ export function renderProfessions(snapshot, memberData) {
   return shell({ title: "Profession Directory", active: "/members/professions", snapshot, content });
 }
 
+function placementPanel(members, member) {
+  const placements = placementsFor(members, member);
+  const ruleset = placements[0].ruleset;
+  const mates = (names) => names.map((name) => `<a href="/member?name=${encodeURIComponent(name)}">${escapeHtml(name)}</a>`).join(", ");
+  const items = placements.map((place) => {
+    const where = place.group
+      ? `Group ${place.group}${place.mates.length ? ` with ${mates(place.mates)}` : ", with nobody else yet"}`
+      : place.bench ? "On the bench for now" : "Not placed yet";
+    return `<li><strong>${place.size}-player:</strong> ${where}</li>`;
+  }).join("");
+  const plannerLink = `/raid?size=10${ruleset ? `&ruleset=${encodeURIComponent(ruleset)}` : ""}`;
+  return `<section class="parchment-panel placement-panel"><div class="panel-heading"><div><span>Raid plan</span><h2>Suggested raid spot</h2><p>Where the raid planner would currently place ${escapeHtml(member.name)}${ruleset ? `, among ${escapeHtml(ruleset)} players and anyone happy with either` : ""}. It is only a suggestion; the raid leader decides the real groups.</p></div><a class="wow-button" href="${escapeHtml(plannerLink)}">Open raid planner</a></div><ul class="placement-list">${items}</ul></section>`;
+}
+
 export function renderMemberProfile(snapshot, memberData, name) {
   const key = String(name || "").toLowerCase();
   const member = memberData.members.find((entry) => entry.name.toLowerCase() === key);
@@ -319,6 +333,7 @@ export function renderMemberProfile(snapshot, memberData, name) {
   const content = `<section class="parchment-panel census-panel"><div class="panel-heading"><div><span>${escapeHtml(factionOf(member.race))} adventurer</span><h2>${escapeHtml(member.name)}</h2><p><span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span> · ${escapeHtml(member.role)} · ${escapeHtml(member.race)}</p></div><a class="wow-button" href="/members">Back to roster</a></div>
     <dl class="profile-facts"><div><dt>Ruleset preference</dt><dd>${escapeHtml(member.server)}</dd></div><div><dt>Profession 1</dt><dd>${escapeHtml(member.profession1)}</dd></div><div><dt>Profession 2</dt><dd>${escapeHtml(member.profession2)}</dd></div></dl>
     ${notes.map((note) => `<p class="combo-flag">⚠ ${escapeHtml(note)} — check the form answer</p>`).join("")}</section>
+  ${placementPanel(memberData.members, member)}
   <section class="parchment-panel chronicle-panel"><div class="panel-heading"><div><span>History</span><h2>${escapeHtml(member.name)}'s chronicle</h2></div></div>${items ? `<ol class="chronicle-list">${items}</ol>` : '<p class="quiet">No changes recorded since the roll opened.</p>'}</section>`;
   // The page title shows the name, but link previews are cached by other services, so they stay generic.
   return shell({ title: member.name, previewTitle: "Guild member profile", active: "/members", snapshot, content, scripts: ["/assets/local-time.js"] });
