@@ -224,3 +224,47 @@ test("a filter with no matches says so plainly, and a roll with no history still
   assert.match(empty, /The Chronicle awaits its first page/);
   assert.equal(empty.includes("Filter the chronicle"), false, "no tabs before there is any history");
 });
+
+import { answerFlags } from "../src/domain/wow-data.js";
+
+test("answer flags list one entry per problem and nothing for sensible answers", () => {
+  const flags = answerFlags([
+    member("Fine#1"),
+    member("Both#2", { race: "Tauren", characterClass: "Mage", role: "Tank" }),
+    member("Role#3", { characterClass: "Rogue", role: "Healer" })
+  ]);
+  assert.deepEqual(flags.map((f) => [f.member.name, f.reason]), [
+    ["Both#2", "Tauren Mage is not a known WoW Forever combination"],
+    ["Both#2", "Mage is not normally a tank"],
+    ["Role#3", "Rogue is not normally a healer"]
+  ]);
+  assert.deepEqual(answerFlags([]), []);
+});
+
+test("the dashboard points officers at unusual roster answers, with the right wording and a working link", async (t) => {
+  const odd = (n) => member(`Odd#${n}`, { characterClass: "Mage", role: "Tank" });
+  const record = { anonymousId: "Response #1", server: "Normal", race: "Orc", characterClass: "Warrior", role: "Tank", profession1: "Mining", profession2: "Skinning" };
+  const snapshot = { records: [record], stats: buildStats([record]), status: "fresh", fetchedAt: AT, lastRefreshFailed: false };
+  const dashboard = async (members) => {
+    const app = buildApp({ dataService: { snapshot: () => snapshot, memberSnapshot: () => ({ members, events: [], fetchedAt: AT }) }, logger: false, rateLimitPerMinute: 0 });
+    const body = (await app.inject({ url: "/" })).body;
+    await app.close();
+    return body;
+  };
+
+  const one = await dashboard([odd(1), member("Fine#2")]);
+  assert.match(one, /<p class="check-notice" role="note"><strong>1 roster answer looks unusual\.<\/strong> <a href="\/members#check-panel">Review it on the roster<\/a><\/p>/);
+
+  const three = await dashboard([odd(1), odd(2), odd(3)]);
+  assert.match(three, /<strong>3 roster answers look unusual\.<\/strong> <a href="\/members#check-panel">Review them on the roster<\/a>/);
+
+  const clean = await dashboard([member("Fine#1"), member("Fine#2", { characterClass: "Druid", role: "Healer", race: "Tauren" })]);
+  assert.equal(clean.includes("check-notice"), false, "nothing to flag, nothing shown");
+  assert.equal((await dashboard([])).includes("check-notice"), false);
+
+  const target = appWith([odd(1)]);
+  t.after(() => target.close());
+  const roster = (await target.inject({ url: "/members" })).body;
+  assert.match(roster, /<section class="parchment-panel check-panel" id="check-panel" aria-labelledby="check-heading">/, "the link lands on the whole double-check panel");
+  assert.match(roster, /<h2 id="check-heading">/);
+});

@@ -541,3 +541,10 @@ th[scope="row"] a, .panel-heading p a, .empty-ledger a, .profile-card a { displa
 @media (max-width: 700px) { .matrix-panel td, .matrix-panel th { padding: .5rem .35rem; font-size: .85rem; } }
 
 .vote-close { margin-top: .25rem; color: var(--gold-bright); }
+
+.check-notice { max-width: 93rem; margin: 0 auto 1.1rem; padding: .7rem 1rem; border: 1px solid var(--gold-dark); border-left: .25rem solid var(--gold-bright); background: rgba(240, 207, 114, .08); }
+.check-notice strong { color: var(--gold-bright); }
+.check-notice a { color: var(--bone); font-weight: 700; display: inline-block; padding: .5rem 0; margin: -.5rem 0; }
+@media print { .check-notice { display: none !important; } }
+
+.check-panel { scroll-margin-top: 1rem; }

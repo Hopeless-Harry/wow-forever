@@ -77,3 +77,10 @@ export function canFillRole(characterClass, kind) {
   if (kind === "healer") return !CANNOT_HEAL.has(characterClass);
   return true;
 }
+
+// Members whose race/class or role/class answer looks impossible, one entry per problem.
+export function answerFlags(members) {
+  return members.flatMap((member) => [comboWarning(member.race, member.characterClass), roleWarning(member.characterClass, member.role)]
+    .filter(Boolean)
+    .map((reason) => ({ member, reason })));
+}
