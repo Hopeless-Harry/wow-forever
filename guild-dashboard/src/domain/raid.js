@@ -1,9 +1,9 @@
-import { factionOf, roleOf } from "./wow-data.js";
+import { PRIMARY_PROFESSIONS, SECONDARY_PROFESSIONS, factionOf, roleOf } from "./wow-data.js";
 
 // Rough guide from community raid-planning advice: about 4 tanks, 11 healers and
-// 25 DPS in a 40-player raid, scaled down for smaller groups.
+// 25 DPS in a 40-player raid, scaled down for smaller groups (never fewer than two tanks).
 export function roleTargets(size) {
-  const tanks = Math.max(1, Math.round((4 * size) / 40));
+  const tanks = Math.max(2, Math.round((4 * size) / 40));
   const healers = Math.max(2, Math.round((11 * size) / 40));
   return { tank: tanks, healer: healers, dps: Math.max(0, size - tanks - healers) };
 }
@@ -61,4 +61,12 @@ export function professionDirectory(members) {
   return [...byProfession.entries()]
     .map(([profession, crafters]) => ({ profession, crafters: crafters.sort((a, b) => a.name.localeCompare(b.name)) }))
     .sort((a, b) => b.crafters.length - a.crafters.length || a.profession.localeCompare(b.profession));
+}
+
+export function missingProfessions(members) {
+  const covered = new Set(members.flatMap((member) => [member.profession1, member.profession2]));
+  return {
+    primary: PRIMARY_PROFESSIONS.filter((profession) => !covered.has(profession)),
+    secondary: SECONDARY_PROFESSIONS.filter((profession) => !covered.has(profession))
+  };
 }

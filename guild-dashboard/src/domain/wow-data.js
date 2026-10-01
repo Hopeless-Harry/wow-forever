@@ -36,3 +36,9 @@ export function roleOf(role) {
 }
 
 export const RAID_SIZES = Object.freeze([10, 20, 40]);
+
+export const PRIMARY_PROFESSIONS = Object.freeze(["Alchemy", "Blacksmithing", "Enchanting", "Engineering", "Herbalism", "Leatherworking", "Mining", "Skinning", "Tailoring"]);
+export const SECONDARY_PROFESSIONS = Object.freeze(["Cooking", "First Aid", "Fishing"]);
+
+// Reported launch: 4 November 2026, 3 PM PST (23:00 UTC), per third-party coverage.
+export const LAUNCH_AT = "2026-11-04T23:00:00Z";

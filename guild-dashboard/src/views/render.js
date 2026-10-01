@@ -1,5 +1,6 @@
-import { buildRaidPlan, professionDirectory } from "../domain/raid.js";
-import { RAID_SIZES, comboWarning, factionOf } from "../domain/wow-data.js";
+import { groupPlan } from "../domain/groups.js";
+import { buildRaidPlan, missingProfessions, professionDirectory } from "../domain/raid.js";
+import { LAUNCH_AT, RAID_SIZES, comboWarning, factionOf } from "../domain/wow-data.js";
 import { escapeHtml } from "./escape.js";
 
 const CLASS_NAMES = new Set(["Warrior", "Paladin", "Hunter", "Rogue", "Priest", "Shaman", "Mage", "Warlock", "Druid"]);
@@ -84,12 +85,13 @@ export function renderDashboard(snapshot) {
   if (!snapshot.records.length) return shell({ title: "Guild Ledger", active: "/", snapshot, content: emptyPanel(), scripts: ["/assets/live-refresh.js"] });
   const { leaders, distributions, totalResponses } = snapshot.stats;
   const content = `<section class="ledger-overview" aria-labelledby="muster-heading">
+    <div class="launch-count" data-launch="${escapeHtml(LAUNCH_AT)}"><span>WoW Forever launches</span><strong id="launch-countdown">4 November 2026, 3 PM PST</strong><small>Reported launch date</small></div>
     <div class="muster-count"><span>Names sealed</span><strong>${totalResponses}</strong><h2 id="muster-heading">Adventurers mustered</h2></div>
     <div class="stat-rack">${leaderCard("Favoured ruleset", leaders.server)}${leaderCard("Largest class", leaders.characterClass, "class-ledger")}${leaderCard("Main calling", leaders.role)}${leaderCard("Top profession", leaders.professions)}</div>
   </section>
   <section class="dashboard-grid">${bars("Class muster", distributions.characterClass, "wide")}${bars("Role balance", distributions.role)}${bars("Ruleset preference", distributions.server)}</section>
   <section class="parchment-panel recent-panel"><div class="panel-heading"><div><span>Latest entries</span><h2>Recent anonymous roster</h2></div><a class="wow-button" href="/responses">Open full census</a></div><div class="table-scroll"><table><thead><tr><th>Entry</th><th>Class</th><th>Role</th><th>Race</th><th>Professions</th></tr></thead><tbody>${recentRows(snapshot.records)}</tbody></table></div></section>`;
-  return shell({ title: "Guild Ledger", active: "/", snapshot, content, scripts: ["/assets/live-refresh.js"] });
+  return shell({ title: "Guild Ledger", active: "/", snapshot, content, scripts: ["/assets/countdown.js", "/assets/live-refresh.js"] });
 }
 
 export function renderResponses(snapshot) {
@@ -150,14 +152,15 @@ function planRow(label, note, have, need, state) {
   return `<tr class="plan-${escapeHtml(state)}"><th scope="row">${escapeHtml(label)}${note ? `<small>${escapeHtml(note)}</small>` : ""}</th><td>${have} / ${need}</td><td><span class="plan-badge">${STATUS_LABELS[state]}</span></td></tr>`;
 }
 
-export function renderRaidPlan(snapshot, size = 40) {
+export function renderRaidPlan(snapshot, size = 40, memberData = { members: [] }) {
   const sizeTabs = `<nav class="member-tabs" aria-label="Raid size">${RAID_SIZES.map((option) => `<a href="/raid?size=${option}"${option === size ? ' aria-current="page"' : ""}>${option}-player</a>`).join("")}</nav>`;
   const plan = buildRaidPlan(snapshot.records, size);
   const panels = plan.map((group) => `<section class="parchment-panel raid-panel"><div class="panel-heading"><div><span>${escapeHtml(group.faction)} muster</span><h2>${group.total} ${group.total === 1 ? "adventurer" : "adventurers"}</h2></div></div>
     <h3>Roles</h3><table><thead><tr><th>Role</th><th>Have / aim</th><th>Status</th></tr></thead><tbody>${group.roles.map((row) => planRow(ROLE_LABELS[row.role], "", row.have, row.need, row.status)).join("")}</tbody></table>${group.flex ? `<p class="quiet">${group.flex} flexible ${group.flex === 1 ? "player" : "players"} could fill a gap.</p>` : ""}
     <h3>Class coverage</h3><table><thead><tr><th>Class</th><th>Have / aim</th><th>Status</th></tr></thead><tbody>${group.utility.map((row) => planRow(row.label, row.note, row.have, row.need, row.status)).join("")}</tbody></table></section>`).join("");
+  const groups = groupPlan(memberData.members, size).map((faction) => `<section class="parchment-panel raid-panel wide"><div class="panel-heading"><div><span>${escapeHtml(faction.faction)} suggested groups</span><h2>${faction.groups.reduce((sum, group) => sum + group.members.length, 0)} placed${faction.bench.length ? `, ${faction.bench.length} on the bench` : ""}</h2></div></div><p class="quiet">Ruleset preferences: ${faction.rulesets.map((item) => `${escapeHtml(item.label)} (${item.count})`).join(" · ")}. Players can only group within one faction and one ruleset.</p><div class="group-grid">${faction.groups.map((group, index) => `<article class="group-card"><h3>Group ${index + 1}</h3><ul>${group.members.map((member) => `<li><strong>${escapeHtml(member.name)}</strong> <span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span> <small>${escapeHtml(member.role)}</small></li>`).join("") || '<li class="quiet">Open slots</li>'}</ul></article>`).join("")}</div>${faction.bench.length ? `<p class="quiet">Bench: ${faction.bench.map((member) => escapeHtml(member.name)).join(", ")}</p>` : ""}</section>`).join("");
   const content = snapshot.records.length
-    ? `${sizeTabs}<p class="quiet">Factions cannot group together, so each side is planned separately. Targets are a rough guide from community raid advice, not a rule.</p><div class="statistics-grid">${panels}</div>`
+    ? `${sizeTabs}<p class="quiet">Factions cannot group together, so each side is planned separately. Targets are a rough guide from community raid advice, not a rule.</p><div class="statistics-grid">${panels}</div>${groups}`
     : emptyPanel();
   return shell({ title: "Raid Planner", active: "/raid", snapshot, content, scripts: ["/assets/live-refresh.js"] });
 }
@@ -165,8 +168,12 @@ export function renderRaidPlan(snapshot, size = 40) {
 export function renderProfessions(snapshot, memberData) {
   const directory = professionDirectory(memberData.members);
   const cards = directory.map((entry) => `<section class="parchment-panel profession-card"><h2>${escapeHtml(entry.profession)} <small>${entry.crafters.length}</small></h2><ul>${entry.crafters.map((member) => `<li><strong>${escapeHtml(member.name)}</strong> <span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span></li>`).join("")}</ul></section>`).join("");
+  const gaps = missingProfessions(memberData.members);
+  const gapPanel = directory.length && (gaps.primary.length || gaps.secondary.length)
+    ? `<section class="parchment-panel profession-card"><h2>Nobody yet</h2><p>${[...gaps.primary, ...gaps.secondary].map((name) => escapeHtml(name)).join(", ")}</p></section>`
+    : "";
   const content = directory.length
-    ? `<p class="quiet">Who can craft or gather what. Professions listed on the Form only — skill levels are not tracked.</p><div class="statistics-grid">${cards}</div>`
+    ? `<p class="quiet">Who can craft or gather what. Professions listed on the Form only — skill levels are not tracked.</p><div class="statistics-grid">${gapPanel}${cards}</div>`
     : `<section class="parchment-panel empty-ledger"><h2>No professions recorded yet</h2><p>They appear after the next successful census sync.</p></section>`;
   return shell({ title: "Profession Directory", active: "/members/professions", snapshot, content });
 }

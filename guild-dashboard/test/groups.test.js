@@ -1,0 +1,74 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { buildApp } from "../src/app.js";
+import { buildGroups, groupPlan } from "../src/domain/groups.js";
+import { missingProfessions } from "../src/domain/raid.js";
+import { buildStats } from "../src/domain/stats.js";
+
+const make = (name, characterClass, role, race = "Orc", server = "Normal") => ({ name, server, race, characterClass, role, profession1: "Mining", profession2: "Skinning" });
+
+const horde = [
+  make("T1", "Warrior", "Tank"), make("T2", "Druid", "Tank", "Tauren"),
+  make("H1", "Priest", "Healer", "Troll"), make("H2", "Shaman", "Healer"), make("H3", "Priest", "Healer", "Undead"),
+  ...Array.from({ length: 8 }, (_, i) => make(`D${i}`, i % 2 ? "Mage" : "Rogue", "DPS", i % 2 ? "Troll" : "Orc")),
+  make("F1", "Hunter", "Flexible / happy to fill", "Tauren", "Happy with either")
+];
+
+test("builds balanced groups of five with tanks and healers spread out", () => {
+  const { groups, bench } = buildGroups(horde, 10);
+  assert.equal(groups.length, 2);
+  assert.ok(groups.every((g) => g.members.length <= 5));
+  assert.equal(groups.reduce((sum, g) => sum + g.members.length, 0) + bench.length, horde.length);
+  assert.ok(groups.every((g) => g.members.some((m) => m.role === "Tank")), "each group has a tank");
+  assert.ok(groups.every((g) => g.members.some((m) => m.role === "Healer")), "each group has a healer");
+  assert.equal(new Set(groups.flatMap((g) => g.members.map((m) => m.name))).size, groups.flatMap((g) => g.members).length, "no duplicates");
+});
+
+test("benches overflow members and handles tiny rosters", () => {
+  assert.equal(buildGroups(horde, 10).bench.length, horde.length - 10);
+  const small = buildGroups([make("Solo", "Mage", "DPS")], 40);
+  assert.equal(small.groups.length, 8);
+  assert.equal(small.bench.length, 0);
+  assert.deepEqual(buildGroups([], 20).groups.map((g) => g.members.length), [0, 0, 0, 0]);
+});
+
+test("grouping is deterministic and separates factions with ruleset counts", () => {
+  const mixed = [...horde, make("A1", "Paladin", "Healer", "Human"), make("A2", "Warrior", "Tank", "Dwarf", "PvP")];
+  const first = groupPlan(mixed, 20);
+  assert.deepEqual(first, groupPlan([...mixed].reverse(), 20));
+  assert.deepEqual(first.map((f) => f.faction), ["Horde", "Alliance"]);
+  assert.deepEqual(first[0].rulesets, [{ label: "Normal", count: 13 }, { label: "Happy with either", count: 1 }]);
+  assert.ok(first[1].groups.flatMap((g) => g.members).every((m) => ["Human", "Dwarf"].includes(m.race)));
+});
+
+test("reports professions nobody has", () => {
+  const gaps = missingProfessions([make("A", "Mage", "DPS")]);
+  assert.ok(gaps.primary.includes("Alchemy") && !gaps.primary.includes("Mining"));
+  assert.deepEqual(gaps.secondary, ["Cooking", "First Aid", "Fishing"]);
+});
+
+test("pages render groups, gaps and the launch countdown safely", async (t) => {
+  const records = horde.map((m, i) => ({ anonymousId: `Response #${i + 1}`, server: m.server, race: m.race, characterClass: m.characterClass, role: m.role, profession1: m.profession1, profession2: m.profession2 }));
+  const snapshot = { records, stats: buildStats(records), status: "fresh", fetchedAt: "2026-09-22T12:00:00.000Z", lastRefreshFailed: false };
+  const memberData = { members: [...horde.slice(0, 3), make("<b>Bad</b>", "Mage", "DPS")], events: [], fetchedAt: snapshot.fetchedAt };
+  const app = buildApp({ dataService: { snapshot: () => snapshot, memberSnapshot: () => memberData }, logger: false });
+  t.after(() => app.close());
+
+  const raid = (await app.inject({ url: "/raid?size=10" })).body;
+  assert.match(raid, /Horde suggested groups/);
+  assert.match(raid, /Group 1/);
+  assert.match(raid, /Players can only group within one faction and one ruleset/);
+  assert.equal(raid.includes("<b>Bad"), false);
+
+  const professions = (await app.inject({ url: "/members/professions" })).body;
+  assert.match(professions, /Nobody yet/);
+  assert.match(professions, /Alchemy/);
+
+  const dashboard = (await app.inject({ url: "/" })).body;
+  assert.match(dashboard, /data-launch="2026-11-04T23:00:00Z"/);
+  assert.match(dashboard, /\/assets\/countdown\.js/);
+  const script = await app.inject({ url: "/assets/countdown.js" });
+  assert.equal(script.statusCode, 200);
+  assert.doesNotMatch(script.body, /https?:\/\//);
+});

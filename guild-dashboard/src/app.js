@@ -9,6 +9,7 @@ const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inl
 const ASSETS = new Map([
   ["styles.css", { type: "text/css; charset=utf-8", body: readFileSync(new URL("../public/styles.css", import.meta.url), "utf8") }],
   ["table-filters.js", { type: "text/javascript; charset=utf-8", body: readFileSync(new URL("../public/table-filters.js", import.meta.url), "utf8") }],
+  ["countdown.js", { type: "text/javascript; charset=utf-8", body: readFileSync(new URL("../public/countdown.js", import.meta.url), "utf8") }],
   ["live-refresh.js", { type: "text/javascript; charset=utf-8", body: readFileSync(new URL("../public/live-refresh.js", import.meta.url), "utf8") }]
 ]);
 
@@ -45,7 +46,7 @@ export function buildApp({ dataService, logger = true }) {
   app.get("/raid", async (request, reply) => {
     const requested = Number(request.query?.size);
     const size = RAID_SIZES.includes(requested) ? requested : 40;
-    return html(reply).send(renderRaidPlan(dataService.snapshot(), size));
+    return html(reply).send(renderRaidPlan(dataService.snapshot(), size, dataService.memberSnapshot?.() ?? { members: [] }));
   });
   app.get("/members", memberPage(renderMembers));
   app.get("/members/chronicle", memberPage(renderMemberChronicle));

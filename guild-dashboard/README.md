@@ -7,7 +7,9 @@ A lightweight, privacy-first guild census for the **Moms Against Magic — WoW F
 - Shows anonymous class, role, race, ruleset, and profession summaries.
 - Provides a searchable and filterable Guild Census.
 - Raid Planner (`/raid?size=10|20|40`): per-faction role balance against rough community targets (about 4 tanks, 11 healers, 25 DPS for 40 players) and class coverage (Warrior tank, Druid, Hunter, Paladin, Shaman, Priest, Mage, Warlock). Factions are planned separately because they cannot group together.
-- Profession Directory (`/members/professions`): who can craft or gather each profession, most-covered first.
+- Suggested raid groups on `/raid`: names placed into groups of five per faction (a tank per group, healers spread out), with overflow benched and a ruleset breakdown, because players can only group within one faction and one ruleset.
+- Profession Directory (`/members/professions`): who can craft or gather each profession, most-covered first, plus the professions nobody has yet.
+- Launch countdown on the dashboard (reported launch: 4 November 2026, 3 PM PST).
 - Roster shows each member's faction and flags race/class combinations that are not in the known WoW Forever list.
 - Shows a public named Guild Roster and Guild Chronicle: everyone's current plans, plus who joined, left or changed class, role, race, ruleset or professions.
 - Refreshes from Google Sheets every two minutes without rebuilding.
@@ -230,7 +232,7 @@ Node must be version 20 or newer. Do not paste environment-file contents into su
 
 ## Game data notes
 
-`src/domain/wow-data.js` holds the race/class matrix and factions. It is the Classic matrix plus the six new combinations reported by third-party guides (Human Hunter, Dwarf Shaman, Gnome Priest, Orc Mage, Troll Warlock, Undead Paladin). Skyborne class lists were not verified, so Skyborne races are never flagged. Verify the matrix against official Blizzard information before relying on a flag, and edit that one file if it changes. Raid targets in `src/domain/raid.js` are a rough guide, not game rules. WoW Forever has no realm list (it uses four shared rulesets), so the Form's "server" answer is displayed as given.
+`src/domain/wow-data.js` holds the race/class matrix and factions. It is the Classic matrix plus the six new combinations reported by third-party guides (Human Hunter, Dwarf Shaman, Gnome Priest, Orc Mage, Troll Warlock, Undead Paladin). Skyborne class lists were not verified, so Skyborne races are never flagged. Verify the matrix against official Blizzard information before relying on a flag, and edit that one file if it changes. Raid targets in `src/domain/raid.js` are a rough guide, not game rules. WoW Forever has no realm list (it uses four shared rulesets), so the Form's "server" answer is shown as a **ruleset** preference exactly as given. Reported rulesets are Normal, PvP and Roleplay at launch, with Hardcore planned for winter 2026/27. The launch date and ruleset names come from third-party coverage and are not verified against Blizzard; edit `LAUNCH_AT` in `src/domain/wow-data.js` if the date changes.
 
 ## Privacy behaviour
 
