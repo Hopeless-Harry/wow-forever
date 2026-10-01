@@ -121,3 +121,18 @@ test("counts read naturally for one item: no '1 plans' or '1 entries' anywhere",
   assert.match((await app.inject({ url: "/statistics" })).body, /1 plan, counted exactly/);
   assert.match((await app.inject({ url: "/responses" })).body, /id="visible-count"[^>]*>1 entry</);
 });
+
+test("only the roster has a faction filter, and each roster row carries its faction", async (t) => {
+  const members = [member("Al#1"), member("Bea#2", { race: "Human", characterClass: "Paladin" })];
+  const app = appWith(members);
+  t.after(() => app.close());
+
+  const roster = (await app.inject({ url: "/members" })).body;
+  assert.match(roster, /<label>Faction<select name="faction"><option value="">Both<\/option><\/select><\/label>/);
+  assert.match(roster, /data-faction="Horde" data-search="al#1/);
+  assert.match(roster, /data-faction="Alliance" data-search="bea#2/);
+
+  const census = (await app.inject({ url: "/responses" })).body;
+  assert.equal(census.includes('name="faction"'), false);
+  assert.equal(census.includes("data-faction"), false);
+});

@@ -6,17 +6,17 @@ import vm from "node:vm";
 const script = readFileSync(new URL("../public/table-filters.js", import.meta.url), "utf8");
 
 const ROWS = [
-  { sort: "000003", class: "Warrior", role: "Tank", server: "Normal", search: "warrior tank orc horde normal" },
-  { sort: "000002", class: "Priest", role: "DPS", server: "Normal", search: "priest dps undead horde normal" },
-  { sort: "000001", class: "Priest", role: "Healer", server: "PvP", search: "priest healer troll horde pvp" },
-  { sort: "000004", class: "Hunter", role: "", server: "", search: "hunter troll" }
+  { sort: "000003", faction: "Horde", class: "Warrior", role: "Tank", server: "Normal", search: "warrior tank orc horde normal" },
+  { sort: "000002", faction: "Horde", class: "Priest", role: "DPS", server: "Normal", search: "priest dps undead horde normal" },
+  { sort: "000001", faction: "Alliance", class: "Priest", role: "Healer", server: "PvP", search: "priest healer troll horde pvp" },
+  { sort: "000004", faction: "Alliance", class: "Hunter", role: "", server: "", search: "hunter troll" }
 ];
 
-function harness({ saved = null, storageThrows = false, missing = false } = {}) {
+function harness({ saved = null, storageThrows = false, missing = false, withFaction = false } = {}) {
   const handlers = {};
   const select = (extra = {}) => ({ value: "", options: [], add(option) { this.options.push(option); }, ...extra });
   const form = {
-    elements: { search: { value: "" }, class: select(), role: select(), server: select(), sort: select({ value: "name" }) },
+    elements: { search: { value: "" }, class: select(), role: select(), server: select(), sort: select({ value: "name" }), ...(withFaction ? { faction: select() } : {}) },
     addEventListener: (type, handler) => { handlers[type] = handler; }
   };
   const rows = ROWS.map((data) => ({ dataset: { ...data }, hidden: false }));
@@ -131,4 +131,32 @@ test("pages without the filter form or table are left alone", () => {
   const h = harness({ missing: true });
   assert.deepEqual(h.handlers, {});
   assert.equal(h.count.textContent, "");
+});
+
+test("a faction filter, when the page has one, lists factions, filters, combines and is remembered", () => {
+  const h = harness({ withFaction: true });
+  assert.deepEqual(h.form.elements.faction.options.map((o) => o.value), ["Alliance", "Horde"]);
+
+  h.form.elements.faction.value = "Alliance";
+  h.fire();
+  assert.deepEqual(h.visible().sort(), ["000001", "000004"]);
+  assert.equal(h.count.textContent, "2 members");
+
+  h.form.elements.class.value = "Priest";
+  h.fire();
+  assert.deepEqual(h.visible(), ["000001"], "combines with the other filters");
+
+  const saved = JSON.parse(h.store.get("table-filters:/members"));
+  assert.equal(saved.faction, "Alliance");
+  const reloaded = harness({ withFaction: true, saved });
+  assert.equal(reloaded.form.elements.faction.value, "Alliance");
+  assert.deepEqual(reloaded.visible(), ["000001"]);
+});
+
+test("pages without a faction filter ignore faction data entirely", () => {
+  const h = harness();
+  assert.equal(h.form.elements.faction, undefined);
+  h.fire();
+  assert.equal(h.visible().length, 4);
+  assert.equal("faction" in JSON.parse(h.store.get("table-filters:/members") ?? "{}"), false);
 });

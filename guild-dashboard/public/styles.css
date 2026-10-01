@@ -340,7 +340,7 @@ tbody tr:hover { background: rgba(143,48,39,.09); }
 
 .census-tools {
   display: grid;
-  grid-template-columns: minmax(14rem, 2fr) repeat(4, minmax(8rem, 1fr));
+  grid-template-columns: minmax(11rem, 2fr) repeat(auto-fit, minmax(7rem, 1fr));
   gap: .75rem;
   margin-bottom: 1rem;
 }

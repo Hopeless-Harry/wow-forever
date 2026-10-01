@@ -9,7 +9,8 @@
   const noResults = document.querySelector(".no-results");
   const storageKey = `table-filters:${location.pathname}`;
 
-  for (const name of ["class", "role", "server"]) {
+  const selects = ["class", "role", "server", "faction"].filter((name) => form.elements[name]);
+  for (const name of selects) {
     const select = form.elements[name];
     const values = [...new Set(originalRows.map((row) => row.dataset[name]).filter(Boolean))].sort();
     for (const value of values) select.add(new Option(value, value));
@@ -18,7 +19,7 @@
   function remember() {
     try {
       sessionStorage.setItem(storageKey, JSON.stringify(Object.fromEntries(
-        ["search", "class", "role", "server", "sort"].map((field) => [field, form.elements[field].value])
+        ["search", ...selects, "sort"].map((field) => [field, form.elements[field].value])
       )));
     } catch {
       // Filters simply reset on reload when storage is unavailable.
@@ -28,7 +29,7 @@
   function restore() {
     try {
       const saved = JSON.parse(sessionStorage.getItem(storageKey) || "{}");
-      for (const field of ["search", "class", "role", "server", "sort"]) {
+      for (const field of ["search", ...selects, "sort"]) {
         if (typeof saved[field] === "string") form.elements[field].value = saved[field];
       }
     } catch {
@@ -49,7 +50,8 @@
       const matches = (!query || row.dataset.search.includes(query))
         && (!form.elements.class.value || row.dataset.class === form.elements.class.value)
         && (!form.elements.role.value || row.dataset.role === form.elements.role.value)
-        && (!form.elements.server.value || row.dataset.server === form.elements.server.value);
+        && (!form.elements.server.value || row.dataset.server === form.elements.server.value)
+        && (!form.elements.faction || !form.elements.faction.value || row.dataset.faction === form.elements.faction.value);
       row.hidden = !matches;
       if (matches) visible += 1;
       body.append(row);
