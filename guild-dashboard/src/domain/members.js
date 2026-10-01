@@ -2,7 +2,7 @@ export const MEMBER_FIELDS = Object.freeze(["server", "race", "characterClass", 
 export const MAX_MEMBER_EVENTS = 500;
 
 const FIELD_LABELS = Object.freeze({
-  server: "realm preference",
+  server: "ruleset preference",
   race: "race",
   characterClass: "class",
   role: "role",

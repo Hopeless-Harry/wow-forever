@@ -18,7 +18,7 @@ test("serves local styles and scripts with no external asset dependency", async 
   const app = buildApp({ dataService: safeService(), logger: false });
   t.after(() => app.close());
 
-  for (const url of ["/assets/styles.css", "/assets/responses.js", "/assets/live-refresh.js"]) {
+  for (const url of ["/assets/styles.css", "/assets/table-filters.js", "/assets/live-refresh.js"]) {
     const response = await app.inject({ url });
     assert.equal(response.statusCode, 200, url);
     assert.doesNotMatch(response.body, /https?:\/\//);

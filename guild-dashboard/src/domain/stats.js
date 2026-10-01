@@ -25,7 +25,7 @@ export function buildStats(records) {
   );
 
   const leaders = Object.fromEntries(
-    Object.entries(distributions).map(([key, values]) => [
+    Object.entries(distributions).filter(([key]) => key !== "faction").map(([key, values]) => [
       key,
       values.length ? { label: values[0].label, count: values[0].count } : null
     ])

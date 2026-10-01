@@ -100,8 +100,29 @@ test("roster has search and filters, and statistics show the faction split", asy
   assert.match(roster, /<label>Search the roster<input type="search"/);
   assert.match(roster, /data-class="Warrior" data-role="Tank" data-server="Normal"/);
   assert.match(roster, /<table id="census-table"/);
-  assert.match(roster, /\/assets\/responses\.js/);
+  assert.match(roster, /\/assets\/table-filters\.js/);
 
   assert.match((await app.inject({ url: "/statistics" })).body, /Faction split/);
   assert.deepEqual(buildStats(records).distributions.faction.map((f) => [f.label, f.count]), [["Alliance", 2], ["Horde", 2]]);
+});
+
+test("roster markup carries per-page sort keys, nouns and searchable faction and change text", async (t) => {
+  const snapshot = { records, stats: buildStats(records), status: "fresh", fetchedAt: "2026-09-22T12:00:00.000Z", lastRefreshFailed: false };
+  const memberData = {
+    members: [{ name: "Response #9", server: "Normal", race: "Orc", characterClass: "Warrior", role: "Tank", profession1: "Mining", profession2: "Tailoring" }],
+    events: [{ type: "joined", at: snapshot.fetchedAt, name: "Response #9", entry: { server: "Normal", race: "Orc", characterClass: "Warrior", role: "Tank", profession1: "Mining", profession2: "Tailoring" } }],
+    fetchedAt: snapshot.fetchedAt
+  };
+  const app = buildApp({ dataService: { snapshot: () => snapshot, memberSnapshot: () => memberData }, logger: false });
+  t.after(() => app.close());
+
+  const roster = (await app.inject({ url: "/members" })).body;
+  assert.match(roster, /data-sort="Response #9"/);
+  assert.match(roster, /data-search="[^"]*horde[^"]*joined/);
+  assert.match(roster, /data-singular="member" data-plural="members"/);
+
+  const census = (await app.inject({ url: "/responses" })).body;
+  assert.match(census, /data-sort="000001"/);
+  assert.match(census, /data-singular="entry" data-plural="entries"/);
+  assert.equal("faction" in buildStats(records).leaders, false);
 });

@@ -4,12 +4,12 @@ A lightweight, privacy-first guild census for the **Moms Against Magic — WoW F
 
 ## What it does
 
-- Shows anonymous class, role, race, realm, and profession summaries.
+- Shows anonymous class, role, race, ruleset, and profession summaries.
 - Provides a searchable and filterable Guild Census.
 - Raid Planner (`/raid?size=10|20|40`): per-faction role balance against rough community targets (about 4 tanks, 11 healers, 25 DPS for 40 players) and class coverage (Warrior tank, Druid, Hunter, Paladin, Shaman, Priest, Mage, Warlock). Factions are planned separately because they cannot group together.
 - Profession Directory (`/members/professions`): who can craft or gather each profession, most-covered first.
 - Roster shows each member's faction and flags race/class combinations that are not in the known WoW Forever list.
-- Shows a public named Guild Roster and Guild Chronicle: everyone's current plans, plus who joined, left or changed class, role, race, realm or professions.
+- Shows a public named Guild Roster and Guild Chronicle: everyone's current plans, plus who joined, left or changed class, role, race, ruleset or professions.
 - Refreshes from Google Sheets every two minutes without rebuilding.
 - Continues serving the last safe cache if Google is unavailable.
 - Runs as a small Node.js service on a Raspberry Pi 3.

@@ -8,7 +8,7 @@ import { renderDashboard, renderMemberChronicle, renderMembers, renderProfession
 const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 const ASSETS = new Map([
   ["styles.css", { type: "text/css; charset=utf-8", body: readFileSync(new URL("../public/styles.css", import.meta.url), "utf8") }],
-  ["responses.js", { type: "text/javascript; charset=utf-8", body: readFileSync(new URL("../public/responses.js", import.meta.url), "utf8") }],
+  ["table-filters.js", { type: "text/javascript; charset=utf-8", body: readFileSync(new URL("../public/table-filters.js", import.meta.url), "utf8") }],
   ["live-refresh.js", { type: "text/javascript; charset=utf-8", body: readFileSync(new URL("../public/live-refresh.js", import.meta.url), "utf8") }]
 ]);
 
