@@ -1,7 +1,7 @@
 import { ERROR_COPY } from "../data/errors.js";
 import { groupPlan } from "../domain/groups.js";
 import { buildSummary } from "../domain/summary.js";
-import { buildRaidPlan, missingProfessions, professionDirectory } from "../domain/raid.js";
+import { buildRaidPlan, gapCandidates, missingProfessions, professionDirectory } from "../domain/raid.js";
 import { LAUNCH_AT, RAID_SIZES, comboWarning, factionOf, forRuleset, roleWarning, rulesetOptions } from "../domain/wow-data.js";
 import { escapeHtml } from "./escape.js";
 
@@ -168,6 +168,14 @@ export function renderMemberChronicle(snapshot, memberData) {
 }
 
 const ROLE_LABELS = { tank: "Tanks", healer: "Healers", dps: "Damage dealers" };
+
+function gapNote(group, gaps) {
+  if (gaps?.length) {
+    const items = gaps.map((gap) => `<li><strong>${ROLE_LABELS[gap.role]} (short ${gap.short}):</strong> ${gap.candidates.map((member) => `<a href="/member?name=${encodeURIComponent(member.name)}">${escapeHtml(member.name)}</a> <span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span>`).join(", ")}</li>`).join("");
+    return `<h3>Flexible players who could fill the gaps</h3><ul class="gap-list">${items}</ul>`;
+  }
+  return group.flex ? `<p class="quiet">${group.flex} flexible ${group.flex === 1 ? "player" : "players"} could fill a gap.</p>` : "";
+}
 const STATUS_LABELS = { ready: "Covered", short: "Short", missing: "Missing" };
 
 function planRow(label, note, have, need, state) {
@@ -180,8 +188,9 @@ export function renderRaidPlan(snapshot, size = 40, memberData = { members: [] }
   const options = rulesetOptions([...snapshot.records, ...memberData.members]);
   const rulesetTabs = options.length > 1 ? `<nav class="member-tabs" aria-label="Ruleset"><a href="${escapeHtml(query(size, ""))}"${!ruleset ? ' aria-current="page"' : ""}>All rulesets</a>${options.map((option) => `<a href="${escapeHtml(query(size, option))}"${option === ruleset ? ' aria-current="page"' : ""}>${escapeHtml(option)}</a>`).join("")}</nav>` : "";
   const plan = buildRaidPlan(forRuleset(snapshot.records, ruleset), size);
+  const gapsByFaction = gapCandidates(forRuleset(memberData.members, ruleset), size);
   const panels = plan.map((group) => `<section class="parchment-panel raid-panel"><div class="panel-heading"><div><span>${escapeHtml(group.faction)} muster</span><h2>${group.total} ${group.total === 1 ? "adventurer" : "adventurers"}</h2></div></div>
-    <h3>Roles</h3><div class="table-scroll"><table aria-label="${escapeHtml(group.faction)} role balance"><thead><tr><th>Role</th><th>Have / aim</th><th>Status</th></tr></thead><tbody>${group.roles.map((row) => planRow(ROLE_LABELS[row.role], "", row.have, row.need, row.status)).join("")}</tbody></table></div>${group.flex ? `<p class="quiet">${group.flex} flexible ${group.flex === 1 ? "player" : "players"} could fill a gap.</p>` : ""}
+    <h3>Roles</h3><div class="table-scroll"><table aria-label="${escapeHtml(group.faction)} role balance"><thead><tr><th>Role</th><th>Have / aim</th><th>Status</th></tr></thead><tbody>${group.roles.map((row) => planRow(ROLE_LABELS[row.role], "", row.have, row.need, row.status)).join("")}</tbody></table></div>${gapNote(group, gapsByFaction.get(group.faction))}
     <h3>Class coverage</h3><div class="table-scroll"><table aria-label="${escapeHtml(group.faction)} class coverage"><thead><tr><th>Class</th><th>Have / aim</th><th>Status</th></tr></thead><tbody>${group.utility.map((row) => planRow(row.label, row.note, row.have, row.need, row.status)).join("")}</tbody></table></div></section>`).join("");
   const groups = groupPlan(forRuleset(memberData.members, ruleset), size).map((faction) => `<section class="parchment-panel raid-panel wide"><div class="panel-heading"><div><span>${escapeHtml(faction.faction)} suggested groups</span><h2>${faction.groups.reduce((sum, group) => sum + group.members.length, 0)} placed${faction.bench.length ? `, ${faction.bench.length} on the bench` : ""}</h2></div></div><p class="quiet">Ruleset preferences: ${faction.rulesets.map((item) => `${escapeHtml(item.label)} (${item.count})`).join(" · ")}. Players can only group within one faction and one ruleset.</p><div class="group-grid">${faction.groups.map((group, index) => `<article class="group-card"><h3>Group ${index + 1}</h3><ul>${group.members.map((member) => `<li><strong>${escapeHtml(member.name)}</strong><span class="member-meta"><span class="class-chip${classToken(member.characterClass)}">${escapeHtml(member.characterClass)}</span> <span aria-hidden="true">·</span> ${escapeHtml(member.role)}</span></li>`).join("") || '<li class="quiet">Open slots</li>'}</ul></article>`).join("")}</div>${faction.bench.length ? `<p class="quiet">Bench: ${faction.bench.map((member) => escapeHtml(member.name)).join(", ")}</p>` : ""}</section>`).join("");
   const content = snapshot.records.length

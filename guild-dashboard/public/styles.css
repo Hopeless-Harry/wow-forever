@@ -499,3 +499,6 @@ th[scope="row"] a, .panel-heading p a, .empty-ledger a, .profile-card a { displa
 .summary-text { width: 100%; box-sizing: border-box; padding: .8rem; color: var(--bone); background: #1d1812; border: 1px solid var(--gold-dark); font: .9rem/1.5 ui-monospace, Menlo, Consolas, monospace; resize: vertical; min-height: 15rem; field-sizing: content; }
 .summary-panel .quiet { min-height: 1.4rem; margin: .5rem 0 0; }
 @media print { .summary-panel { display: none !important; } }
+
+.gap-list { margin: 0 0 .5rem; padding-left: 1.1rem; display: grid; gap: .4rem; }
+.gap-list a { font-weight: 700; }

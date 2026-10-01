@@ -70,3 +70,10 @@ export function forRuleset(items, ruleset) {
   if (!ruleset) return items;
   return items.filter((item) => item.server === ruleset || isFlexibleRuleset(item.server));
 }
+
+// Whether a class can reasonably take a role. Only clear impossibilities say no.
+export function canFillRole(characterClass, kind) {
+  if (kind === "tank") return !CANNOT_TANK.has(characterClass);
+  if (kind === "healer") return !CANNOT_HEAL.has(characterClass);
+  return true;
+}

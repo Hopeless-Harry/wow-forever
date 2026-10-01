@@ -1,4 +1,4 @@
-import { PRIMARY_PROFESSIONS, SECONDARY_PROFESSIONS, factionOf, roleOf } from "./wow-data.js";
+import { PRIMARY_PROFESSIONS, SECONDARY_PROFESSIONS, canFillRole, factionOf, roleOf } from "./wow-data.js";
 
 // Rough guide from community raid-planning advice: about 4 tanks, 11 healers and
 // 25 DPS in a 40-player raid, scaled down for smaller groups (never fewer than two tanks).
@@ -69,4 +69,28 @@ export function missingProfessions(members) {
     primary: PRIMARY_PROFESSIONS.filter((profession) => !covered.has(profession)),
     secondary: SECONDARY_PROFESSIONS.filter((profession) => !covered.has(profession))
   };
+}
+
+// For each faction and short role, the flexible players whose class could take it on.
+export function gapCandidates(members, size) {
+  const targets = roleTargets(size);
+  const byFaction = new Map();
+  for (const member of members) {
+    const faction = factionOf(member.race);
+    if (!byFaction.has(faction)) byFaction.set(faction, []);
+    byFaction.get(faction).push(member);
+  }
+  const result = new Map();
+  for (const [faction, group] of byFaction) {
+    const flexible = group.filter((member) => roleOf(member.role) === "flex").sort((a, b) => a.name.localeCompare(b.name));
+    const gaps = [];
+    for (const role of ["tank", "healer", "dps"]) {
+      const have = group.filter((member) => roleOf(member.role) === role).length;
+      const short = targets[role] - have;
+      const candidates = flexible.filter((member) => canFillRole(member.characterClass, role));
+      if (short > 0 && candidates.length) gaps.push({ role, short, candidates });
+    }
+    if (gaps.length) result.set(faction, gaps);
+  }
+  return result;
 }
